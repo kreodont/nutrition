@@ -6,6 +6,7 @@ import os
 def nutrition_lambda(event: dict, context: dict) -> int:
     """
     Gets nutrition data from https://developer.nutritionix.com
+
     :param event: input parameters
         event['product'] - product name in English
 
@@ -47,4 +48,4 @@ def nutrition_lambda(event: dict, context: dict) -> int:
 
 
 if __name__ == '__main__':
-    nutrition_lambda({'product': 'dried cod'}, {})
+    nutrition_lambda({'product': 'vegetable soup'}, {})

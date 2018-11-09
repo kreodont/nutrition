@@ -44,6 +44,6 @@ def translation_lambda(event: dict, context: dict) -> str:
 
 
 if __name__ == '__main__':
-    print(translation_lambda({'phrase_to_translate': 'сушеная треска'}, {}))
+    print(translation_lambda({'phrase_to_translate': 'щи'}, {}))
     # import doctest
     # doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)
