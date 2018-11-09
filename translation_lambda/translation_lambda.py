@@ -10,14 +10,17 @@ def translation_lambda(event: dict, context: dict) -> str:
 
     Example 1 (Standard case):
     >>> translation_lambda({'phrase_to_translate': 'булка'}, {})
+    {'phrase_to_translate': 'булка', 'target_language': 'en', 'source_language': 'ru'}
     'A bun'
 
     Example 2 (Empty phrase):
     >>> translation_lambda({'phrase_to_translate': ''}, {})
+    {'phrase_to_translate': '', 'target_language': 'en', 'source_language': 'ru'}
     ''
 
     Example 3 (Unable to translate):
     >>> translation_lambda({'phrase_to_translate': 'гыбламфмя'}, {})
+    {'phrase_to_translate': 'гыбламфмя', 'target_language': 'en', 'source_language': 'ru'}
     'Gyblamfma'
 
     """
@@ -25,6 +28,8 @@ def translation_lambda(event: dict, context: dict) -> str:
     event.setdefault('phrase_to_translate', '')
     event.setdefault('target_language', 'en')
     event.setdefault('source_language', 'ru')
+    print(event)
+
     if event['phrase_to_translate'] == '':
         return ''
 
