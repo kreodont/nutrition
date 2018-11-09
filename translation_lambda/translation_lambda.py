@@ -8,9 +8,17 @@ def translation_lambda(event: dict, context: dict) -> str:
     :param context: indicates if it runs in AWS environment
     :return: string translation
 
-    Example:
+    Example 1 (Standard case):
     >>> translation_lambda({'phrase_to_translate': 'булка'}, {})
     'A bun'
+
+    Example 2 (Empty phrase):
+    >>> translation_lambda({'phrase_to_translate': ''}, {})
+    ''
+
+    Example 3 (Unable to translate):
+    >>> translation_lambda({'phrase_to_translate': 'гыбламфмя'}, {})
+    'Gyblamfma'
 
     """
     lambda_mode = bool(context)  # type: bool
