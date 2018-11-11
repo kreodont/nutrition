@@ -1,3 +1,6 @@
+from functools import partial
+from botocore.vendored import requests
+import json
 
 
 def construct_response(*,
@@ -26,6 +29,16 @@ def construct_response(*,
     }
 
 
+def make_request_to_kodi(*, endpoint):
+    try:
+        requests.post('https://omertu-googlehomekodi-60.glitch.me/' + endpoint,
+                      data=json.dumps({'token': ''}),
+                      headers={'content-type': 'application/json'},
+                      timeout=0.1)
+    except requests.exceptions.ReadTimeout:
+        pass
+
+
 def yandex_request(event: dict, context: dict) -> dict:
     """
     Parses request from yandex and returns response
@@ -47,14 +60,35 @@ def yandex_request(event: dict, context: dict) -> dict:
     if not session:
         return construct_response(text='Неверный запрос, нет поля session')
 
-    message_id = session.get('message_id')
-    is_new_session = session.get('new')
-    text = 'OK'
-    if is_new_session:
-        text = 'Я могу запустить видео, остановить его, или поставить на паузу. Произнесите команду'
+    construct_response_with_session = partial(construct_response,
+                                              session=session['session_id'],
+                                              user_id=session['user_id'],
+                                              message_id=session.get('message_id'),
+                                              )
 
-    return construct_response(text=text,
-                              message_id=message_id)
+    is_new_session = session.get('new')
+    if is_new_session:
+        return construct_response_with_session(text='Я могу запустить видео, остановить его, '
+                                                    'или поставить на паузу. Произнесите команду')
+
+    tokens = request.get('nlu').get('tokens')  # type: list
+    if 'запустить' in tokens or \
+            'запуск' in tokens or \
+            'выбрать' in tokens or \
+            'выбор' in tokens:
+        make_request_to_kodi(endpoint='navselect')
+        return construct_response_with_session(text='Запускаю')
+
+    if 'остановить' in tokens or \
+            'стоп' in tokens:
+        make_request_to_kodi(endpoint='stop')
+        return construct_response_with_session(text='Останавливаю')
+
+    if 'пауза' in tokens:
+        make_request_to_kodi(endpoint='playpause')
+        return construct_response_with_session(text='Выполняю')
+
+    return construct_response_with_session(text='Не поняла запроса')
 
 
 if __name__ == '__main__':
