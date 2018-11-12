@@ -3,7 +3,7 @@ import json
 import os
 
 
-def nutrition_lambda(event: dict, context: dict) -> int:
+def nutritionix_lambda(event: dict, context: dict) -> int:
     """
     Gets nutrition data from https://developer.nutritionix.com
 
@@ -21,13 +21,13 @@ def nutrition_lambda(event: dict, context: dict) -> int:
         x_app_id = os.environ['NUTRITIONIXID']
         x_app_key = os.environ['NUTRITIONIXKEY']
 
-    event.setdefault('product', '')
+    event.setdefault('phrase', '')
     print(event)
-    if not event['product']:
+    if not event['phrase']:
         return -1
 
     request_data = {'line_delimited': False,
-                    'query': event['product'],
+                    'query': event['phrase'],
                     'timezone': "Europe/Moscow",
                     'use_branded_foods': False,
                     'use_raw_foods': False,
@@ -48,4 +48,4 @@ def nutrition_lambda(event: dict, context: dict) -> int:
 
 
 if __name__ == '__main__':
-    nutrition_lambda({'product': 'vegetable soup'}, {})
+    print(nutritionix_lambda({'phrase': 'vegetable soup'}, {}))
