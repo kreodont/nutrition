@@ -10,11 +10,13 @@ def construct_response(*,
                        session='',
                        message_id='',
                        user_id='',
-                       verions='1.0'):
+                       verions='1.0',
+                       debug=False,
+                       ):
     if tts is None:
         tts = text
 
-    return {
+    response = {
         "response": {
             "text": text,
             "tts": tts,
@@ -27,6 +29,11 @@ def construct_response(*,
         },
         "version": verions
     }
+
+    if debug:
+        print(response)
+
+    return response
 
 
 def make_request_to_kodi(*, endpoint):
@@ -64,6 +71,7 @@ def yandex_request(event: dict, context: dict) -> dict:
                                               session=session['session_id'],
                                               user_id=session['user_id'],
                                               message_id=session.get('message_id'),
+                                              debug=debug,
                                               )
 
     is_new_session = session.get('new')
@@ -75,12 +83,14 @@ def yandex_request(event: dict, context: dict) -> dict:
     if 'запустить' in tokens or \
             'запуск' in tokens or \
             'выбрать' in tokens or \
-            'выбор' in tokens:
+            'выбор' in tokens or \
+            'запусти' in tokens:
         make_request_to_kodi(endpoint='navselect')
         return construct_response_with_session(text='Запускаю')
 
     if 'остановить' in tokens or \
-            'стоп' in tokens:
+            'стоп' in tokens or \
+            'останови' in tokens:
         make_request_to_kodi(endpoint='stop')
         return construct_response_with_session(text='Останавливаю')
 
@@ -88,7 +98,11 @@ def yandex_request(event: dict, context: dict) -> dict:
         make_request_to_kodi(endpoint='playpause')
         return construct_response_with_session(text='Выполняю')
 
-    return construct_response_with_session(text='Не поняла запроса')
+    if 'помощь' in tokens or 'справка' in tokens:
+        return construct_response_with_session(text='Чтобы я смогла управлять вашим Kodi, потребуются дополнительные '
+                                                    'настройки: https://github.com/OmerTu/GoogleHomeKodi')
+
+    return construct_response_with_session(text='Ну, пока я умею только управлять Kodi')
 
 
 if __name__ == '__main__':
