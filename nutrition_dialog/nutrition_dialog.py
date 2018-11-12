@@ -69,9 +69,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     ...    'version': '1.0',
     ... },
     ...        {})
-    {'response': {'text': 'Ну, пока я умею только управлять Kodi', 'tts': 'Ну, пока я умею только управлять Kodi',
-    'end_session': False}, 'session': {'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6', 'message_id': 1,
+    {'response': {'text': 'Это не похоже на название еды. Попробуйте сформулировать иначе',
+    'tts': 'Это не похоже на название еды. Попробуйте сформулировать иначе', 'end_session': False},
+    'session': {'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6', 'message_id': 1,
     'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E'}, 'version': '1.0'}
+
 
     :param event:
     :param context:
@@ -97,8 +99,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                               )
 
     is_new_session = session.get('new')
-    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. Чтобы я смогла управлять вашим ' \
-                'Kodi, потребуются дополнительные настройки: https://github.com/OmerTu/GoogleHomeKodi'
+    help_text = 'Скажите мне сколько и чего вы съели, а я скажу сколько это калорий. ' \
+                'Например: картофельное пюре, 300 грамм'
     if is_new_session:
         return construct_response_with_session(text=help_text)
 
@@ -107,38 +109,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if 'помощь' in tokens or 'справка' in tokens:
         return construct_response_with_session(text=help_text)
 
-    return construct_response_with_session(text='Ну, пока я умею только управлять Kodi')
+    return construct_response_with_session(text='Это не похоже на название еды. Попробуйте сформулировать иначе')
 
 
 if __name__ == '__main__':
-    nutrition_dialog({
-        'meta': {
-            'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
-            'interfaces': {
-                'screen': {},
-            },
-            'locale': 'ru-RU',
-            'timezone': 'UTC',
-        },
-        'request': {
-            'command': 'Ghb',
-            'nlu': {
-                'entities': [],
-                'tokens': ['ghb'],
-            },
-            'original_utterance': 'Ghb',
-            'type': 'SimpleUtterance',
-        },
-        'session':
-            {
-                'message_id': 1,
-                'new': False,
-                'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6',
-                'skill_id': '5799f33a-f13b-459f-b7ff-3039666f2b8b',
-                'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E',
-            },
-        'version': '1.0',
-    },
-            {})
-    # import doctest
-    # doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)
+    import doctest
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)
