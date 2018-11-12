@@ -75,8 +75,8 @@ def yandex_request(event: dict, context: dict) -> dict:
                                               )
 
     is_new_session = session.get('new')
-    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. Чтобы я смогла управлять вашим Kodi, ' \
-                'потребуются дополнительные настройки: https://github.com/OmerTu/GoogleHomeKodi'
+    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. Чтобы я смогла управлять вашим ' \
+                'Kodi, потребуются дополнительные настройки: https://github.com/OmerTu/GoogleHomeKodi'
     if is_new_session:
         return construct_response_with_session(text=help_text)
 
