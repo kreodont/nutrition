@@ -36,7 +36,10 @@ def construct_response(*,
     return response
 
 
-def make_request_to_kodi(*, endpoint):
+def _make_request_to_kodi(*, endpoint: str, simulate: bool = False) -> None:
+    if simulate:
+        return
+
     try:
         requests.post('https://omertu-googlehomekodi-60.glitch.me/' + endpoint,
                       data=json.dumps({'token': ''}),
@@ -79,14 +82,18 @@ def yandex_request(event: dict, context: dict) -> dict:
     ...    'version': '1.0',
     ... },
     ...        {})
-    {'response': {'text': 'Ну, пока я умею только управлять Kodi', 'tts': 'Ну, пока я умею только управлять Kodi',
+    {'response': {'text': 'Ну, пока я умею только управлять Kodi. Скажи запустить, остановить или пауза.',
+    'tts': 'Ну, пока я умею только управлять Kodi. Скажи запустить, остановить или пауза.',
     'end_session': False}, 'session': {'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6', 'message_id': 1,
     'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E'}, 'version': '1.0'}
+
 
     :param event:
     :param context:
     :return:
     """
+    make_request_to_kodi = partial(_make_request_to_kodi, simulate=True)  # change to False for real work
+
     debug = bool(context)
     if debug:
         print(event)
@@ -107,65 +114,50 @@ def yandex_request(event: dict, context: dict) -> dict:
                                               )
 
     is_new_session = session.get('new')
-    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. Чтобы я смогла управлять вашим ' \
-                'Kodi, потребуются дополнительные настройки: https://github.com/OmerTu/GoogleHomeKodi'
+    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. В данный ' \
+                'момент навык является приватным. Чтобы выйти из навыка, скажите Выход.'
     if is_new_session:
         return construct_response_with_session(text=help_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
-    if 'запустить' in tokens or \
-            'запуск' in tokens or \
-            'выбрать' in tokens or \
-            'выбор' in tokens or \
-            'запусти' in tokens:
+    if ('запустить' in tokens or
+            'запуск' in tokens or
+            'выбрать' in tokens or
+            'выбор' in tokens or
+            'выбрать' in tokens or
+            'запусти' in tokens):
         make_request_to_kodi(endpoint='navselect')
         return construct_response_with_session(text='Запускаю')
 
-    if 'остановить' in tokens or \
-            'стоп' in tokens or \
-            'останови' in tokens:
+    if ('остановить' in tokens or
+            'стоп' in tokens or
+            'остановись' in tokens or
+            'останови' in tokens):
         make_request_to_kodi(endpoint='stop')
         return construct_response_with_session(text='Останавливаю')
 
-    if 'пауза' in tokens:
+    if [t for t in tokens if 'пауз' in t]:
         make_request_to_kodi(endpoint='playpause')
         return construct_response_with_session(text='Выполняю')
 
-    if 'помощь' in tokens or 'справка' in tokens:
+    if ('помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'help' in tokens):
         return construct_response_with_session(text=help_text)
 
-    return construct_response_with_session(text='Ну, пока я умею только управлять Kodi')
+    if ('выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in tokens):
+        return construct_response_with_session(text='До свидания', end_session=True)
+
+    return construct_response_with_session(text=help_text)
 
 
 if __name__ == '__main__':
-    # yandex_request({
-    #     'meta': {
-    #         'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
-    #         'interfaces': {
-    #             'screen': {},
-    #         },
-    #         'locale': 'ru-RU',
-    #         'timezone': 'UTC',
-    #     },
-    #     'request': {
-    #         'command': 'Ghb',
-    #         'nlu': {
-    #             'entities': [],
-    #             'tokens': ['ghb'],
-    #         },
-    #         'original_utterance': 'Ghb',
-    #         'type': 'SimpleUtterance',
-    #     },
-    #     'session':
-    #         {
-    #             'message_id': 1,
-    #             'new': False,
-    #             'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6',
-    #             'skill_id': '5799f33a-f13b-459f-b7ff-3039666f2b8b',
-    #             'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E',
-    #         },
-    #     'version': '1.0',
-    # },
-    #         {})
     import doctest
+
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)
