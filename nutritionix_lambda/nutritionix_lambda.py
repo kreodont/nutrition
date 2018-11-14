@@ -14,12 +14,8 @@ def nutritionix_lambda(event: dict, context: dict) -> dict:
     :return: calories number in 100 g of the product. Returns -1 if product not found
     """
 
-    if context:
-        x_app_id = ''
-        x_app_key = ''
-    else:
-        x_app_id = os.environ['NUTRITIONIXID']
-        x_app_key = os.environ['NUTRITIONIXKEY']
+    x_app_id = os.environ['NUTRITIONIXID']
+    x_app_key = os.environ['NUTRITIONIXKEY']
 
     event.setdefault('phrase', '')
     event.setdefault('debug', bool(context))  # Debug mode in AWS and not in local

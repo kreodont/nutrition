@@ -2,6 +2,7 @@ from functools import partial
 import boto3
 # from botocore.vendored import requests
 import json
+import random
 
 
 def construct_response(*,
@@ -80,6 +81,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     :param context:
     :return:
     """
+    default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
+                     'Хм. Не могу понять что это',
+                     'Что, простите?',
+                     ]
     event.setdefault('debug', bool(context))
 
     request = event.get('request')
@@ -124,13 +129,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             InvocationType='RequestResponse',
             Payload=json.dumps({'phrase': full_phrase_translated}))['Payload'].read().decode('utf-8')
 
+    if 'food' not in
+
     if event['debug']:
         print(f'Response from Nuntionix: {nutrionix_dict}')
 
     if 'помощь' in tokens or 'справка' in tokens:
         return construct_response_with_session(text=help_text)
 
-    return construct_response_with_session(text='Это не похоже на название еды. Попробуйте сформулировать иначе')
+    return construct_response_with_session(text=random.choice(default_texts))
 
 
 if __name__ == '__main__':
