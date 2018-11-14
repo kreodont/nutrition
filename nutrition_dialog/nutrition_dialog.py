@@ -113,15 +113,16 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     full_phrase_translated = lambda_client.invoke(
             FunctionName='translation_lambda',
             InvocationType='RequestResponse',
-            Payload=json.dumps({'phrase_to_translate': full_phrase}))['Payload'].read()
+            Payload=json.dumps({'phrase_to_translate': full_phrase},
+                               ))['Payload'].read().decode('utf-8')
 
     if event['debug']:
         print(f'Translated: {full_phrase_translated}')
 
     nutrionix_dict = lambda_client.invoke(
-            FunctionName='nutrionix_lambda',
+            FunctionName='nutritionix_lambda',
             InvocationType='RequestResponse',
-            Payload=json.dumps({'phrase': full_phrase_translated}))
+            Payload=json.dumps({'phrase': full_phrase_translated}))['Payload'].read().decode('utf-8')
 
     if event['debug']:
         print(f'Response from Nuntionix: {nutrionix_dict}')
@@ -148,7 +149,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'Ghb',
+            'original_utterance': 'Картофельное пюре, 300 г',
             'type': 'SimpleUtterance',
         },
         'session':

@@ -42,7 +42,8 @@ def translation_lambda(event: dict, context: dict) -> str:
 
     response = translation_client.translate_text(Text=event['phrase_to_translate'],
                                                  SourceLanguageCode=event['source_language'],
-                                                 TargetLanguageCode=event['target_language']).get('TranslatedText')
+                                                 TargetLanguageCode=event['target_language']
+                                                 ).get('TranslatedText')
 
     if event['debug']:
         print(response)
