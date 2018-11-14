@@ -3,7 +3,7 @@ import json
 import os
 
 
-def nutritionix_lambda(event: dict, context: dict) -> int:
+def nutritionix_lambda(event: dict, context: dict) -> dict:
     """
     Gets nutrition data from https://developer.nutritionix.com
 
@@ -22,9 +22,12 @@ def nutritionix_lambda(event: dict, context: dict) -> int:
         x_app_key = os.environ['NUTRITIONIXKEY']
 
     event.setdefault('phrase', '')
+    event.setdefault('debug', bool(context))  # Debug mode in AWS and not in local
+
     print(event)
+
     if not event['phrase']:
-        return -1
+        return {}
 
     request_data = {'line_delimited': False,
                     'query': event['phrase'],
@@ -42,10 +45,16 @@ def nutritionix_lambda(event: dict, context: dict) -> int:
 
     if response.status_code != 200:
         print(f'Exception: {response.text}')
-        return -1
+        return {}
 
-    print(json.dumps(response.json(), sort_keys=True, indent=4, separators=(',', ': ')))
+    try:
+        response_json = response.json()
+        if event['debug']:
+            print(json.dumps(response_json, sort_keys=True, indent=4, separators=(',', ': ')))
+        return response_json
+    except json.JSONDecodeError:
+        return {}
 
 
 if __name__ == '__main__':
-    print(nutritionix_lambda({'phrase': 'vegetable soup'}, {}))
+    print(nutritionix_lambda({'phrase': 'Potato puree, 300 g'}, {}))

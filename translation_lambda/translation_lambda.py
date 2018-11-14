@@ -28,7 +28,9 @@ def translation_lambda(event: dict, context: dict) -> str:
     event.setdefault('phrase_to_translate', '')
     event.setdefault('target_language', 'en')
     event.setdefault('source_language', 'ru')
-    print(event)
+    event.setdefault('debug', bool(context))
+    if event['debug']:
+        print(event)
 
     if event['phrase_to_translate'] == '':
         return ''
@@ -38,12 +40,17 @@ def translation_lambda(event: dict, context: dict) -> str:
     else:
         translation_client = boto3.Session(profile_name='kreodont').client('translate')
 
-    return translation_client.translate_text(Text=event['phrase_to_translate'],
-                                             SourceLanguageCode=event['source_language'],
-                                             TargetLanguageCode=event['target_language']).get('TranslatedText')
+    response = translation_client.translate_text(Text=event['phrase_to_translate'],
+                                                 SourceLanguageCode=event['source_language'],
+                                                 TargetLanguageCode=event['target_language']).get('TranslatedText')
+
+    if event['debug']:
+        print(response)
+
+    return response
 
 
 if __name__ == '__main__':
-    print(translation_lambda({'phrase_to_translate': 'щи'}, {}))
+    print(translation_lambda({'phrase_to_translate': 'Картофельное пюре, 300 г'}, {}))
     # import doctest
     # doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)

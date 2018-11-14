@@ -1,6 +1,7 @@
 from functools import partial
 from botocore.vendored import requests
 import json
+import random
 
 
 def construct_response(*,
@@ -116,6 +117,9 @@ def yandex_request(event: dict, context: dict) -> dict:
     is_new_session = session.get('new')
     help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. В данный ' \
                 'момент навык является приватным. Чтобы выйти из навыка, скажите Выход.'
+    short_help_texts = ['Скажите Запустить, Остановить, или Пауза',
+                        'Запустить, Остановить, или поставить на Паузу - вот что я умею',
+                        'Прекрасно, но я умею только запускать, останавливать и ставить на паузу видео']
     if is_new_session:
         return construct_response_with_session(text=help_text)
 
@@ -144,6 +148,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             'справка' in tokens or
             'хелп' in tokens or
             'информация' in tokens or
+            '?' in tokens or
             'help' in tokens):
         return construct_response_with_session(text=help_text)
 
@@ -154,7 +159,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             'до свидания' in tokens):
         return construct_response_with_session(text='До свидания', end_session=True)
 
-    return construct_response_with_session(text=help_text)
+    return construct_response_with_session(text=random.choice(short_help_texts))
 
 
 if __name__ == '__main__':
