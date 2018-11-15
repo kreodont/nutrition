@@ -1,4 +1,5 @@
 import boto3
+import time
 
 
 def translation_lambda(event: dict, context: dict) -> str:
@@ -40,18 +41,21 @@ def translation_lambda(event: dict, context: dict) -> str:
     else:
         translation_client = boto3.Session(profile_name='kreodont').client('translate')
 
+    start_time = time.time()
     response = translation_client.translate_text(Text=event['phrase_to_translate'],
                                                  SourceLanguageCode=event['source_language'],
                                                  TargetLanguageCode=event['target_language']
                                                  ).get('TranslatedText')
+    end_time = time.time()
 
     if event['debug']:
+        print(f'{(end_time - start_time) * 1000} ms')
         print(response)
 
     return response
 
 
 if __name__ == '__main__':
-    print(translation_lambda({'phrase_to_translate': 'Картофельное пюре, 300 г'}, {}))
+    translation_lambda({'phrase_to_translate': 'слово', 'debug': True}, {})
     # import doctest
     # doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)

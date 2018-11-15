@@ -120,7 +120,8 @@ def yandex_request(event: dict, context: dict) -> dict:
     short_help_texts = ['Скажите Запустить, Остановить, или Пауза',
                         'Запустить, Остановить, или поставить на Паузу - вот что я умею',
                         'Прекрасно, но я умею только запускать, останавливать и ставить на паузу видео',
-                        'А попробуйте лучше сказать Запустить, Остановить или Пауза. С этим я прекрасно справляюсь'
+                        'А попробуйте лучше сказать Запустить, Остановить или Пауза. С этим я прекрасно справляюсь',
+                        'А вот если бы Вы сказали Запустить, Остановить, или Пауза, у нас бы все получилось',
                         ]
     if is_new_session:
         return construct_response_with_session(text=help_text)
@@ -151,6 +152,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             'хелп' in tokens or
             'информация' in tokens or
             '?' in tokens or
+            'умеешь' in tokens or
             'help' in tokens):
         return construct_response_with_session(text=help_text)
 
