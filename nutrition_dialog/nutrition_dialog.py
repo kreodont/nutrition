@@ -136,11 +136,6 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text=help_text)
 
     full_phrase = request.get('original_utterance')
-    # full_phrase_translated = lambda_client.invoke(
-    #         FunctionName='translation_lambda',
-    #         InvocationType='RequestResponse',
-    #         Payload=json.dumps({'phrase_to_translate': full_phrase},
-    #                            ))['Payload'].read().decode('utf-8')
     full_phrase_translated = translation_client.translate_text(Text=full_phrase,
                                                                SourceLanguageCode='ru',
                                                                TargetLanguageCode='en'
@@ -209,12 +204,12 @@ if __name__ == '__main__':
             'timezone': 'UTC',
         },
         'request': {
-            'command': 'Картофельное пюре, 300 г',
+            'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока и килограмм сметаны',
             'nlu': {
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'Картофельное пюре, 300 г',
+            'original_utterance': '300 грамм картофельного пюре и котлета и стакан яблочного сока и килограмм сметаны',
             'type': 'SimpleUtterance',
         },
         'session':
