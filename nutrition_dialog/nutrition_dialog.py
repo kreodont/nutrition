@@ -58,7 +58,7 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
 def nutrition_dialog(event: dict, context: dict) -> dict:
     """
     Parses request from yandex and returns response
-    Example 1 - First response
+    Example 1 - Normal case
     >>> nutrition_dialog({
     ...    'meta': {
     ...       'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
@@ -69,12 +69,12 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     ...        'timezone': 'UTC',
     ...    },
     ...    'request': {
-    ...        'command': 'Ghb',
+    ...        'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
     ...        'nlu': {
     ...            'entities': [],
     ...            'tokens': ['ghb'],
     ...        },
-    ...        'original_utterance': 'Ghb',
+    ...        'original_utterance': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
     ...        'type': 'SimpleUtterance',
     ...    },
     ...    'session':
@@ -88,10 +88,12 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     ...    'version': '1.0',
     ... },
     ...        {})
-    {'response': {'text': 'Это не похоже на название еды. Попробуйте сформулировать иначе',
-    'tts': 'Это не похоже на название еды. Попробуйте сформулировать иначе', 'end_session': False},
-    'session': {'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6', 'message_id': 1,
-    'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E'}, 'version': '1.0'}
+    {'response': {'text': '1. 339 калорий\\n2. 270.6 калорий\\n3. 114.1 калории\\nИтого: 723.7 калории',
+    'tts': '1. 339 калорий\\n2. 270.6 калорий\\n3. 114.1 калории\\nИтого: 723.7 калории',
+    'end_session': False},
+    'session': {'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6', 'message_id': 1, 'user_id':
+    '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E'},
+    'version': '1.0'}
 
 
     :param event:
@@ -121,10 +123,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                               )
 
     is_new_session = session.get('new')
-    help_text = 'Скажите мне сколько и чего вы съели, а я скажу сколько это калорий. ' \
-                'Например: 300 грамм картофельного пюре и котлета'
+    start_text = 'Скажите мне сколько и чего вы съели, а я скажу сколько это калорий. ' \
+                 'Например: 300 грамм картофельного пюре и котлета. Чтобы выйти, произнесите выход'
+    help_text = 'Я умею считать калории. Просто скажите что Вы съели, а я скажу сколько в этом было калорий. ' \
+                'Текст не должен быть слишком длинным. Желательно не более трёх блюд. Чтобы выйти, скажите выход'
+
     if is_new_session:
-        return construct_response_with_session(text=help_text)
+        return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
     if context:
@@ -132,10 +137,26 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     else:
         translation_client = boto3.Session(profile_name='kreodont').client('translate')
 
-    if 'помощь' in tokens or 'справка' in tokens:
+    if ('помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            request.get('original_utterance') == '?' or
+            'умеешь' in tokens or
+            'help' in tokens):
         return construct_response_with_session(text=help_text)
 
+    if ('выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in tokens):
+        return construct_response_with_session(text='До свидания', end_session=True)
+
     full_phrase = request.get('original_utterance')
+    if len(full_phrase) > 70:
+        return construct_response_with_session(text='Ой, текст слишком длинный. Давай попробуем частями?')
+
     full_phrase_translated = translation_client.translate_text(Text=full_phrase,
                                                                SourceLanguageCode='ru',
                                                                TargetLanguageCode='en'
@@ -154,16 +175,22 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     'use_raw_foods': False,
                     }
 
-    response = requests.post('https://trackapi.nutritionix.com/v2/natural/nutrients',
-                             data=json.dumps(request_data),
-                             headers={'content-type': 'application/json',
-                                      'x-app-id': x_app_id,
-                                      'x-app-key': x_app_key},
-                             )
+    try:
+        response = requests.post('https://trackapi.nutritionix.com/v2/natural/nutrients',
+                                 data=json.dumps(request_data),
+                                 headers={'content-type': 'application/json',
+                                          'x-app-id': x_app_id,
+                                          'x-app-key': x_app_key},
+                                 timeout=0.6,
+                                 )
+    except Exception as e:
+        if event['debug']:
+            print(e)
+        return construct_response_with_session(text=random.choice(default_texts))
 
     if response.status_code != 200:
         print(f'Exception: {response.text}')
-        return construct_response_with_session(text='Кажется что-то пошло не так, попробуйте еще раз через пару секунд')
+        return construct_response_with_session(text=random.choice(default_texts))
 
     nutrionix_dict = json.loads(response.text)
 
@@ -204,12 +231,12 @@ if __name__ == '__main__':
             'timezone': 'UTC',
         },
         'request': {
-            'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока и килограмм сметаны',
+            'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
             'nlu': {
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': '300 грамм картофельного пюре и котлета и стакан яблочного сока и килограмм сметаны',
+            'original_utterance': 'Что я ел вчера?',
             'type': 'SimpleUtterance',
         },
         'session':
