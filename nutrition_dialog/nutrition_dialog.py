@@ -1,6 +1,7 @@
 from functools import partial
 import boto3
 from botocore.vendored import requests
+from botocore.client import Config
 import json
 import random
 import time
@@ -44,12 +45,18 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
     if round_to_int:
         str_amount = str(int(amount))
     else:
-        str_amount = str(round(amount, 1))
+        str_amount = str(amount)
+        if str_amount[-1] == '0':
+            str_amount = str(int(amount))
 
-    last_digit_str = str(int(amount))[-1]
+    last_digit_str = str_amount[-1]
+    if not round_to_int and last_digit_str != '0':
+        return f'{str_amount} калории'
     if last_digit_str == '1':
         return f'{str_amount} калория'
     elif last_digit_str in ('2', '3', '4'):
+        if len(str_amount) > 1 and str_amount[-2] == '1':
+            return f'{str_amount} калорий'
         return f'{str_amount} калории'
     else:
         return f'{str_amount} калорий'
@@ -128,14 +135,16 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     help_text = 'Я умею считать калории. Просто скажите что Вы съели, а я скажу сколько в этом было калорий. ' \
                 'Текст не должен быть слишком длинным. Желательно не более трёх блюд. Чтобы выйти, скажите выход'
 
+    config = Config(connect_timeout=0.8, retries={'max_attempts': 0})
+    if context:
+        translation_client = boto3.client('translate', config=config)
+    else:
+        translation_client = boto3.Session(profile_name='kreodont').client('translate')
+
     if is_new_session:
         return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
-    if context:
-        translation_client = boto3.client('translate')
-    else:
-        translation_client = boto3.Session(profile_name='kreodont').client('translate')
 
     if ('помощь' in tokens or
             'справка' in tokens or
@@ -157,10 +166,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давай попробуем частями?')
 
-    full_phrase_translated = translation_client.translate_text(Text=full_phrase,
-                                                               SourceLanguageCode='ru',
-                                                               TargetLanguageCode='en'
-                                                               ).get('TranslatedText')
+    try:
+        full_phrase_translated = translation_client.translate_text(Text=full_phrase,
+                                                                   SourceLanguageCode='ru',
+                                                                   TargetLanguageCode='en'
+                                                                   ).get('TranslatedText')  # type:str
+    except requests.exceptions.ReadTimeout:
+        return construct_response_with_session(text=random.choice(default_texts))
+
+    full_phrase_translated = full_phrase_translated.replace('acne', 'eel')
 
     if event['debug']:
         print(f'Translated: {full_phrase_translated}')
@@ -199,25 +213,41 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             print(f'Tag foods not found or empty')
         return construct_response_with_session(text=random.choice(default_texts))
 
+    if event['debug']:
+        print(nutrionix_dict)
+
     response_text = ''  # type: str
     total_calories = 0.0  # type: float
+    total_fat = 0.0
+    total_carbonates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
 
     for number, food_name in enumerate(nutrionix_dict['foods']):
         total_calories += nutrionix_dict["foods"][number]["nf_calories"]
+        total_protein += nutrionix_dict["foods"][number]["nf_protein"]
+        total_fat += nutrionix_dict["foods"][number]["nf_total_fat"]
+        total_carbonates += nutrionix_dict["foods"][number]["nf_total_carbohydrate"]
+        total_sugar += nutrionix_dict["foods"][number]["nf_sugars"]
         number_string = ''
         if len(nutrionix_dict["foods"]) > 1:
             number_string = f'{number + 1}. '
-        response_text += f'{number_string}{choose_case(amount=nutrionix_dict["foods"][number]["nf_calories"])}\n'
+        response_text += f'{number_string}{choose_case(amount=nutrionix_dict["foods"][number]["nf_calories"])}\n' \
+                         f'({nutrionix_dict["foods"][number]["nf_protein"]} бел. ' \
+                         f'{nutrionix_dict["foods"][number]["nf_total_fat"]} жир. ' \
+                         f'{nutrionix_dict["foods"][number]["nf_total_carbohydrate"]} угл. ' \
+                         f'{nutrionix_dict["foods"][number]["nf_sugars"]} сах.)\n'
 
     if len(nutrionix_dict["foods"]) > 1:
-        response_text += f'Итого: {choose_case(amount=total_calories)}'
+        response_text += f'Итого: {choose_case(amount=total_calories)}\n({total_protein} бел. {total_fat} жир. ' \
+                         f'{total_carbonates} угл. {total_sugar} сах.)'
 
     if event['debug']:
         end_time = time.time()
         print(f'{(end_time - start_time) * 1000} ms')
         print(response_text)
 
-    return construct_response_with_session(text=response_text)
+    return construct_response_with_session(text=response_text, tts=f'Итого: {choose_case(amount=total_calories)}')
 
 
 if __name__ == '__main__':
@@ -236,7 +266,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'Что я ел вчера?',
+            'original_utterance': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
             'type': 'SimpleUtterance',
         },
         'session':
