@@ -233,14 +233,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         if len(nutrionix_dict["foods"]) > 1:
             number_string = f'{number + 1}. '
         response_text += f'{number_string}{choose_case(amount=nutrionix_dict["foods"][number]["nf_calories"])}\n' \
-                         f'({nutrionix_dict["foods"][number]["nf_protein"]} бел. ' \
-                         f'{nutrionix_dict["foods"][number]["nf_total_fat"]} жир. ' \
-                         f'{nutrionix_dict["foods"][number]["nf_total_carbohydrate"]} угл. ' \
-                         f'{nutrionix_dict["foods"][number]["nf_sugars"]} сах.)\n'
+                         f'({round(nutrionix_dict["foods"][number]["nf_protein"], 1)} бел. ' \
+                         f'{round(nutrionix_dict["foods"][number]["nf_total_fat"], 1)} жир. ' \
+                         f'{round(nutrionix_dict["foods"][number]["nf_total_carbohydrate"], 1)} угл. ' \
+                         f'{round(nutrionix_dict["foods"][number]["nf_sugars"], 1)} сах.)\n'
 
     if len(nutrionix_dict["foods"]) > 1:
-        response_text += f'Итого: {choose_case(amount=total_calories)}\n({total_protein} бел. {total_fat} жир. ' \
-                         f'{total_carbonates} угл. {total_sugar} сах.)'
+        response_text += f'Итого: {choose_case(amount=total_calories)}\n({round(total_protein, 1)} бел. ' \
+                         f'{round(total_fat, 1)} жир. ' \
+                         f'{round(total_carbonates, 1)} угл. {round(total_sugar, 1)} сах.)'
 
     if event['debug']:
         end_time = time.time()
