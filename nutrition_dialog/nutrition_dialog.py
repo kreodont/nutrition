@@ -179,7 +179,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     except requests.exceptions.ReadTimeout:
         return construct_response_with_session(text=random.choice(default_texts))
 
-    full_phrase_translated = full_phrase_translated.replace('acne', 'eel')
+    full_phrase_translated = full_phrase_translated.\
+        replace('acne', 'eel').\
+        replace('drying', 'bagel')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
