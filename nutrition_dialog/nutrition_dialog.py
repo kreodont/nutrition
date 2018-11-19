@@ -45,12 +45,12 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
     if round_to_int:
         str_amount = str(int(amount))
     else:
-        str_amount = str(amount)
+        str_amount = str(round(amount, 2))
         if str_amount[-1] == '0':
             str_amount = str(int(amount))
 
     last_digit_str = str_amount[-1]
-    if not round_to_int and last_digit_str != '0':
+    if not round_to_int and last_digit_str != '0' and '.' in str(amount):
         return f'{str_amount} калории'
     if last_digit_str == '1':
         return f'{str_amount} калория'
@@ -226,29 +226,34 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     response_text = ''  # type: str
     total_calories = 0.0  # type: float
     total_fat = 0.0
-    total_carbonates = 0.0
+    total_carbohydrates = 0.0
     total_protein = 0.0
     total_sugar = 0.0
 
     for number, food_name in enumerate(nutrionix_dict['foods']):
-        total_calories += nutrionix_dict["foods"][number]["nf_calories"]
-        total_protein += nutrionix_dict["foods"][number]["nf_protein"]
-        total_fat += nutrionix_dict["foods"][number]["nf_total_fat"]
-        total_carbonates += nutrionix_dict["foods"][number]["nf_total_carbohydrate"]
-        total_sugar += nutrionix_dict["foods"][number]["nf_sugars"]
+        calories = nutrionix_dict["foods"][number].get("nf_calories", 0) or 0
+        total_calories += calories
+        protein = nutrionix_dict["foods"][number].get("nf_protein", 0) or 0
+        total_protein += protein
+        fat = nutrionix_dict["foods"][number].get("nf_total_fat", 0) or 0
+        total_fat += fat
+        carbohydrates = nutrionix_dict["foods"][number].get("nf_total_carbohydrate", 0) or 0
+        total_carbohydrates += carbohydrates
+        sugar = nutrionix_dict["foods"][number].get("nf_sugars", 0) or 0
+        total_sugar += sugar
         number_string = ''
         if len(nutrionix_dict["foods"]) > 1:
             number_string = f'{number + 1}. '
-        response_text += f'{number_string}{choose_case(amount=nutrionix_dict["foods"][number]["nf_calories"])}\n' \
-                         f'({round(nutrionix_dict["foods"][number]["nf_protein"], 1)} бел. ' \
-                         f'{round(nutrionix_dict["foods"][number]["nf_total_fat"], 1)} жир. ' \
-                         f'{round(nutrionix_dict["foods"][number]["nf_total_carbohydrate"], 1)} угл. ' \
-                         f'{round(nutrionix_dict["foods"][number]["nf_sugars"], 1)} сах.)\n'
+        response_text += f'{number_string}{choose_case(amount=calories)}\n' \
+                         f'({round(protein, 1)} бел. ' \
+                         f'{round(fat, 1)} жир. ' \
+                         f'{round(carbohydrates, 1)} угл. ' \
+                         f'{round(sugar, 1)} сах.)\n'
 
     if len(nutrionix_dict["foods"]) > 1:
         response_text += f'Итого: {choose_case(amount=total_calories)}\n({round(total_protein, 1)} бел. ' \
                          f'{round(total_fat, 1)} жир. ' \
-                         f'{round(total_carbonates, 1)} угл. {round(total_sugar, 1)} сах.)'
+                         f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
 
     if debug:
         end_time = time.time()
