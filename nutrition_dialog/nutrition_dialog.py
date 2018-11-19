@@ -108,11 +108,16 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     :return:
     """
     start_time = time.time()
+
+    event.setdefault('debug', bool(context))
+    debug = event.get('debug')
+    if debug:
+        print(event)
+
     default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
                      'Хм. Не могу понять что это',
-                     'Что, простите?',
+                     'Такой еды я пока не знаю. Попробуйте сказать иначе.'
                      ]
-    event.setdefault('debug', bool(context))
 
     request = event.get('request')
     if not request:
@@ -126,7 +131,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                               session=session['session_id'],
                                               user_id=session['user_id'],
                                               message_id=session.get('message_id'),
-                                              debug=event['debug'],
+                                              debug=debug,
                                               )
 
     is_new_session = session.get('new')
@@ -176,7 +181,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     full_phrase_translated = full_phrase_translated.replace('acne', 'eel')
 
-    if event['debug']:
+    if debug:
         print(f'Translated: {full_phrase_translated}')
 
     x_app_id = os.environ['NUTRITIONIXID']
@@ -198,7 +203,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                  timeout=0.6,
                                  )
     except Exception as e:
-        if event['debug']:
+        if debug:
             print(e)
         return construct_response_with_session(text=random.choice(default_texts))
 
@@ -209,11 +214,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     nutrionix_dict = json.loads(response.text)
 
     if 'foods' not in nutrionix_dict or not nutrionix_dict['foods']:
-        if event['debug']:
+        if debug:
             print(f'Tag foods not found or empty')
         return construct_response_with_session(text=random.choice(default_texts))
 
-    if event['debug']:
+    if debug:
         print(nutrionix_dict)
 
     response_text = ''  # type: str
@@ -243,7 +248,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                          f'{round(total_fat, 1)} жир. ' \
                          f'{round(total_carbonates, 1)} угл. {round(total_sugar, 1)} сах.)'
 
-    if event['debug']:
+    if debug:
         end_time = time.time()
         print(f'{(end_time - start_time) * 1000} ms')
         print(response_text)
