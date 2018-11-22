@@ -2,6 +2,7 @@ from functools import partial
 from botocore.vendored import requests
 import json
 import random
+import os
 
 
 def construct_response(*,
@@ -37,13 +38,17 @@ def construct_response(*,
     return response
 
 
-def _make_request_to_kodi(*, endpoint: str, simulate: bool = False) -> None:
-    if simulate:
+def _make_request_to_kodi(*, endpoint: str, user_id: str) -> None:
+    token = os.environ['k' + user_id]
+    if not token:
+        print('Simulation mode')
         return
 
     try:
+        print(f'Real use: {endpoint}')
+        token = os.environ['k' + user_id]
         requests.post('https://omertu-googlehomekodi-60.glitch.me/' + endpoint,
-                      data=json.dumps({'token': ''}),
+                      data=json.dumps({'token': token}),
                       headers={'content-type': 'application/json'},
                       timeout=0.1)
     except requests.exceptions.ReadTimeout:
@@ -93,8 +98,6 @@ def yandex_request(event: dict, context: dict) -> dict:
     :param context:
     :return:
     """
-    make_request_to_kodi = partial(_make_request_to_kodi, simulate=True)  # change to False for real work
-
     debug = bool(context)
     if debug:
         print(event)
@@ -125,6 +128,8 @@ def yandex_request(event: dict, context: dict) -> dict:
                         ]
     if is_new_session:
         return construct_response_with_session(text=help_text)
+
+    make_request_to_kodi = partial(_make_request_to_kodi, user_id=session.get('user_id'))
 
     tokens = request.get('nlu').get('tokens')  # type: list
     if ('запустить' in tokens or
