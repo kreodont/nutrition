@@ -155,10 +155,27 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'справка' in tokens or
             'хелп' in tokens or
             'информация' in tokens or
-            request.get('original_utterance') == '?' or
+            'ping' in tokens or
+            'пинг' in tokens or
+            request.get('original_utterance').endswith('?') or
             'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
             'help' in tokens):
         return construct_response_with_session(text=help_text)
+
+    if (
+            'хорошо' in tokens or
+            'молодец' in tokens):
+        return construct_response_with_session(text='Спасибо, я стараюсь')
+
+    if (
+            'привет' in tokens or
+            'здравствуй' in tokens or
+            'здравствуйте' in tokens):
+        return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
+                                                    'а скажу сколько там было калорий и питательных веществ.')
 
     if ('выход' in tokens or
             'выйти' in tokens or
