@@ -186,7 +186,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     full_phrase = request.get('original_utterance')
     if len(full_phrase) > 70:
-        return construct_response_with_session(text='Ой, текст слишком длинный. Давай попробуем частями?')
+        return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
 
     try:
         full_phrase_translated = translation_client.translate_text(Text=full_phrase,
