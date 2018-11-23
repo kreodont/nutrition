@@ -39,20 +39,39 @@ def construct_response(*,
 
 
 def _make_request_to_kodi(*, endpoint: str, user_id: str) -> None:
-    token = os.environ['k' + user_id]
+    token = os.environ.get('k' + user_id)
     if not token:
         print('Simulation mode')
         return
 
     try:
         print(f'Real use: {endpoint}')
-        token = os.environ['k' + user_id]
+        token = os.environ.get('k' + user_id)
         requests.post('https://omertu-googlehomekodi-60.glitch.me/' + endpoint,
                       data=json.dumps({'token': token}),
                       headers={'content-type': 'application/json'},
                       timeout=0.1)
     except requests.exceptions.ReadTimeout:
         pass
+
+
+def get_help_text(*, user_id, short_version=False):
+    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. В данный ' \
+                'момент навык является приватным. Чтобы выйти из навыка, скажите Выход.'
+    short_help_texts = ['Скажите Запустить, Остановить, или Пауза',
+                        'Запустить, Остановить, или поставить на Паузу - вот что я умею',
+                        'Прекрасно, но я умею только запускать, останавливать и ставить на паузу видео',
+                        'А попробуйте лучше сказать Запустить, Остановить или Пауза. С этим я прекрасно справляюсь',
+                        'А вот если бы Вы сказали Запустить, Остановить, или Пауза, у нас бы все получилось',
+                        ]
+
+    if os.environ.get('k' + user_id):  # master mode
+        return 'Ой'
+
+    if short_version:
+        return random.choice(short_help_texts)
+
+    return help_text
 
 
 def yandex_request(event: dict, context: dict) -> dict:
@@ -118,18 +137,12 @@ def yandex_request(event: dict, context: dict) -> dict:
                                               )
 
     is_new_session = session.get('new')
-    help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. В данный ' \
-                'момент навык является приватным. Чтобы выйти из навыка, скажите Выход.'
-    short_help_texts = ['Скажите Запустить, Остановить, или Пауза',
-                        'Запустить, Остановить, или поставить на Паузу - вот что я умею',
-                        'Прекрасно, но я умею только запускать, останавливать и ставить на паузу видео',
-                        'А попробуйте лучше сказать Запустить, Остановить или Пауза. С этим я прекрасно справляюсь',
-                        'А вот если бы Вы сказали Запустить, Остановить, или Пауза, у нас бы все получилось',
-                        ]
-    if is_new_session:
-        return construct_response_with_session(text=help_text)
+    user_id = session.get('user_id')
 
-    make_request_to_kodi = partial(_make_request_to_kodi, user_id=session.get('user_id'))
+    if is_new_session:
+        return construct_response_with_session(text=get_help_text(user_id=user_id))
+
+    make_request_to_kodi = partial(_make_request_to_kodi, user_id=user_id)
 
     tokens = request.get('nlu').get('tokens')  # type: list
     if ('запустить' in tokens or
@@ -137,6 +150,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             'выбрать' in tokens or
             'выбор' in tokens or
             'выбрать' in tokens or
+            [t for t in tokens if 'включ' in t] or
             'запусти' in tokens):
         make_request_to_kodi(endpoint='navselect')
         return construct_response_with_session(text='Запускаю')
@@ -147,6 +161,20 @@ def yandex_request(event: dict, context: dict) -> dict:
             'останови' in tokens):
         make_request_to_kodi(endpoint='stop')
         return construct_response_with_session(text='Останавливаю')
+
+    if (
+            'поток' in tokens or
+            [t for t in tokens if 'дорож' in t]
+    ):
+        for entity in request.get('nlu').get('entities'):
+            if entity['type'] == 'YANDEX.NUMBER':
+                number = entity['value']
+                break
+        else:
+            return construct_response_with_session(text='Какой номер?')
+        print(f'Переключаю на дорожку {number}')
+        make_request_to_kodi(endpoint=f'setaudiodirect?q={number}')
+        return construct_response_with_session(text='Переключаю звуковую дорожку')
 
     if [t for t in tokens if 'пауз' in t]:
         make_request_to_kodi(endpoint='playpause')
@@ -159,7 +187,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             '?' in tokens or
             'умеешь' in tokens or
             'help' in tokens):
-        return construct_response_with_session(text=help_text)
+        return construct_response_with_session(text=get_help_text(user_id=user_id))
 
     if ('выход' in tokens or
             'выйти' in tokens or
@@ -168,7 +196,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             'до свидания' in tokens):
         return construct_response_with_session(text='До свидания', end_session=True)
 
-    return construct_response_with_session(text=random.choice(short_help_texts))
+    return construct_response_with_session(text=get_help_text(user_id=user_id, short_version=True))
 
 
 if __name__ == '__main__':
