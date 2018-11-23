@@ -107,6 +107,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     :param context:
     :return:
     """
+
+    def make_default_text():
+        return random.choice(default_texts) + '. Например: ' + random.choice(example_food_texts) + '. ' + \
+               random.choice(exit_texts) + '.'
+
     start_time = time.time()
 
     event.setdefault('debug', bool(context))
@@ -114,10 +119,21 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if debug:
         print(event)
 
-    default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе. Чтобы выйти, произнесите выход',
-                     'Хм. Не могу понять что это. Чтобы выйти, произнесите выход',
-                     'Такой еды я пока не знаю. Попробуйте сказать иначе. Чтобы выйти, произнесите выход.'
+    default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
+                     'Хм. Не могу понять что это. Попробуйте сказать иначе',
+                     'Такой еды я пока не знаю. Попробуйте сказать иначе'
                      ]
+
+    exit_texts = ['Чтобы выйти, произнесите выход']
+
+    example_food_texts = ['Бочка варенья и коробка печенья',
+                          'Литр молока и килограмм селедки',
+                          '2 куска пиццы с ананасом',
+                          '200 грамм брокколи и 100 грамм шпината',
+                          'биг-мак и большая кола',
+                          '2 блина со сгущенкой',
+                          'тарелка риса, котлета и стакан апельсинового сока',
+                          'банан, апельсин и манго']
 
     request = event.get('request')
     if not request:
@@ -194,10 +210,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                                                    TargetLanguageCode='en'
                                                                    ).get('TranslatedText')  # type:str
     except requests.exceptions.ReadTimeout:
-        return construct_response_with_session(text=random.choice(default_texts))
+        return construct_response_with_session(text=make_default_text())
 
-    full_phrase_translated = full_phrase_translated.\
-        replace('acne', 'eel').\
+    full_phrase_translated = full_phrase_translated. \
+        replace('acne', 'eel'). \
         replace('drying', 'bagel')
 
     if debug:
@@ -224,18 +240,18 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     except Exception as e:
         if debug:
             print(e)
-        return construct_response_with_session(text=random.choice(default_texts))
+        return construct_response_with_session(text=make_default_text())
 
     if response.status_code != 200:
         print(f'Exception: {response.text}')
-        return construct_response_with_session(text=random.choice(default_texts))
+        return construct_response_with_session(text=make_default_text())
 
     nutrionix_dict = json.loads(response.text)
 
     if 'foods' not in nutrionix_dict or not nutrionix_dict['foods']:
         if debug:
             print(f'Tag foods not found or empty')
-        return construct_response_with_session(text=random.choice(default_texts))
+        return construct_response_with_session(text=make_default_text())
 
     if debug:
         print(nutrionix_dict)
@@ -262,15 +278,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         if len(nutrionix_dict["foods"]) > 1:
             number_string = f'{number + 1}. '
         response_text += f'{number_string}{choose_case(amount=calories)}\n' \
-                         f'({round(protein, 1)} бел. ' \
-                         f'{round(fat, 1)} жир. ' \
-                         f'{round(carbohydrates, 1)} угл. ' \
-                         f'{round(sugar, 1)} сах.)\n'
+            f'({round(protein, 1)} бел. ' \
+            f'{round(fat, 1)} жир. ' \
+            f'{round(carbohydrates, 1)} угл. ' \
+            f'{round(sugar, 1)} сах.)\n'
 
     if len(nutrionix_dict["foods"]) > 1:
         response_text += f'Итого: {choose_case(amount=total_calories)}\n({round(total_protein, 1)} бел. ' \
-                         f'{round(total_fat, 1)} жир. ' \
-                         f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
+            f'{round(total_fat, 1)} жир. ' \
+            f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
 
     if debug:
         end_time = time.time()
