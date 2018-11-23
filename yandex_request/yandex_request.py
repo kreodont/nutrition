@@ -156,8 +156,13 @@ def yandex_request(event: dict, context: dict) -> dict:
             'справка' in tokens or
             'хелп' in tokens or
             'информация' in tokens or
-            '?' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            request.get('original_utterance').endswith('?') or
             'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
             'help' in tokens):
         return construct_response_with_session(text=help_text)
 
