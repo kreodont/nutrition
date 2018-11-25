@@ -158,6 +158,7 @@ def yandex_request(event: dict, context: dict) -> dict:
     if ('остановить' in tokens or
             'стоп' in tokens or
             'остановись' in tokens or
+            [t for t in tokens if 'выключ' in t] or
             'останови' in tokens):
         make_request_to_kodi(endpoint='stop')
         return construct_response_with_session(text='Останавливаю')
@@ -175,6 +176,19 @@ def yandex_request(event: dict, context: dict) -> dict:
         print(f'Переключаю на дорожку {number}')
         make_request_to_kodi(endpoint=f'setaudiodirect?q={number}')
         return construct_response_with_session(text='Переключаю звуковую дорожку')
+
+    if (
+            [t for t in tokens if 'субтит' in t]
+    ):
+        for entity in request.get('nlu').get('entities'):
+            if entity['type'] == 'YANDEX.NUMBER':
+                number = entity['value']
+                break
+        else:
+            return construct_response_with_session(text='Какой номер?')
+        print(f'Переключаю на дорожку {number}')
+        make_request_to_kodi(endpoint=f'setsubtitlesdirect?q={number}')
+        return construct_response_with_session(text='Переключаю субтитры')
 
     if [t for t in tokens if 'пауз' in t]:
         make_request_to_kodi(endpoint='playpause')

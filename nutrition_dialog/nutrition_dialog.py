@@ -130,10 +130,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                           'Литр молока и килограмм селедки',
                           '2 куска пиццы с ананасом',
                           '200 грамм брокколи и 100 грамм шпината',
-                          'биг-мак и большая кола',
+                          'ананас и рябчик',
                           '2 блина со сгущенкой',
                           'тарелка риса, котлета и стакан апельсинового сока',
-                          'банан, апельсин и манго']
+                          'банан, апельсин и манго',
+                          'черная икра, красная икра, баклажанная икра',
+                          'каша из топора и свежевыжатый березовый сок',
+                          ]
 
     request = event.get('request')
     if not request:
@@ -214,7 +217,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     full_phrase_translated = full_phrase_translated. \
         replace('acne', 'eel'). \
-        replace('drying', 'bagel')
+        replace('drying', 'bagel'). \
+        replace('mopper', 'grouse')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
