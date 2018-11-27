@@ -218,7 +218,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     full_phrase_translated = full_phrase_translated. \
         replace('acne', 'eel'). \
         replace('drying', 'bagel'). \
-        replace('mopper', 'grouse')
+        replace('mopper', 'grouse').\
+        replace('seeds', 'sunflower seeds')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
