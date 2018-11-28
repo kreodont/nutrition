@@ -221,8 +221,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         replace('seeds', 'sunflower seeds').\
         replace('fat', 'fat meat').\
         replace('grenade', 'pomegranate').\
-        replace('Olivier', 'russian salad').\
-        replace('olivier', 'russian salad')
+        replace('Olivier', 'Ham Salad').\
+        replace('olivier', 'Ham Salad')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -298,7 +298,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     if debug:
         end_time = time.time()
-        print(f'{(end_time - start_time) * 1000} ms')
+        print(f'Time: {(end_time - start_time) * 1000} ms')
         print(response_text)
 
     return construct_response_with_session(text=response_text, tts=f'Итого: {choose_case(amount=total_calories)}')
