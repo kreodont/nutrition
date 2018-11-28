@@ -220,7 +220,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         replace('mopper', 'grouse').\
         replace('seeds', 'sunflower seeds').\
         replace('fat', 'fat meat').\
-        replace('grenade', 'pomegranate')
+        replace('grenade', 'pomegranate').\
+        replace('Olivier', 'russian salad')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
