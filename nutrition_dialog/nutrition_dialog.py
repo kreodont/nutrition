@@ -62,6 +62,25 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
         return f'{str_amount} калорий'
 
 
+def get_from_cache_table(*, request_text: str, database_client) -> str:
+    response = database_client.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': request_text}})
+    response_text = response['Item']['response']['S'] if 'Item' in response and \
+                                                         'response' in response['Item'] and \
+                                                         'S' in response['Item']['response'] else ''
+    return response_text
+
+
+def write_to_cache_table(*, initial_phrase: str, response: str, database_client) -> None:
+    database_client.put_item(TableName='nutrition_cache',
+                             Item={
+                                 'initial_phrase': {
+                                     'S': initial_phrase,
+                                 },
+                                 'response': {
+                                     'S': response,
+                                 }})
+
+
 def nutrition_dialog(event: dict, context: dict) -> dict:
     """
     Parses request from yandex and returns response
@@ -158,15 +177,23 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     is_new_session = session.get('new')
 
     config = Config(connect_timeout=0.8, retries={'max_attempts': 0})
+
+    # clients initialization must be before any checks to warm-up lambda function
     if context:
         translation_client = boto3.client('translate', config=config)
+        database_client = boto3.client('dynamodb', config=config)
     else:
         translation_client = boto3.Session(profile_name='kreodont').client('translate')
+        database_client = boto3.Session(profile_name='kreodont').client('dynamodb')
 
     if is_new_session:
         return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
+    full_phrase = request.get('original_utterance')
+    print(full_phrase)
+    if len(full_phrase) > 70:
+        return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
 
     if ('помощь' in tokens or
             'справка' in tokens or
@@ -201,11 +228,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'до свидания' in tokens):
         return construct_response_with_session(text='До свидания', end_session=True)
 
-    full_phrase = request.get('original_utterance')
-    print(full_phrase)
-    if len(full_phrase) > 70:
-        return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
+    # searching in cache database first
+    response_text = get_from_cache_table(request_text=full_phrase,
+                                         database_client=database_client)
+    if response_text:
+        return construct_response_with_session(text=response_text)
 
+    # translation block
     try:
         full_phrase_translated = translation_client.translate_text(Text=full_phrase,
                                                                    SourceLanguageCode='ru',
@@ -217,15 +246,17 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     full_phrase_translated = full_phrase_translated. \
         replace('acne', 'eel'). \
         replace('drying', 'bagel'). \
-        replace('mopper', 'grouse').\
-        replace('seeds', 'sunflower seeds').\
-        replace('fat', 'fat meat').\
-        replace('grenade', 'pomegranate').\
-        replace('Olivier', 'Ham Salad').\
+        replace('mopper', 'grouse'). \
+        replace('seeds', 'sunflower seeds'). \
+        replace('fat', 'fat meat'). \
+        replace('grenade', 'pomegranate'). \
+        replace('Olivier', 'Ham Salad'). \
         replace('olivier', 'Ham Salad')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
+
+    # End of translation block
 
     x_app_id = os.environ['NUTRITIONIXID']
     x_app_key = os.environ['NUTRITIONIXKEY']
@@ -301,6 +332,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         print(f'Time: {(end_time - start_time) * 1000} ms')
         print(response_text)
 
+    write_to_cache_table(initial_phrase=full_phrase, response=response_text, database_client=database_client)
     return construct_response_with_session(text=response_text, tts=f'Итого: {choose_case(amount=total_calories)}')
 
 
@@ -336,4 +368,5 @@ if __name__ == '__main__':
     # },
     #         {})
     import doctest
+
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)
