@@ -7,6 +7,30 @@ import random
 import time
 import os
 
+default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
+                 'Хм. Не могу понять что это. Попробуйте сказать иначе',
+                 'Такой еды я пока не знаю. Попробуйте сказать иначе'
+                 ]
+
+exit_texts = ['Чтобы выйти, произнесите выход']
+
+example_food_texts = ['Бочка варенья и коробка печенья',
+                      'Литр молока и килограмм селедки',
+                      '2 куска пиццы с ананасом',
+                      '200 грамм брокколи и 100 грамм шпината',
+                      'ананас и рябчик',
+                      '2 блина со сгущенкой',
+                      'тарелка риса, котлета и стакан апельсинового сока',
+                      'банан, апельсин и манго',
+                      'черная икра, красная икра, баклажанная икра',
+                      'каша из топора и свежевыжатый березовый сок',
+                      ]
+
+start_text = 'Скажите мне сколько и чего вы съели, а я скажу сколько это калорий. ' \
+             'Например: 300 грамм картофельного пюре и котлета. Чтобы выйти, произнесите выход'
+help_text = 'Я умею считать калории. Просто скажите что Вы съели, а я скажу сколько в этом было калорий. ' \
+            'Текст не должен быть слишком длинным. Желательно не более трёх блюд. Чтобы выйти, скажите выход'
+
 
 def construct_response(*,
                        text,
@@ -41,6 +65,16 @@ def construct_response(*,
     return response
 
 
+def timeit(target_function):
+    def timed(*args, **kwargs):
+        start_time = time.time()
+        result = target_function(*args, **kwargs)
+        end_time = time.time()
+        print(f'Function "{target_function.__name__}" time: {(end_time - start_time) * 1000} ms')
+        return result
+    return timed
+
+
 def choose_case(*, amount: float, round_to_int=False) -> str:
     if round_to_int:
         str_amount = str(int(amount))
@@ -62,6 +96,7 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
         return f'{str_amount} калорий'
 
 
+@timeit
 def get_from_cache_table(*, request_text: str, database_client) -> str:
     response = database_client.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': request_text}})
     response_text = response['Item']['response']['S'] if 'Item' in response and \
@@ -70,6 +105,7 @@ def get_from_cache_table(*, request_text: str, database_client) -> str:
     return response_text
 
 
+@timeit
 def write_to_cache_table(*, initial_phrase: str, response: str, database_client) -> None:
     database_client.put_item(TableName='nutrition_cache',
                              Item={
@@ -81,6 +117,80 @@ def write_to_cache_table(*, initial_phrase: str, response: str, database_client)
                                  }})
 
 
+def get_boto3_clients(context):
+    if context:
+        config = Config(connect_timeout=0.8, retries={'max_attempts': 0})
+        translation_client = boto3.client('translate', config=config)
+        database_client = boto3.client('dynamodb', config=config)
+    else:
+        translation_client = boto3.Session(profile_name='kreodont').client('translate')
+        database_client = boto3.Session(profile_name='kreodont').client('dynamodb')
+
+    return translation_client, database_client
+
+
+def search_common_phrases(tokens, request, construct_response_with_session):
+    if ('помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            request.get('original_utterance').endswith('?') or
+            'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
+            'help' in tokens):
+        return construct_response_with_session(text=help_text)
+
+    if (
+            'хорошо' in tokens or
+            'молодец' in tokens):
+        return construct_response_with_session(text='Спасибо, я стараюсь')
+
+    if (
+            'привет' in tokens or
+            'здравствуй' in tokens or
+            'здравствуйте' in tokens):
+        return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
+                                                    'а скажу сколько там было калорий и питательных веществ.')
+
+    if ('выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in tokens):
+        return construct_response_with_session(text='До свидания', end_session=True)
+
+
+@timeit
+def translate(*, russian_phrase, translation_client, debug):
+    try:
+        full_phrase_translated = translation_client.translate_text(Text=russian_phrase,
+                                                                   SourceLanguageCode='ru',
+                                                                   TargetLanguageCode='en'
+                                                                   ).get('TranslatedText')  # type:str
+    except requests.exceptions.ReadTimeout:
+        return 'timeout'
+
+    full_phrase_translated = full_phrase_translated.lower(). \
+        replace('acne', 'eel'). \
+        replace('drying', 'bagel'). \
+        replace('mopper', 'grouse'). \
+        replace('seeds', 'sunflower seeds'). \
+        replace('fat', 'fat meat'). \
+        replace('grenade', 'pomegranate'). \
+        replace('olivier', 'Ham Salad').\
+        replace('borsch', 'vegetable soup')
+
+    if debug:
+        print(f'Translated: {full_phrase_translated}')
+
+    return full_phrase_translated
+
+
+@timeit
 def nutrition_dialog(event: dict, context: dict) -> dict:
     """
     Parses request from yandex and returns response
@@ -128,36 +238,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return random.choice(default_texts) + '. Например: ' + random.choice(example_food_texts) + '. ' + \
                random.choice(exit_texts) + '.'
 
-    start_time = time.time()
-
     event.setdefault('debug', bool(context))
     debug = event.get('debug')
     if debug:
         print(event)
-
-    default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
-                     'Хм. Не могу понять что это. Попробуйте сказать иначе',
-                     'Такой еды я пока не знаю. Попробуйте сказать иначе'
-                     ]
-
-    exit_texts = ['Чтобы выйти, произнесите выход']
-
-    example_food_texts = ['Бочка варенья и коробка печенья',
-                          'Литр молока и килограмм селедки',
-                          '2 куска пиццы с ананасом',
-                          '200 грамм брокколи и 100 грамм шпината',
-                          'ананас и рябчик',
-                          '2 блина со сгущенкой',
-                          'тарелка риса, котлета и стакан апельсинового сока',
-                          'банан, апельсин и манго',
-                          'черная икра, красная икра, баклажанная икра',
-                          'каша из топора и свежевыжатый березовый сок',
-                          ]
-
-    start_text = 'Скажите мне сколько и чего вы съели, а я скажу сколько это калорий. ' \
-                 'Например: 300 грамм картофельного пюре и котлета. Чтобы выйти, произнесите выход'
-    help_text = 'Я умею считать калории. Просто скажите что Вы съели, а я скажу сколько в этом было калорий. ' \
-                'Текст не должен быть слишком длинным. Желательно не более трёх блюд. Чтобы выйти, скажите выход'
 
     request = event.get('request')
     if not request:
@@ -176,15 +260,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     is_new_session = session.get('new')
 
-    config = Config(connect_timeout=0.8, retries={'max_attempts': 0})
-
     # clients initialization must be before any checks to warm-up lambda function
-    if context:
-        translation_client = boto3.client('translate', config=config)
-        database_client = boto3.client('dynamodb', config=config)
-    else:
-        translation_client = boto3.Session(profile_name='kreodont').client('translate')
-        database_client = boto3.Session(profile_name='kreodont').client('dynamodb')
+    translation_client, database_client = get_boto3_clients(context)
 
     if is_new_session:
         return construct_response_with_session(text=start_text)
@@ -195,38 +272,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
 
-    if ('помощь' in tokens or
-            'справка' in tokens or
-            'хелп' in tokens or
-            'информация' in tokens or
-            'ping' in tokens or
-            'пинг' in tokens or
-            request.get('original_utterance').endswith('?') or
-            'умеешь' in tokens or
-            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
-            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
-        return construct_response_with_session(text=help_text)
-
-    if (
-            'хорошо' in tokens or
-            'молодец' in tokens):
-        return construct_response_with_session(text='Спасибо, я стараюсь')
-
-    if (
-            'привет' in tokens or
-            'здравствуй' in tokens or
-            'здравствуйте' in tokens):
-        return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
-                                                    'а скажу сколько там было калорий и питательных веществ.')
-
-    if ('выход' in tokens or
-            'выйти' in tokens or
-            'пока' in tokens or
-            'выйди' in tokens or
-            'до свидания' in tokens):
-        return construct_response_with_session(text='До свидания', end_session=True)
+    search_common_phrases(tokens, request, construct_response_with_session)
 
     # searching in cache database first
     response_text = get_from_cache_table(request_text=full_phrase,
@@ -235,27 +281,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text=response_text)
 
     # translation block
-    try:
-        full_phrase_translated = translation_client.translate_text(Text=full_phrase,
-                                                                   SourceLanguageCode='ru',
-                                                                   TargetLanguageCode='en'
-                                                                   ).get('TranslatedText')  # type:str
-    except requests.exceptions.ReadTimeout:
+    full_phrase_translated = translate(
+            russian_phrase=full_phrase, translation_client=translation_client, debug=debug)
+
+    if full_phrase_translated == 'timeout':
         return construct_response_with_session(text=make_default_text())
-
-    full_phrase_translated = full_phrase_translated.lower(). \
-        replace('acne', 'eel'). \
-        replace('drying', 'bagel'). \
-        replace('mopper', 'grouse'). \
-        replace('seeds', 'sunflower seeds'). \
-        replace('fat', 'fat meat'). \
-        replace('grenade', 'pomegranate'). \
-        replace('olivier', 'Ham Salad').\
-        replace('borsch', 'vegetable soup')
-
-    if debug:
-        print(f'Translated: {full_phrase_translated}')
-
     # End of translation block
 
     x_app_id = os.environ['NUTRITIONIXID']
@@ -263,9 +293,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     request_data = {'line_delimited': False,
                     'query': full_phrase_translated,
-                    'timezone': "Europe/Moscow",
-                    'use_branded_foods': False,
-                    'use_raw_foods': False,
+                    # 'timezone': "Europe/Moscow",
+                    # 'use_branded_foods': False,
+                    # 'use_raw_foods': False,
                     }
 
     try:
@@ -327,46 +357,40 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             f'{round(total_fat, 1)} жир. ' \
             f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
 
-    if debug:
-        end_time = time.time()
-        print(f'Time: {(end_time - start_time) * 1000} ms')
-        print(response_text)
-
     write_to_cache_table(initial_phrase=full_phrase, response=response_text, database_client=database_client)
     return construct_response_with_session(text=response_text, tts=f'Итого: {choose_case(amount=total_calories)}')
 
 
 if __name__ == '__main__':
-    # nutrition_dialog({
-    #     'meta': {
-    #         'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
-    #         'interfaces': {
-    #             'screen': {},
-    #         },
-    #         'locale': 'ru-RU',
-    #         'timezone': 'UTC',
-    #     },
-    #     'request': {
-    #         'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
-    #         'nlu': {
-    #             'entities': [],
-    #             'tokens': ['ghb'],
-    #         },
-    #         'original_utterance': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
-    #         'type': 'SimpleUtterance',
-    #     },
-    #     'session':
-    #         {
-    #             'message_id': 1,
-    #             'new': False,
-    #             'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6',
-    #             'skill_id': '5799f33a-f13b-459f-b7ff-3039666f2b8b',
-    #             'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E',
-    #         },
-    #     'version': '1.0',
-    #     'debug': True,
-    # },
-    #         {})
-    import doctest
-
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)
+    nutrition_dialog({
+        'meta': {
+            'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
+            'interfaces': {
+                'screen': {},
+            },
+            'locale': 'ru-RU',
+            'timezone': 'UTC',
+        },
+        'request': {
+            'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
+            'nlu': {
+                'entities': [],
+                'tokens': ['ghb'],
+            },
+            'original_utterance': 'Банановый сок',
+            'type': 'SimpleUtterance',
+        },
+        'session':
+            {
+                'message_id': 1,
+                'new': False,
+                'session_id': 'f12a4adc-ca1988d-1978333d-3ffd2ca6',
+                'skill_id': '5799f33a-f13b-459f-b7ff-3039666f2b8b',
+                'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E',
+            },
+        'version': '1.0',
+        'debug': True,
+    },
+            {})
+    # import doctest
+    # doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE, verbose=False)

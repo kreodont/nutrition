@@ -1,25 +1,31 @@
 import boto3
+import time
 # import json
 session = boto3.Session(profile_name='kreodont')
 phrase = 'Забудь'
+start_time = time.time()
 dynamo = session.client('dynamodb')
-response = dynamo.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': phrase}})
-response_text = response['Item']['response']['S'] if 'Item' in response and \
-                                                     'response' in response['Item'] and \
-                                                     'S' in response['Item']['response'] else None
-if not response_text:
-    response_text = phrase.upper()
-    dynamo.put_item(TableName='nutrition_cache',
-                    Item={
-                        'initial_phrase': {
-                            'S': phrase,
-                        },
-                        'response': {
-                            'S': response_text,
-                        }})
+key, password = dynamo.get_item(
+        TableName='nutrition_cache',
+        Key={'initial_phrase': {'S': '_key'}})['Item']['response']['S'].split()
+print(key, password)
+end_time = time.time()
+print(end_time - start_time)
+# response = dynamo.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': phrase}})
+# response_text = response['Item']['response']['S'] if 'Item' in response and \
+#                                                      'response' in response['Item'] and \
+#                                                      'S' in response['Item']['response'] else None
+# if not response_text:
+#     response_text = phrase.upper()
+#     dynamo.put_item(TableName='nutrition_cache',
+#                     Item={
+#                         'initial_phrase': {
+#                             'S': phrase,
+#                         },
+#                         'response': {
+#                             'S': response_text,
+#                         }})
 
-
-print(response_text)
 
 # print(json.dumps(response, indent=4))
 # import json
