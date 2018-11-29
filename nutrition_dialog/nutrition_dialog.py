@@ -72,6 +72,7 @@ def timeit(target_function):
         end_time = time.time()
         print(f'Function "{target_function.__name__}" time: {(end_time - start_time) * 1000} ms')
         return result
+
     return timed
 
 
@@ -181,7 +182,7 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('seeds', 'sunflower seeds'). \
         replace('fat', 'fat meat'). \
         replace('grenade', 'pomegranate'). \
-        replace('olivier', 'Ham Salad').\
+        replace('olivier', 'Ham Salad'). \
         replace('borsch', 'vegetable soup')
 
     if debug:
@@ -269,6 +270,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     tokens = request.get('nlu').get('tokens')  # type: list
     full_phrase = request.get('original_utterance')
     print(full_phrase)
+
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
 
@@ -291,16 +293,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     x_app_id = os.environ['NUTRITIONIXID']
     x_app_key = os.environ['NUTRITIONIXKEY']
 
-    request_data = {'line_delimited': False,
-                    'query': full_phrase_translated,
-                    # 'timezone': "Europe/Moscow",
-                    # 'use_branded_foods': False,
-                    # 'use_raw_foods': False,
-                    }
-
     try:
         response = requests.post('https://trackapi.nutritionix.com/v2/natural/nutrients',
-                                 data=json.dumps(request_data),
+                                 data=json.dumps({'query': full_phrase_translated}),
                                  headers={'content-type': 'application/json',
                                           'x-app-id': x_app_id,
                                           'x-app-key': x_app_key},
@@ -377,7 +372,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'Банановый сок',
+            'original_utterance': 'Макароны с сыром',
             'type': 'SimpleUtterance',
         },
         'session':

@@ -1,16 +1,44 @@
 import boto3
-import time
-# import json
+import json
+import datetime
+import dateutil.parser
+
 session = boto3.Session(profile_name='kreodont')
-phrase = 'Забудь'
-start_time = time.time()
 dynamo = session.client('dynamodb')
-key, password = dynamo.get_item(
+bulb = dynamo.get_item(
         TableName='nutrition_cache',
-        Key={'initial_phrase': {'S': '_key'}})['Item']['response']['S'].split()
-print(key, password)
-end_time = time.time()
-print(end_time - start_time)
+        Key={'initial_phrase': {'S': '_key'}})['Item']['response']['S']
+
+keys_dict = json.loads(bulb)
+min_usage_value = 200
+min_usage_key = None
+min_usage_key_num = 0
+for k in keys_dict['keys']:
+    k['dates'] = [d for d in k['dates'] if
+                  dateutil.parser.parse(d) > datetime.datetime.now() - datetime.timedelta(hours=24)]
+    if min_usage_key is None:
+        min_usage_key = k
+    if min_usage_value > len(k['dates']):
+        min_usage_key = k
+        min_usage_value = len(k['dates'])
+
+min_usage_key['dates'].append(str(datetime.datetime.now()))
+print(min_usage_key['name'])
+print(min_usage_key['pass'])
+
+# New keys addition
+# keys_dict['keys'].append({'name': '1fe9d120', 'pass': '0a333def74c56d8870ccf8d0855427e5', 'dates': []})
+###
+dynamo.put_item(TableName='nutrition_cache',
+                Item={
+                    'initial_phrase': {
+                        'S': '_key',
+                    },
+                    'response': {
+                        'S': json.dumps(keys_dict),
+                    }})
+
+
 # response = dynamo.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': phrase}})
 # response_text = response['Item']['response']['S'] if 'Item' in response and \
 #                                                      'response' in response['Item'] and \
