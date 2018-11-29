@@ -243,15 +243,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     except requests.exceptions.ReadTimeout:
         return construct_response_with_session(text=make_default_text())
 
-    full_phrase_translated = full_phrase_translated. \
+    full_phrase_translated = full_phrase_translated.lower(). \
         replace('acne', 'eel'). \
         replace('drying', 'bagel'). \
         replace('mopper', 'grouse'). \
         replace('seeds', 'sunflower seeds'). \
         replace('fat', 'fat meat'). \
         replace('grenade', 'pomegranate'). \
-        replace('Olivier', 'Ham Salad'). \
-        replace('olivier', 'Ham Salad')
+        replace('olivier', 'Ham Salad').\
+        replace('borsch', 'vegetable soup')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
