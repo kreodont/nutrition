@@ -155,6 +155,36 @@ def yandex_request(event: dict, context: dict) -> dict:
         make_request_to_kodi(endpoint='navselect')
         return construct_response_with_session(text='Запускаю')
 
+    if (
+            'вверх' in tokens
+    ):
+        make_request_to_kodi(endpoint=f'navup?q={len(tokens)}')
+        return construct_response_with_session(text='Окей')
+
+    if (
+            'вниз' in tokens
+    ):
+        make_request_to_kodi(endpoint=f'navdown?q={len(tokens)}')
+        return construct_response_with_session(text='Окей')
+
+    if (
+            'вправо' in tokens
+    ):
+        make_request_to_kodi(endpoint=f'navright?q={len(tokens)}')
+        return construct_response_with_session(text='Окей')
+
+    if (
+            'влево' in tokens
+    ):
+        make_request_to_kodi(endpoint=f'navleft?q={len(tokens)}')
+        return construct_response_with_session(text='Окей')
+
+    if (
+            'назад' in tokens
+    ):
+        make_request_to_kodi(endpoint=f'navback?q={len(tokens)}')
+        return construct_response_with_session(text='Окей')
+
     if ('остановить' in tokens or
             'стоп' in tokens or
             'остановись' in tokens or
