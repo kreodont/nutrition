@@ -273,8 +273,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
-    full_phrase = request.get('original_utterance')
+    full_phrase = request.get('original_utterance').lower()
+
     print(full_phrase)
+    full_phrase = full_phrase.replace('щи', 'капустный суп')
 
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
