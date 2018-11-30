@@ -70,7 +70,10 @@ def timeit(target_function):
         start_time = time.time()
         result = target_function(*args, **kwargs)
         end_time = time.time()
-        print(f'Function "{target_function.__name__}" time: {(end_time - start_time) * 1000} ms')
+        milliseconds = (end_time - start_time) * 1000
+        if milliseconds > 300 or target_function.__name__ != 'nutrition_dialog':  # not to print ping timing
+            print(f'Function "{target_function.__name__}" time: {milliseconds} ms')
+
         return result
 
     return timed
@@ -183,12 +186,18 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('fat', 'fat meat'). \
         replace('grenade', 'pomegranate'). \
         replace('olivier', 'Ham Salad'). \
-        replace('borsch', 'vegetable soup')
+        replace('borsch', 'vegetable soup').\
+        replace('schi', 'cabbage soup')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
 
     return full_phrase_translated
+
+
+def make_default_text():
+    return random.choice(default_texts) + '. Например: ' + random.choice(example_food_texts) + '. ' + \
+           random.choice(exit_texts) + '.'
 
 
 @timeit
@@ -234,10 +243,6 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     'user_id': '574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E'}, 'version': '1.0'}
 
     """
-
-    def make_default_text():
-        return random.choice(default_texts) + '. Например: ' + random.choice(example_food_texts) + '. ' + \
-               random.choice(exit_texts) + '.'
 
     event.setdefault('debug', bool(context))
     debug = event.get('debug')
