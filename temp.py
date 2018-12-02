@@ -5,38 +5,55 @@ import dateutil.parser
 
 session = boto3.Session(profile_name='kreodont')
 dynamo = session.client('dynamodb')
-bulb = dynamo.get_item(
-        TableName='nutrition_cache',
-        Key={'initial_phrase': {'S': '_key'}})['Item']['response']['S']
-
-keys_dict = json.loads(bulb)
-min_usage_value = 200
-min_usage_key = None
-min_usage_key_num = 0
-for k in keys_dict['keys']:
-    k['dates'] = [d for d in k['dates'] if
-                  dateutil.parser.parse(d) > datetime.datetime.now() - datetime.timedelta(hours=24)]
-    if min_usage_key is None:
-        min_usage_key = k
-    if min_usage_value > len(k['dates']):
-        min_usage_key = k
-        min_usage_value = len(k['dates'])
-
-min_usage_key['dates'].append(str(datetime.datetime.now()))
-print(min_usage_key['name'])
-print(min_usage_key['pass'])
+phrase = '1 яблоко'
+# bulb = dynamo.get_item(
+#         TableName='nutrition_cache',
+#         Key={'initial_phrase': {'S': '_key'}})['Item']['response']['S']
+items = dynamo.batch_get_item(
+        RequestItems={
+            'nutrition_cache': {
+                'Keys': [
+                    {
+                        'initial_phrase': {
+                            'S': '_key'},
+                    },
+                    {
+                        'initial_phrase': {
+                            'S': phrase},
+                    }
+                ]}})
+for item in items['Responses']['nutrition_cache']:
+    print(json.loads(item['response']['S']))
+    exit(0)
+# print(bulb)
+# keys_dict = json.loads(bulb)
+# min_usage_value = 200
+# min_usage_key = None
+# min_usage_key_num = 0
+# for k in keys_dict['keys']:
+#     k['dates'] = [d for d in k['dates'] if
+#                   dateutil.parser.parse(d) > datetime.datetime.now() - datetime.timedelta(hours=24)]
+#     if min_usage_key is None:
+#         min_usage_key = k
+#     if min_usage_value > len(k['dates']):
+#         min_usage_key = k
+#         min_usage_value = len(k['dates'])
+#
+# min_usage_key['dates'].append(str(datetime.datetime.now()))
+# print(min_usage_key['name'])
+# print(min_usage_key['pass'])
 
 # New keys addition
 # keys_dict['keys'].append({'name': '1fe9d120', 'pass': '0a333def74c56d8870ccf8d0855427e5', 'dates': []})
 ###
-dynamo.put_item(TableName='nutrition_cache',
-                Item={
-                    'initial_phrase': {
-                        'S': '_key',
-                    },
-                    'response': {
-                        'S': json.dumps(keys_dict),
-                    }})
+# dynamo.put_item(TableName='nutrition_cache',
+#                 Item={
+#                     'initial_phrase': {
+#                         'S': '_key',
+#                     },
+#                     'response': {
+#                         'S': json.dumps(keys_dict),
+#                     }})
 
 
 # response = dynamo.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': phrase}})
