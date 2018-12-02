@@ -442,7 +442,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': '3 яблока',
+            'original_utterance': '300 грамм картофельного пюре и котлета',
             'type': 'SimpleUtterance',
         },
         'session':
