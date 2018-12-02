@@ -5,7 +5,9 @@ from botocore.client import Config
 import json
 import random
 import time
-import os
+import typing
+import dateutil.parser
+import datetime
 
 default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
                  'Хм. Не могу понять что это. Попробуйте сказать иначе',
@@ -101,23 +103,49 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
 
 
 @timeit
-def get_from_cache_table(*, request_text: str, database_client) -> str:
-    response = database_client.get_item(TableName='nutrition_cache', Key={'initial_phrase': {'S': request_text}})
-    response_text = response['Item']['response']['S'] if 'Item' in response and \
-                                                         'response' in response['Item'] and \
-                                                         'S' in response['Item']['response'] else ''
-    return response_text
+def get_from_cache_table(*, request_text: str, database_client) -> typing.Tuple[dict, dict]:
+    keys_dict = {}
+    food_dict = {}
+    items = database_client.batch_get_item(
+            RequestItems={
+                'nutrition_cache': {
+                    'Keys': [
+                        {
+                            'initial_phrase': {
+                                'S': '_key'},
+                        },
+                        {
+                            'initial_phrase': {
+                                'S': request_text},
+                        }
+                    ]}})
+    for item in items['Responses']['nutrition_cache']:
+        if item['initial_phrase']['S'] == '_key':
+            keys_dict = json.loads(item['response']['S'])
+        if item['initial_phrase']['S'] == request_text:
+            print()
+            food_dict = json.loads(item['response']['S'])
+
+    return keys_dict, food_dict
 
 
 @timeit
-def write_to_cache_table(*, initial_phrase: str, response: str, database_client) -> None:
+def write_to_cache_table(*, initial_phrase: str, nutrition_dict: dict, database_client, keys_dict: dict) -> None:
     database_client.put_item(TableName='nutrition_cache',
                              Item={
                                  'initial_phrase': {
                                      'S': initial_phrase,
                                  },
                                  'response': {
-                                     'S': response,
+                                     'S': json.dumps(nutrition_dict),
+                                 }})
+    database_client.put_item(TableName='nutrition_cache',
+                             Item={
+                                 'initial_phrase': {
+                                     'S': '_key',
+                                 },
+                                 'response': {
+                                     'S': json.dumps(keys_dict),
                                  }})
 
 
@@ -186,7 +214,7 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('fat', 'fat meat'). \
         replace('grenade', 'pomegranate'). \
         replace('olivier', 'Ham Salad'). \
-        replace('borsch', 'vegetable soup').\
+        replace('borsch', 'vegetable soup'). \
         replace('schi', 'cabbage soup')
 
     if debug:
@@ -198,6 +226,86 @@ def translate(*, russian_phrase, translation_client, debug):
 def make_default_text():
     return random.choice(default_texts) + '. Например: ' + random.choice(example_food_texts) + '. ' + \
            random.choice(exit_texts) + '.'
+
+
+@timeit
+def query_endpoint(*, link, login, password, phrase) -> dict:
+    try:
+        response = requests.post(link,
+                                 data=json.dumps({'query': phrase}),
+                                 headers={'content-type': 'application/json',
+                                          'x-app-id': login,
+                                          'x-app-key': password},
+                                 timeout=0.6,
+                                 )
+    except Exception as e:
+        return {'error': str(e)}
+
+    if response.status_code != 200:
+        return {'error': response.text}
+
+    try:
+        nutrition_dict = json.loads(response.text)
+    except Exception as e:
+        return {'error': f'Cannot parse result json: "{response.text}". Exception: {e}'}
+
+    if 'foods' not in nutrition_dict or not nutrition_dict['foods']:
+        return {'error': f'Tag foods not found or empty: {nutrition_dict}'}
+
+    return nutrition_dict
+
+
+def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
+    response_text = ''  # type: str
+    total_calories = 0.0  # type: float
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
+
+    for number, food_name in enumerate(nutrition_dict['foods']):
+        calories = nutrition_dict["foods"][number].get("nf_calories", 0) or 0
+        total_calories += calories
+        protein = nutrition_dict["foods"][number].get("nf_protein", 0) or 0
+        total_protein += protein
+        fat = nutrition_dict["foods"][number].get("nf_total_fat", 0) or 0
+        total_fat += fat
+        carbohydrates = nutrition_dict["foods"][number].get("nf_total_carbohydrate", 0) or 0
+        total_carbohydrates += carbohydrates
+        sugar = nutrition_dict["foods"][number].get("nf_sugars", 0) or 0
+        total_sugar += sugar
+        number_string = ''
+        if len(nutrition_dict["foods"]) > 1:
+            number_string = f'{number + 1}. '
+        response_text += f'{number_string}{choose_case(amount=calories)}\n' \
+            f'({round(protein, 1)} бел. ' \
+            f'{round(fat, 1)} жир. ' \
+            f'{round(carbohydrates, 1)} угл. ' \
+            f'{round(sugar, 1)} сах.)\n'
+
+    if len(nutrition_dict["foods"]) > 1:
+        response_text += f'Итого: {choose_case(amount=total_calories)}\n({round(total_protein, 1)} бел. ' \
+            f'{round(total_fat, 1)} жир. ' \
+            f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
+
+    return response_text, total_calories
+
+
+def choose_key(keys_dict):
+    min_usage_value = float('inf')
+    min_usage_key = None
+    for k in keys_dict['keys']:
+        # deleting keys usages if they are older than 24 hours
+        k['dates'] = [d for d in k['dates'] if
+                      dateutil.parser.parse(d) > datetime.datetime.now() - datetime.timedelta(hours=24)]
+        if min_usage_key is None:
+            min_usage_key = k
+        if min_usage_value > len(k['dates']):
+            min_usage_key = k
+            min_usage_value = len(k['dates'])
+
+    min_usage_key['dates'].append(str(datetime.datetime.now()))
+    return min_usage_key['name'], min_usage_key['pass'], keys_dict
 
 
 @timeit
@@ -274,7 +382,6 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     tokens = request.get('nlu').get('tokens')  # type: list
     full_phrase = request.get('original_utterance').lower()
-
     print(full_phrase)
     full_phrase = full_phrase.replace('щи', 'капустный суп')
 
@@ -284,82 +391,38 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     search_common_phrases(tokens, request, construct_response_with_session)
 
     # searching in cache database first
-    response_text = get_from_cache_table(request_text=full_phrase,
-                                         database_client=database_client)
-    if response_text:
-        return construct_response_with_session(text=response_text)
+    keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
+                                                     database_client=database_client)
 
-    # translation block
-    full_phrase_translated = translate(
-            russian_phrase=full_phrase, translation_client=translation_client, debug=debug)
+    if not nutrition_dict:
+        # translation block
+        full_phrase_translated = translate(
+                russian_phrase=full_phrase,
+                translation_client=translation_client,
+                debug=debug)
 
-    if full_phrase_translated == 'timeout':
-        return construct_response_with_session(text=make_default_text())
-    # End of translation block
+        if full_phrase_translated == 'timeout':
+            return construct_response_with_session(text=make_default_text())
+        # End of translation block
 
-    x_app_id = os.environ['NUTRITIONIXID']
-    x_app_key = os.environ['NUTRITIONIXKEY']
+        login, password, keys_dict = choose_key(keys_dict)
 
-    try:
-        response = requests.post('https://trackapi.nutritionix.com/v2/natural/nutrients',
-                                 data=json.dumps({'query': full_phrase_translated}),
-                                 headers={'content-type': 'application/json',
-                                          'x-app-id': x_app_id,
-                                          'x-app-key': x_app_key},
-                                 timeout=0.6,
-                                 )
-    except Exception as e:
-        if debug:
-            print(e)
-        return construct_response_with_session(text=make_default_text())
+        nutrition_dict = query_endpoint(
+                link=keys_dict['link'],
+                login=login,
+                password=password,
+                phrase=full_phrase_translated,
+        )
+        if 'error' in nutrition_dict:
+            print(nutrition_dict['error'])
+            return construct_response_with_session(text=make_default_text())
 
-    if response.status_code != 200:
-        print(f'Exception: {response.text}')
-        return construct_response_with_session(text=make_default_text())
-
-    nutrion_dict = json.loads(response.text)
-
-    if 'foods' not in nutrion_dict or not nutrion_dict['foods']:
-        if debug:
-            print(f'Tag foods not found or empty')
-        return construct_response_with_session(text=make_default_text())
-
-    if debug:
-        print(nutrion_dict)
-
-    response_text = ''  # type: str
-    total_calories = 0.0  # type: float
-    total_fat = 0.0
-    total_carbohydrates = 0.0
-    total_protein = 0.0
-    total_sugar = 0.0
-
-    for number, food_name in enumerate(nutrion_dict['foods']):
-        calories = nutrion_dict["foods"][number].get("nf_calories", 0) or 0
-        total_calories += calories
-        protein = nutrion_dict["foods"][number].get("nf_protein", 0) or 0
-        total_protein += protein
-        fat = nutrion_dict["foods"][number].get("nf_total_fat", 0) or 0
-        total_fat += fat
-        carbohydrates = nutrion_dict["foods"][number].get("nf_total_carbohydrate", 0) or 0
-        total_carbohydrates += carbohydrates
-        sugar = nutrion_dict["foods"][number].get("nf_sugars", 0) or 0
-        total_sugar += sugar
-        number_string = ''
-        if len(nutrion_dict["foods"]) > 1:
-            number_string = f'{number + 1}. '
-        response_text += f'{number_string}{choose_case(amount=calories)}\n' \
-            f'({round(protein, 1)} бел. ' \
-            f'{round(fat, 1)} жир. ' \
-            f'{round(carbohydrates, 1)} угл. ' \
-            f'{round(sugar, 1)} сах.)\n'
-
-    if len(nutrion_dict["foods"]) > 1:
-        response_text += f'Итого: {choose_case(amount=total_calories)}\n({round(total_protein, 1)} бел. ' \
-            f'{round(total_fat, 1)} жир. ' \
-            f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
-
-    write_to_cache_table(initial_phrase=full_phrase, response=response_text, database_client=database_client)
+    response_text, total_calories = make_final_text(nutrition_dict=nutrition_dict)
+    write_to_cache_table(
+            initial_phrase=full_phrase,
+            nutrition_dict=nutrition_dict,
+            database_client=database_client,
+            keys_dict=keys_dict)
     return construct_response_with_session(text=response_text, tts=f'Итого: {choose_case(amount=total_calories)}')
 
 
@@ -379,7 +442,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'Макароны с сыром',
+            'original_utterance': '3 яблока',
             'type': 'SimpleUtterance',
         },
         'session':

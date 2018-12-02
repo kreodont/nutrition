@@ -5,7 +5,7 @@ import dateutil.parser
 
 session = boto3.Session(profile_name='kreodont')
 dynamo = session.client('dynamodb')
-phrase = '1 яблоко'
+phrase = '2 яблоко'
 # bulb = dynamo.get_item(
 #         TableName='nutrition_cache',
 #         Key={'initial_phrase': {'S': '_key'}})['Item']['response']['S']
@@ -23,8 +23,11 @@ items = dynamo.batch_get_item(
                     }
                 ]}})
 for item in items['Responses']['nutrition_cache']:
+    if item['initial_phrase']['S'] == '_key':
+        print('HeRE')
+    print(item)
     print(json.loads(item['response']['S']))
-    exit(0)
+    # exit(0)
 # print(bulb)
 # keys_dict = json.loads(bulb)
 # min_usage_value = 200
