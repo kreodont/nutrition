@@ -234,7 +234,8 @@ def translate(*, russian_phrase, translation_client, debug):
 def russian_replacements(initial_phrase: str, tokens) -> str:
     new_phrase = initial_phrase.replace('щи', 'капустный суп').\
         replace('биг мак', 'big mac').\
-        replace('какао', 'hot chocolate 300 grams')
+        replace('какао', 'hot chocolate 300 grams').\
+        replace('стакан', '250 мл')
     if 'рис' in tokens:
         new_phrase = new_phrase.replace('рис', 'rice')
     return new_phrase
@@ -405,7 +406,38 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
 
-    search_common_phrases(tokens, request, construct_response_with_session)
+    if ('помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            request.get('original_utterance').endswith('?') or
+            'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
+            'help' in tokens):
+        return construct_response_with_session(text=help_text)
+
+    if (
+            'хорошо' in tokens or
+            'молодец' in tokens):
+        return construct_response_with_session(text='Спасибо, я стараюсь')
+
+    if (
+            'привет' in tokens or
+            'здравствуй' in tokens or
+            'здравствуйте' in tokens):
+        return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
+                                                    'а скажу сколько там было калорий и питательных веществ.')
+
+    if ('выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in tokens):
+        return construct_response_with_session(text='До свидания', end_session=True)
 
     # searching in cache database first
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
@@ -460,7 +492,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'ведро воды',
+            'original_utterance': 'стакан водки',
             'type': 'SimpleUtterance',
         },
         'session':
