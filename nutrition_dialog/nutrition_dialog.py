@@ -228,6 +228,15 @@ def translate(*, russian_phrase, translation_client, debug):
     return full_phrase_translated
 
 
+def russian_replacements(initial_phrase: str, tokens) -> str:
+    new_phrase = initial_phrase.replace('щи', 'капустный суп').\
+        replace('биг мак', 'big mac').\
+        replace('какао', 'hot chocolate 300 grams')
+    if 'рис' in tokens:
+        new_phrase = new_phrase.replace('рис', 'rice')
+    return new_phrase
+
+
 def make_default_text():
     return random.choice(default_texts) + '. Например: ' + random.choice(example_food_texts) + '. ' + \
            random.choice(exit_texts) + '.'
@@ -312,15 +321,6 @@ def choose_key(keys_dict):
 
     min_usage_key['dates'].append(str(datetime.datetime.now()))
     return min_usage_key['name'], min_usage_key['pass'], keys_dict
-
-
-def russian_replacements(initial_phrase: str, tokens) -> str:
-    new_phrase = initial_phrase.replace('щи', 'капустный суп').\
-        replace('биг мак', 'big mac').\
-        replace('какао', 'hot chocolate 300 grams')
-    if 'рис' in tokens:
-        new_phrase = new_phrase.replace('рис', 'rice')
-    return new_phrase
 
 
 @timeit
