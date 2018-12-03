@@ -219,7 +219,8 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('semolina porridge', 'semolina cake').\
         replace('chickpea cutlets', 'chickpea 70 grams').\
         replace('chickpea cutlet', 'chickpea 70 grams').\
-        replace('snikers', 'Snicker')
+        replace('snikers', 'Snicker').\
+        replace('compote', 'Stewed Apples 250 grams')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -452,7 +453,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'сникерс',
+            'original_utterance': 'куриная котлета',
             'type': 'SimpleUtterance',
         },
         'session':
