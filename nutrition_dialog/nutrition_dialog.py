@@ -215,7 +215,8 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('grenade', 'pomegranate'). \
         replace('olivier', 'Ham Salad'). \
         replace('borsch', 'vegetable soup'). \
-        replace('schi', 'cabbage soup')
+        replace('schi', 'cabbage soup').\
+        replace('semolina porridge', 'semolina cake')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -266,6 +267,7 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
     for number, food_name in enumerate(nutrition_dict['foods']):
         calories = nutrition_dict["foods"][number].get("nf_calories", 0) or 0
         total_calories += calories
+        weight = nutrition_dict['foods'][number].get('serving_weight_grams', 0) or 0
         protein = nutrition_dict["foods"][number].get("nf_protein", 0) or 0
         total_protein += protein
         fat = nutrition_dict["foods"][number].get("nf_total_fat", 0) or 0
@@ -277,7 +279,7 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
         number_string = ''
         if len(nutrition_dict["foods"]) > 1:
             number_string = f'{number + 1}. '
-        response_text += f'{number_string}{choose_case(amount=calories)}\n' \
+        response_text += f'{number_string}{choose_case(amount=calories)} в {weight} гр.\n' \
             f'({round(protein, 1)} бел. ' \
             f'{round(fat, 1)} жир. ' \
             f'{round(carbohydrates, 1)} угл. ' \
@@ -383,7 +385,12 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     tokens = request.get('nlu').get('tokens')  # type: list
     full_phrase = request.get('original_utterance').lower()
     print(full_phrase)
-    full_phrase = full_phrase.replace('щи', 'капустный суп')
+    full_phrase = full_phrase.\
+        replace('щи', 'капустный суп').\
+        replace('биг мак', 'big mac')
+
+    if 'рис' in tokens:
+        full_phrase = full_phrase.replace('рис', 'rice')
 
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
@@ -442,7 +449,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': '300 грамм картофельного пюре и котлета',
+            'original_utterance': 'картофельное пюре',
             'type': 'SimpleUtterance',
         },
         'session':
