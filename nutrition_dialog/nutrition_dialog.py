@@ -221,7 +221,9 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('chickpea cutlet', 'chickpea 70 grams').\
         replace('snikers', 'Snicker').\
         replace('compote', 'Stewed Apples 250 grams').\
-        replace('bottle', '500 ml')
+        replace('bottle', '500 ml').\
+        replace('cabbage cutlet', 'cabbage 70 grams').\
+        replace('bucket', '7 liters')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -458,7 +460,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'бутылка светлого пива',
+            'original_utterance': 'ведро воды',
             'type': 'SimpleUtterance',
         },
         'session':
