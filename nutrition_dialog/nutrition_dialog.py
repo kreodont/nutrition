@@ -216,7 +216,10 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('olivier', 'Ham Salad'). \
         replace('borsch', 'vegetable soup'). \
         replace('schi', 'cabbage soup').\
-        replace('semolina porridge', 'semolina cake')
+        replace('semolina porridge', 'semolina cake').\
+        replace('chickpea cutlets', 'chickpea 70 grams').\
+        replace('chickpea cutlet', 'chickpea 70 grams').\
+        replace('snikers', 'Snicker')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -401,7 +404,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
                                                      database_client=database_client)
 
-    if not nutrition_dict:
+    if not nutrition_dict or not context:
         # translation block
         full_phrase_translated = translate(
                 russian_phrase=full_phrase,
@@ -449,7 +452,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'картофельное пюре',
+            'original_utterance': 'сникерс',
             'type': 'SimpleUtterance',
         },
         'session':
