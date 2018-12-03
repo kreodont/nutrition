@@ -314,6 +314,15 @@ def choose_key(keys_dict):
     return min_usage_key['name'], min_usage_key['pass'], keys_dict
 
 
+def russian_replacements(initial_phrase: str, tokens) -> str:
+    new_phrase = initial_phrase.replace('щи', 'капустный суп').\
+        replace('биг мак', 'big mac').\
+        replace('какао', 'hot chocolate 300 grams')
+    if 'рис' in tokens:
+        new_phrase = new_phrase.replace('рис', 'rice')
+    return new_phrase
+
+
 @timeit
 def nutrition_dialog(event: dict, context: dict) -> dict:
     """
@@ -388,13 +397,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     tokens = request.get('nlu').get('tokens')  # type: list
     full_phrase = request.get('original_utterance').lower()
-    print(full_phrase)
-    full_phrase = full_phrase.\
-        replace('щи', 'капустный суп').\
-        replace('биг мак', 'big mac')
-
-    if 'рис' in tokens:
-        full_phrase = full_phrase.replace('рис', 'rice')
+    full_phrase = russian_replacements(full_phrase, tokens)
 
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
@@ -405,7 +408,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
                                                      database_client=database_client)
 
-    if not nutrition_dict or not context:
+    if not nutrition_dict or not context:  # if run locally, database entry is overwritten
         # translation block
         full_phrase_translated = translate(
                 russian_phrase=full_phrase,
@@ -429,6 +432,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
 
     response_text, total_calories = make_final_text(nutrition_dict=nutrition_dict)
+
     write_to_cache_table(
             initial_phrase=full_phrase,
             nutrition_dict=nutrition_dict,
@@ -448,12 +452,12 @@ if __name__ == '__main__':
             'timezone': 'UTC',
         },
         'request': {
-            'command': '300 грамм картофельного пюре и котлета и стакан яблочного сока',
+            'command': '...',
             'nlu': {
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'куриная котлета',
+            'original_utterance': 'марс',
             'type': 'SimpleUtterance',
         },
         'session':
