@@ -81,25 +81,42 @@ def timeit(target_function):
     return timed
 
 
-def choose_case(*, amount: float, round_to_int=False) -> str:
+def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
     if round_to_int:
         str_amount = str(int(amount))
     else:
-        str_amount = str(round(amount, 2))
-        if str_amount[-1] == '0':
+        str_amount = str(round(amount, 2))  # Leaving only 2 digits after comma (12.03 for example)
+        if int(amount) == amount:
             str_amount = str(int(amount))
 
     last_digit_str = str_amount[-1]
-    if not round_to_int and last_digit_str != '0' and '.' in str(amount):
+
+    if not round_to_int and '.' in str_amount:  # 12.04 калории
         return f'{str_amount} калории'
-    if last_digit_str == '1':
+    # below amount is integer for sure
+    if last_digit_str == '1':  # 21 калория (20 одна калория in tts mode)
+        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
+            return f'{str_amount} калорий'
+        if tts_mode:
+            if len(str_amount) > 1:
+                first_part = str(int(str_amount[:-1]) * 10)
+            else:
+                first_part = ''
+            str_amount = f'{first_part} одна'
         return f'{str_amount} калория'
     elif last_digit_str in ('2', '3', '4'):
-        if len(str_amount) > 1 and str_amount[-2] == '1':
+        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
             return f'{str_amount} калорий'
-        return f'{str_amount} калории'
+        if tts_mode:
+            if len(str_amount) > 1:
+                first_part = str(int(str_amount[:-1]) * 10)
+            else:
+                first_part = ''
+            if last_digit_str == '2':
+                str_amount = f'{first_part} две'
+        return f'{str_amount} калории'  # 22 калории
     else:
-        return f'{str_amount} калорий'
+        return f'{str_amount} калорий'  # 35 калорий
 
 
 def make_text_to_speech_number(text: str) -> str:
@@ -141,7 +158,6 @@ def get_from_cache_table(*, request_text: str, database_client) -> typing.Tuple[
         if item['initial_phrase']['S'] == '_key':
             keys_dict = json.loads(item['response']['S'])
         if item['initial_phrase']['S'] == request_text:
-            print()
             food_dict = json.loads(item['response']['S'])
 
     return keys_dict, food_dict
@@ -257,6 +273,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         replace('биг мак', 'big mac').\
         replace('какао', 'hot chocolate 300 grams').\
         replace('стакан', '250 мл').\
+        replace('банка', '1 liter').\
+        replace('стакан', '250 мл').\
         replace('бочка', '208 литров')
     if 'рис' in tokens:
         new_phrase = new_phrase.replace('рис', 'rice')
@@ -325,7 +343,8 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
             f'{round(sugar, 1)} сах.)\n'
 
     if len(nutrition_dict["foods"]) > 1:
-        response_text += f'Итого: {choose_case(amount=total_calories)}\n({round(total_protein, 1)} бел. ' \
+        response_text += f'Итого: {choose_case(amount=total_calories)}\n' \
+            f'({round(total_protein, 1)} бел. ' \
             f'{round(total_fat, 1)} жир. ' \
             f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
 
@@ -423,12 +442,14 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     tokens = request.get('nlu').get('tokens')  # type: list
     full_phrase = request.get('original_utterance').lower()
+    print(full_phrase)
     full_phrase = russian_replacements(full_phrase, tokens)
 
     if len(full_phrase) > 70:
         return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
 
-    if ('помощь' in tokens or
+    if (
+            'помощь' in tokens or
             'справка' in tokens or
             'хелп' in tokens or
             'информация' in tokens or
@@ -444,21 +465,27 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     if (
             'хорошо' in tokens or
-            'молодец' in tokens):
+            'молодец' in tokens or
+            'замечательно' in tokens or
+            'отлично' in tokens
+    ):
         return construct_response_with_session(text='Спасибо, я стараюсь')
 
     if (
             'привет' in tokens or
             'здравствуй' in tokens or
-            'здравствуйте' in tokens):
+            'здравствуйте' in tokens
+    ):
         return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
                                                     'а скажу сколько там было калорий и питательных веществ.')
 
-    if ('выход' in tokens or
+    if (
+            'выход' in tokens or
             'выйти' in tokens or
             'пока' in tokens or
             'выйди' in tokens or
-            'до свидания' in tokens):
+            'до свидания' in tokens
+    ):
         return construct_response_with_session(text='До свидания', end_session=True)
 
     # searching in cache database first
@@ -495,7 +522,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             nutrition_dict=nutrition_dict,
             database_client=database_client,
             keys_dict=keys_dict)
-    return construct_response_with_session(text=response_text, tts=f'Итого: {choose_case(amount=total_calories)}')
+    return construct_response_with_session(
+            text=response_text,
+            tts=f'Итого: {choose_case(amount=total_calories, tts_mode=True)}')
 
 
 if __name__ == '__main__':
@@ -514,7 +543,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'бочка варенья',
+            'original_utterance': 'виски 100 грамм',
             'type': 'SimpleUtterance',
         },
         'session':
