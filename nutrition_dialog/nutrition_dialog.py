@@ -183,6 +183,26 @@ def write_to_cache_table(*, initial_phrase: str, nutrition_dict: dict, database_
                                  }})
 
 
+def save_session(*, session_id: str, event_time: str, foods_dict: dict, utterance, database_client) -> None:
+    database_client.put_item(TableName='nutrition_sessions',
+                             Item={
+                                 'id': {
+                                     'S': session_id,
+                                 },
+                                 'value': {
+                                     'S': json.dumps({'time': event_time, 'foods': foods_dict, 'utterance': utterance}),
+                                 }})
+
+
+def check_session(*, session_id: str, database_client) -> dict:
+    result = database_client.get_item(
+            TableName='nutrition_sessions', Key={'id': {'S': session_id}})
+    if 'Item' not in result:
+        return {}
+    else:
+        return json.loads(result['Item']['value']['S'])
+
+
 def get_boto3_clients(context):
     if context:
         config = Config(connect_timeout=0.8, retries={'max_attempts': 0})
