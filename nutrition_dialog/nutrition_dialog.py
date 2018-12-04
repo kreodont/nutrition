@@ -102,6 +102,24 @@ def choose_case(*, amount: float, round_to_int=False) -> str:
         return f'{str_amount} калорий'
 
 
+def make_text_to_speech_number(text: str) -> str:
+    if '.' in text:
+        return text
+    previous_digits = ''
+    if len(text) > 1:
+        previous_digits = str(int(text[:-1]) * 10)
+    last_digits = text[-1]
+    if last_digits == 0:
+        last_text = ''
+    elif last_digits == '1':
+        last_text = 'одна'
+    elif last_digits == '2':
+        last_text = 'две'
+    else:
+        last_text = last_digits
+    return previous_digits + " " + last_text
+
+
 @timeit
 def get_from_cache_table(*, request_text: str, database_client) -> typing.Tuple[dict, dict]:
     keys_dict = {}
@@ -223,7 +241,10 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('compote', 'Stewed Apples 250 grams').\
         replace('bottle', '500 ml').\
         replace('cabbage cutlet', 'cabbage 70 grams').\
-        replace('bucket', '7 liters')
+        replace('bucket', '7 liters').\
+        replace('maize', 'corn').\
+        replace('patisson', 'squash').\
+        replace('bisque', 'soup')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -235,7 +256,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
     new_phrase = initial_phrase.replace('щи', 'капустный суп').\
         replace('биг мак', 'big mac').\
         replace('какао', 'hot chocolate 300 grams').\
-        replace('стакан', '250 мл')
+        replace('стакан', '250 мл').\
+        replace('бочка', '208 литров')
     if 'рис' in tokens:
         new_phrase = new_phrase.replace('рис', 'rice')
     return new_phrase
@@ -492,7 +514,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'стакан водки',
+            'original_utterance': 'бочка варенья',
             'type': 'SimpleUtterance',
         },
         'session':
