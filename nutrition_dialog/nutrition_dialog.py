@@ -183,14 +183,23 @@ def write_to_cache_table(*, initial_phrase: str, nutrition_dict: dict, database_
                                  }})
 
 
-def save_session(*, session_id: str, event_time: str, foods_dict: dict, utterance, database_client) -> None:
+def save_session(
+        *,
+        session_id: str,
+        event_time: datetime.datetime,
+        foods_dict: dict,
+        utterance: str,
+        database_client) -> None:
     database_client.put_item(TableName='nutrition_sessions',
                              Item={
                                  'id': {
                                      'S': session_id,
                                  },
                                  'value': {
-                                     'S': json.dumps({'time': event_time, 'foods': foods_dict, 'utterance': utterance}),
+                                     'S': json.dumps({
+                                         'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
+                                         'foods': foods_dict,
+                                         'utterance': utterance}),
                                  }})
 
 
@@ -280,7 +289,8 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('bucket', '7 liters').\
         replace('maize', 'corn').\
         replace('patisson', 'squash').\
-        replace('bisque', 'soup')
+        replace('bisque', 'soup').\
+        replace('crayons', 'cray-fish')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -295,7 +305,14 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         replace('стакан', '250 мл').\
         replace('банка', '1 liter').\
         replace('стакан', '250 мл').\
-        replace('бочка', '208 литров')
+        replace('бочка', '208 литров').\
+        replace('мороженое', 'ice-cream').\
+        replace('кисель', 'jelly').\
+        replace('киселя', 'jelly').\
+        replace('мороженого', 'ice-cream').\
+        replace('пломбира', 'ice-cream').\
+        replace('пломбир', 'ice-cream').\
+        replace('щей', 'капустного супа')
     if 'рис' in tokens:
         new_phrase = new_phrase.replace('рис', 'rice')
     return new_phrase
@@ -386,6 +403,31 @@ def choose_key(keys_dict):
 
     min_usage_key['dates'].append(str(datetime.datetime.now()))
     return min_usage_key['name'], min_usage_key['pass'], keys_dict
+
+
+def update_user_table(
+        *,
+        database_client,
+        event_time: datetime.datetime,
+        foods_dict: dict,
+        utterance: str,
+        user_id: str):
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={'id': {'S': user_id}, 'date': {'S': str(event_time.date())}})
+    item_to_save = []
+    if 'Item' in result:
+        item_to_save = json.loads(result['Item']['value']['S'])
+    item_to_save.append({'time': event_time.strftime('%Y-%m-%d %H:%M:%S'), 'foods': foods_dict, 'utterance': utterance})
+    database_client.put_item(TableName='nutrition_users',
+                             Item={
+                                 'id': {
+                                     'S': user_id,
+                                 },
+                                 'date': {'S': str(event_time.date())},
+                                 'value': {
+                                     'S': json.dumps(item_to_save),
+                                 }})
 
 
 @timeit
@@ -508,6 +550,18 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     ):
         return construct_response_with_session(text='До свидания', end_session=True)
 
+    if tokens == ['да']:
+        saved_session = check_session(session_id=session['session_id'], database_client=database_client)
+        if not saved_session:
+            return construct_response_with_session(text=make_default_text())
+        update_user_table(
+                database_client=database_client,
+                event_time=dateutil.parser.parse(saved_session['time']),
+                foods_dict=saved_session['foods'],
+                user_id=session['user_id'],
+                utterance=saved_session['utterance'])
+        return construct_response_with_session(text='Сохранено')
+
     # searching in cache database first
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
                                                      database_client=database_client)
@@ -536,15 +590,20 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
 
     response_text, total_calories = make_final_text(nutrition_dict=nutrition_dict)
-
+    save_session(
+            session_id=session['session_id'],
+            database_client=database_client,
+            event_time=datetime.datetime.now(),
+            foods_dict=nutrition_dict,
+            utterance=full_phrase)
     write_to_cache_table(
             initial_phrase=full_phrase,
             nutrition_dict=nutrition_dict,
             database_client=database_client,
             keys_dict=keys_dict)
     return construct_response_with_session(
-            text=response_text,
-            tts=f'Итого: {choose_case(amount=total_calories, tts_mode=True)}')
+            text=response_text + ' Сохранить?',
+            tts=f'Итого: {choose_case(amount=total_calories, tts_mode=True)}. Сохранить?')
 
 
 if __name__ == '__main__':
@@ -563,7 +622,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'виски 100 грамм',
+            'original_utterance': '100 грамм щей',
             'type': 'SimpleUtterance',
         },
         'session':

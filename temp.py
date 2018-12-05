@@ -26,8 +26,23 @@ def check_session(*, session_id: str, database_client) -> dict:
         return json.loads(result['Item']['value']['S'])
 
 
-def update_user_table(*, database_client, time: str, foods_dict, utterance):
-    pass
+def update_user_table(*, database_client, time: datetime.datetime, foods_dict: dict, utterance: str, user_id: str):
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={'id': {'S': user_id}, 'date': {'S': str(time.date())}})
+    item_to_save = []
+    if 'Item' in result:
+        item_to_save = json.loads(result['Item']['value']['S'])
+    item_to_save.append({'time': time.strftime('%Y-%m-%d %H:%M:%S'), 'foods': foods_dict, 'utterance': utterance})
+    database_client.put_item(TableName='nutrition_users',
+                             Item={
+                                 'id': {
+                                     'S': user_id,
+                                 },
+                                 'date': {'S': str(time.date())},
+                                 'value': {
+                                     'S': json.dumps(item_to_save),
+                                 }})
 
 
 # save_session(
@@ -36,4 +51,11 @@ def update_user_table(*, database_client, time: str, foods_dict, utterance):
 #         foods_dict={},
 #         utterance='2 сосиски',
 #         database_client=client)
-print(check_session(session_id='e0b39c4e-aea82aa7-f4046f03-3173ae15', database_client=client))
+# print(check_session(session_id='e0b39c4e-aea82aa7-f4046f03-3173ae15', database_client=client))
+
+update_user_table(
+        database_client=client,
+        time=datetime.datetime.now(),
+        foods_dict={'food1': 'hahaa'},
+        utterance='Привет',
+        user_id='574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E')
