@@ -293,7 +293,9 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('crayons', 'cray-fish').\
         replace('floor', 'half of').\
         replace('baton', 'bread').\
-        replace('loaf', 'bread')
+        replace('loaf', 'bread').\
+        replace('soy', 'soynut').\
+        replace('soybean', 'soynut')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -334,7 +336,7 @@ def query_endpoint(*, link, login, password, phrase) -> dict:
                                  headers={'content-type': 'application/json',
                                           'x-app-id': login,
                                           'x-app-key': password},
-                                 timeout=0.6,
+                                 timeout=0.7,
                                  )
     except Exception as e:
         return {'error': str(e)}
@@ -630,7 +632,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': 'бутылка кефира пол батона',
+            'original_utterance': 'соя',
             'type': 'SimpleUtterance',
         },
         'session':
