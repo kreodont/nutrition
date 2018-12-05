@@ -550,7 +550,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     ):
         return construct_response_with_session(text='До свидания', end_session=True)
 
-    if tokens == ['да']:
+    if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
+            or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно']):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -561,6 +562,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 user_id=session['user_id'],
                 utterance=saved_session['utterance'])
         return construct_response_with_session(text='Сохранено')
+
+    if (tokens == ['нет'] or tokens == ['неа'] or tokens == ['нельзя'] or tokens == ['ну', 'нет']
+            or tokens == ['не', 'надо']):
+        return construct_response_with_session(text='Забыли')
 
     # searching in cache database first
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
