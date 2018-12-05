@@ -290,7 +290,10 @@ def translate(*, russian_phrase, translation_client, debug):
         replace('maize', 'corn').\
         replace('patisson', 'squash').\
         replace('bisque', 'soup').\
-        replace('crayons', 'cray-fish')
+        replace('crayons', 'cray-fish').\
+        replace('floor', 'half of').\
+        replace('baton', 'bread').\
+        replace('loaf', 'bread')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -551,7 +554,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text='До свидания', end_session=True)
 
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
-            or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно']):
+            or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани']):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -627,7 +630,7 @@ if __name__ == '__main__':
                 'entities': [],
                 'tokens': ['ghb'],
             },
-            'original_utterance': '100 грамм щей',
+            'original_utterance': 'бутылка кефира пол батона',
             'type': 'SimpleUtterance',
         },
         'session':
