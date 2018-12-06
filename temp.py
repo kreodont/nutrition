@@ -44,6 +44,15 @@ def update_user_table(*, database_client, time: datetime.datetime, foods_dict: d
                                      'S': json.dumps(item_to_save),
                                  }})
 
+def clear_session(
+        *,
+        session_id: str,
+        database_client) -> None:
+    database_client.delete_item(TableName='nutrition_sessions',
+                                Key={
+                                    'id': {
+                                        'S': session_id,
+                                    }, })
 
 # save_session(
 #         session_id='e0b39c4e-aea82aa7-f4046f03-3173ae15',
@@ -53,9 +62,10 @@ def update_user_table(*, database_client, time: datetime.datetime, foods_dict: d
 #         database_client=client)
 # print(check_session(session_id='e0b39c4e-aea82aa7-f4046f03-3173ae15', database_client=client))
 
-update_user_table(
-        database_client=client,
-        time=datetime.datetime.now(),
-        foods_dict={'food1': 'hahaa'},
-        utterance='Привет',
-        user_id='574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E')
+clear_session(session_id='e0b39c4e-aea82aa7-f4046f03-3173ae15', database_client=client)
+# update_user_table(
+#         database_client=client,
+#         time=datetime.datetime.now(),
+#         foods_dict={'food1': 'hahaa'},
+#         utterance='Привет',
+#         user_id='574027C0C2A1FEA0E65694182E19C8AB69A56FC404B938928EF74415CF05137E')
