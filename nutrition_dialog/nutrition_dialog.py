@@ -340,6 +340,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['стаканов', 'стакана', 'стакан'], 'search_text': [], 'replacement': '250 ml'},
         {'search_tokens': ['бочек', 'бочки', 'бочка'], 'search_text': [], 'replacement': '208 liters'},
         {'search_tokens': [], 'search_text': ['кока кола зеро', ], 'replacement': 'Pepsi Cola Zero'},
+        {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [], 'replacement': 'зефир'},
         {'search_tokens': [], 'search_text': ['риттер спорта', 'риттер спорт', 'шоколада риттер спорта',
                                               'шоколад риттер спорт'],
          'replacement': 'ritter sport'}
