@@ -287,7 +287,7 @@ def translate(*, russian_phrase, translation_client, debug):
         return 'timeout'
 
     full_phrase_translated = full_phrase_translated.lower().\
-        replace('bisque', 'soup')
+        replace('bisque', 'soup').replace(' and ', ' ')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -336,6 +336,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
          'replacement': '70 grams of cabbage'},
         {'search_tokens': ['желе', ], 'search_text': [], 'replacement': 'jello'},
         {'search_tokens': ['холодца', 'холодцов', 'холодец'], 'search_text': [], 'replacement': 'jelly'},
+        {'search_tokens': ['лэйза', 'лейзов', 'лэйс'], 'search_text': [], 'replacement': 'lays'},
         # {'search_tokens': ['тарелка', 'тарелки', 'тарелок', ], 'search_text': [], 'replacement': '400 grams'}
 
     ]
@@ -540,7 +541,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
-    full_phrase = request.get('original_utterance').lower()
+    full_phrase = request.get('command').lower()
     print(full_phrase)
     full_phrase = russian_replacements(full_phrase, tokens)
 
@@ -657,7 +658,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '100 грамм холодца'
+    testing = '201 грамм картошки '.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
@@ -668,7 +669,7 @@ if __name__ == '__main__':
             'timezone': 'UTC',
         },
         'request': {
-            'command': '...',
+            'command': testing,
             'nlu': {
                 'entities': [],
                 'tokens': testing.split(),
