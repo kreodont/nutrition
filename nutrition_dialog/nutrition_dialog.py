@@ -286,8 +286,7 @@ def translate(*, russian_phrase, translation_client, debug):
     except requests.exceptions.ReadTimeout:
         return 'timeout'
 
-    full_phrase_translated = full_phrase_translated.lower().\
-        replace('bisque', 'soup').replace(' and ', ' ')
+    full_phrase_translated = full_phrase_translated.lower().replace('bisque', 'soup')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -311,7 +310,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['банка', 'банки', 'банок'], 'search_text': [], 'replacement': '500 ml'},
         {'search_tokens': ['ящика', 'ящиков', 'ящик'], 'search_text': [], 'replacement': '20 kg'},
         {'search_tokens': ['буханок', 'буханки', 'буханка'], 'search_text': [], 'replacement': '700 g'},
-        {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [], 'replacement': '400 g of white bread'},
+        {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [], 'replacement': 'loaf',},
         {'search_tokens': ['пол', ], 'search_text': [], 'replacement': 'half'},
         {'search_tokens': ['раков', 'рака', 'раки', 'рак'], 'search_text': [], 'replacement': 'cray-fish'},
         {'search_tokens': ['угорь', 'угре', 'угря', 'угрей'], 'search_text': [], 'replacement': 'eel'},
@@ -337,6 +336,9 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['желе', ], 'search_text': [], 'replacement': 'jello'},
         {'search_tokens': ['холодца', 'холодцов', 'холодец'], 'search_text': [], 'replacement': 'jelly'},
         {'search_tokens': ['лэйза', 'лейзов', 'лэйс'], 'search_text': [], 'replacement': 'lays'},
+        {'search_tokens': ['кефира', 'кефир',], 'search_text': [], 'replacement': 'kefir'},
+        {'search_tokens': ['стаканов', 'стакана', 'стакан'], 'search_text': [], 'replacement': '250 ml'},
+        {'search_tokens': ['бочек', 'бочки', 'бочка'], 'search_text': [], 'replacement': '208 liters'},
         # {'search_tokens': ['тарелка', 'тарелки', 'тарелок', ], 'search_text': [], 'replacement': '400 grams'}
 
     ]
@@ -658,7 +660,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '201 грамм картошки '.lower()
+    testing = 'бумага'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
