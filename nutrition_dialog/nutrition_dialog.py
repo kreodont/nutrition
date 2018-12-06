@@ -328,12 +328,15 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['кукуруза', 'кукурузы', ], 'search_text': [], 'replacement': 'corn'},
         {'search_tokens': ['граната', 'гранат', ], 'search_text': [], 'replacement': 'pomegranate'},
         {'search_tokens': ['оливье', ], 'search_text': [], 'replacement': 'Ham Salad'},
-        {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o'meal"},
+        {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o meal"},
         {'search_tokens': [], 'search_text': ['котлета из нута', 'котлет из нута', 'котлеты из нута', ],
-         'replacement': 'chickpea 70 grams'},
+         'replacement': '70 grams of chickpea'},
         {'search_tokens': [], 'search_text': ['котлета из капусты', 'котлет из капусты', 'котлеты из капусты',
                                               'капустная котлета', 'капустных котлет', 'капустные котлеты'],
-         'replacement': 'cabbage 70 grams'},
+         'replacement': '70 grams of cabbage'},
+        {'search_tokens': ['желе', ], 'search_text': [], 'replacement': 'jello'},
+        {'search_tokens': ['холодца', 'холодцов', 'холодец'], 'search_text': [], 'replacement': 'jelly'},
+        # {'search_tokens': ['тарелка', 'тарелки', 'тарелок', ], 'search_text': [], 'replacement': '400 grams'}
 
     ]
     for replacement in replacements:
@@ -654,6 +657,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
+    testing = '100 грамм холодца'
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
@@ -667,9 +671,9 @@ if __name__ == '__main__':
             'command': '...',
             'nlu': {
                 'entities': [],
-                'tokens': ['батон', 'колбасы', ],
+                'tokens': testing.split(),
             },
-            'original_utterance': 'батон колбасы',
+            'original_utterance': testing,
             'type': 'SimpleUtterance',
         },
         'session':
