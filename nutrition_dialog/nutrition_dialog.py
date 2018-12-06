@@ -185,6 +185,7 @@ def write_to_cache_table(*, initial_phrase: str, nutrition_dict: dict, database_
                                  }})
 
 
+@timeit
 def save_session(
         *,
         session_id: str,
@@ -205,6 +206,7 @@ def save_session(
                                  }})
 
 
+@timeit
 def clear_session(
         *,
         session_id: str,
@@ -216,6 +218,7 @@ def clear_session(
                                     }, })
 
 
+@timeit
 def check_session(*, session_id: str, database_client) -> dict:
     result = database_client.get_item(
             TableName='nutrition_sessions', Key={'id': {'S': session_id}})
@@ -225,6 +228,7 @@ def check_session(*, session_id: str, database_client) -> dict:
         return json.loads(result['Item']['value']['S'])
 
 
+@timeit
 def get_boto3_clients(context):
     if context:
         config = Config(connect_timeout=0.6, retries={'max_attempts': 0})
@@ -282,33 +286,8 @@ def translate(*, russian_phrase, translation_client, debug):
     except requests.exceptions.ReadTimeout:
         return 'timeout'
 
-    full_phrase_translated = full_phrase_translated.lower(). \
-        replace('acne', 'eel'). \
-        replace('drying', 'bagel'). \
-        replace('mopper', 'grouse'). \
-        replace('seeds', 'sunflower seeds'). \
-        replace('fat', 'fat meat'). \
-        replace('grenade', 'pomegranate'). \
-        replace('olivier', 'Ham Salad'). \
-        replace('borsch', 'vegetable soup'). \
-        replace('schi', 'cabbage soup'). \
-        replace('semolina porridge', 'semolina cake'). \
-        replace('chickpea cutlets', 'chickpea 70 grams'). \
-        replace('chickpea cutlet', 'chickpea 70 grams'). \
-        replace('snikers', 'Snicker'). \
-        replace('compote', 'Stewed Apples 250 grams'). \
-        replace('bottle', '500 ml'). \
-        replace('cabbage cutlet', 'cabbage 70 grams'). \
-        replace('bucket', '7 liters'). \
-        replace('maize', 'corn'). \
-        replace('patisson', 'squash'). \
-        replace('bisque', 'soup'). \
-        replace('crayons', 'cray-fish'). \
-        replace('floor', 'half of'). \
-        replace('baton', 'bread'). \
-        replace('loaf', 'bread'). \
-        replace('soy', 'soynut'). \
-        replace('soybean', 'soynut')
+    full_phrase_translated = full_phrase_translated.lower().\
+        replace('bisque', 'soup')
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -320,6 +299,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
     new_phrase = initial_phrase
     replacements = [
         {'search_tokens': ['щи', 'щей'], 'search_text': [], 'replacement': 'cabbage soup'},
+        {'search_tokens': ['борща', 'борщ'], 'search_text': [], 'replacement': 'vegetable soup'},
         {'search_tokens': [], 'search_text': ['биг мак', 'биг мака', 'биг маков'], 'replacement': 'big mac'},
         {'search_tokens': ['риса', 'рис'], 'search_text': [], 'replacement': 'rice'},
         {'search_tokens': ['мороженое', 'мороженого', 'мороженых'], 'search_text': [], 'replacement': 'ice cream'},
@@ -330,6 +310,30 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['бутылка', 'бутылки', ], 'search_text': [], 'replacement': '500 ml'},
         {'search_tokens': ['банка', 'банки', 'банок'], 'search_text': [], 'replacement': '500 ml'},
         {'search_tokens': ['ящика', 'ящиков', 'ящик'], 'search_text': [], 'replacement': '20 kg'},
+        {'search_tokens': ['буханок', 'буханки', 'буханка'], 'search_text': [], 'replacement': '700 g'},
+        {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [], 'replacement': '400 g of white bread'},
+        {'search_tokens': ['пол', ], 'search_text': [], 'replacement': 'half'},
+        {'search_tokens': ['раков', 'рака', 'раки', 'рак'], 'search_text': [], 'replacement': 'cray-fish'},
+        {'search_tokens': ['угорь', 'угре', 'угря', 'угрей'], 'search_text': [], 'replacement': 'eel'},
+        {'search_tokens': ['ведро', 'ведра', 'ведер'], 'search_text': [], 'replacement': '7 liters'},
+        {'search_tokens': ['сало', 'сала', ], 'search_text': [], 'replacement': 'fat meat'},
+        {'search_tokens': ['патиссонов', 'патиссона', 'патиссон', ], 'search_text': [], 'replacement': 'squash'},
+        {'search_tokens': ['компота', 'компоты', 'компот'], 'search_text': [],
+         'replacement': 'Stewed Apples 250 grams'},
+        {'search_tokens': ['сушек', 'сушки', 'сушка', ], 'search_text': [], 'replacement': 'bagel'},
+        {'search_tokens': ['рябчиков', 'рябчика', 'рябчики', 'рябчик', ], 'search_text': [], 'replacement': 'grouse'},
+        {'search_tokens': ['семечек', 'семечки', ], 'search_text': [], 'replacement': 'sunflower seeds'},
+        {'search_tokens': ['сникерса', 'сникерсов', 'сникерс'], 'search_text': [], 'replacement': 'Snicker'},
+        {'search_tokens': ['соя', 'сои', ], 'search_text': [], 'replacement': 'soynut'},
+        {'search_tokens': ['кукуруза', 'кукурузы', ], 'search_text': [], 'replacement': 'corn'},
+        {'search_tokens': ['граната', 'гранат', ], 'search_text': [], 'replacement': 'pomegranate'},
+        {'search_tokens': ['оливье', ], 'search_text': [], 'replacement': 'Ham Salad'},
+        {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o'meal"},
+        {'search_tokens': [], 'search_text': ['котлета из нута', 'котлет из нута', 'котлеты из нута', ],
+         'replacement': 'chickpea 70 grams'},
+        {'search_tokens': [], 'search_text': ['котлета из капусты', 'котлет из капусты', 'котлеты из капусты',
+                                              'капустная котлета', 'капустных котлет', 'капустные котлеты'],
+         'replacement': 'cabbage 70 grams'},
 
     ]
     for replacement in replacements:
@@ -369,7 +373,7 @@ def query_endpoint(*, link, login, password, phrase) -> dict:
 
     try:
         nutrition_dict = json.loads(response.text)
-        print(nutrition_dict)
+        # print(nutrition_dict)
     except Exception as e:
         return {'error': f'Cannot parse result json: "{response.text}". Exception: {e}'}
 
@@ -434,6 +438,7 @@ def choose_key(keys_dict):
     return min_usage_key['name'], min_usage_key['pass'], keys_dict
 
 
+@timeit
 def update_user_table(
         *,
         database_client,
@@ -644,7 +649,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             database_client=database_client,
             keys_dict=keys_dict)
     return construct_response_with_session(
-            text=response_text + ' Сохранить?',
+            text=response_text + '\nСохранить?',
             tts=f'{choose_case(amount=total_calories, tts_mode=True, round_to_int=True)}. Сохранить?')
 
 
@@ -662,9 +667,9 @@ if __name__ == '__main__':
             'command': '...',
             'nlu': {
                 'entities': [],
-                'tokens': ['2', 'ящика', 'пива'],
+                'tokens': ['батон', 'колбасы', ],
             },
-            'original_utterance': '2 ящика пива',
+            'original_utterance': 'батон колбасы',
             'type': 'SimpleUtterance',
         },
         'session':
