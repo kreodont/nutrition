@@ -231,7 +231,7 @@ def check_session(*, session_id: str, database_client) -> dict:
 @timeit
 def get_boto3_clients(context):
     if context:
-        config = Config(connect_timeout=0.6, retries={'max_attempts': 0})
+        config = Config(connect_timeout=0.5, retries={'max_attempts': 0})
         translation_client = boto3.client('translate', config=config)
         database_client = boto3.client('dynamodb', config=config)
     else:
@@ -374,7 +374,7 @@ def query_endpoint(*, link, login, password, phrase) -> dict:
                                  headers={'content-type': 'application/json',
                                           'x-app-id': login,
                                           'x-app-key': password},
-                                 timeout=0.7,
+                                 timeout=0.5,
                                  )
     except Exception as e:
         return {'error': str(e)}
