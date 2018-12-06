@@ -310,7 +310,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['банка', 'банки', 'банок'], 'search_text': [], 'replacement': '500 ml'},
         {'search_tokens': ['ящика', 'ящиков', 'ящик'], 'search_text': [], 'replacement': '20 kg'},
         {'search_tokens': ['буханок', 'буханки', 'буханка'], 'search_text': [], 'replacement': '700 g'},
-        {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [], 'replacement': 'loaf',},
+        {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [], 'replacement': 'loaf', },
         {'search_tokens': ['пол', ], 'search_text': [], 'replacement': 'half'},
         {'search_tokens': ['раков', 'рака', 'раки', 'рак'], 'search_text': [], 'replacement': 'cray-fish'},
         {'search_tokens': ['угорь', 'угре', 'угря', 'угрей'], 'search_text': [], 'replacement': 'eel'},
@@ -336,7 +336,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['желе', ], 'search_text': [], 'replacement': 'jello'},
         {'search_tokens': ['холодца', 'холодцов', 'холодец'], 'search_text': [], 'replacement': 'jelly'},
         {'search_tokens': ['лэйза', 'лейзов', 'лэйс'], 'search_text': [], 'replacement': 'lays'},
-        {'search_tokens': ['кефира', 'кефир',], 'search_text': [], 'replacement': 'kefir'},
+        {'search_tokens': ['кефира', 'кефир', ], 'search_text': [], 'replacement': 'kefir'},
         {'search_tokens': ['стаканов', 'стакана', 'стакан'], 'search_text': [], 'replacement': '250 ml'},
         {'search_tokens': ['бочек', 'бочки', 'бочка'], 'search_text': [], 'replacement': '208 liters'},
         {'search_tokens': [], 'search_text': ['кока кола зеро', ], 'replacement': 'Pepsi Cola Zero'},
@@ -472,6 +472,54 @@ def update_user_table(
                                  'value': {
                                      'S': json.dumps(item_to_save),
                                  }})
+
+
+@timeit
+def what_i_have_eaten(*, date, user_id, database_client) -> typing.Tuple[str, float]:
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
+    if 'Item' not in result:
+        return f'Не могу ничего найти за {date}', 0
+
+    total_calories = 0
+    full_text = ''
+    items_list = json.loads(result['Item']['value']['S'])
+    for food_number, food in enumerate(items_list, 1):
+        nutrition_dict = food['foods']
+        this_food_calories = 0
+        for f in nutrition_dict['foods']:
+            calories = f.get("nf_calories", 0) or 0
+            this_food_calories += calories
+            total_calories += calories
+        full_text += f'{food_number}. {food["utterance"]} ({this_food_calories})\n'
+
+    full_text += f'Всего: {total_calories} калорий'
+    return full_text, total_calories
+
+
+def transform_yandex_entities_into_date(entities_tag) -> typing.Tuple[typing.Optional[datetime.date], str]:
+    date_entities = [e for e in entities_tag if e['type'] == "YANDEX.DATETIME"]
+    if len(date_entities) == 0:
+        return None, 'No dates found'
+    if len(date_entities) > 1:
+        return None, f'{len(date_entities)} found, can be only one'
+    date_entity = date_entities[0]['value']
+    date_to_return = datetime.date.today()
+
+    if date_entity['year_is_relative']:
+        date_to_return += dateutil.relativedelta(years=date_entity['year'])
+    else:
+        date_to_return = date_to_return.replace(year=date_entity['year'])
+    if date_entity['month_is_relative']:
+        date_to_return += dateutil.relativedelta(months=date_entity['month'])
+    else:
+        date_to_return = date_to_return.replace(month=date_entity['month'])
+    if date_entity['day_is_relative']:
+        date_to_return += datetime.timedelta(days=date_entity['day'])
+    else:
+        date_to_return = date_to_return.replace(day=date_entity['day'])
+    return date_to_return, ''
 
 
 @timeit
