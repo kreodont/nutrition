@@ -570,7 +570,9 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'выйти' in tokens or
             'пока' in tokens or
             'выйди' in tokens or
-            'до свидания' in tokens
+            'до свидания' in full_phrase.lower() or
+            'всего доброго' in full_phrase.lower()
+
     ):
         return 'До свидания', True, True
 
