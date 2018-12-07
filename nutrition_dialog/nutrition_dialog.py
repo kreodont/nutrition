@@ -502,26 +502,29 @@ def what_i_have_eaten(*, date, user_id, database_client) -> typing.Tuple[str, fl
 
 
 def transform_yandex_entities_into_date(entities_tag) -> typing.Tuple[typing.Optional[datetime.date], str]:
+    print(entities_tag)
     date_entities = [e for e in entities_tag if e['type'] == "YANDEX.DATETIME"]
     if len(date_entities) == 0:
-        return None, 'No dates found'
-    if len(date_entities) > 1:
-        return None, f'{len(date_entities)} found, can be only one'
+        return datetime.date.today(), ''
+
     date_entity = date_entities[0]['value']
     date_to_return = datetime.date.today()
 
-    if date_entity['year_is_relative']:
-        date_to_return += dateutil.relativedelta(years=date_entity['year'])
+    if date_entity.get('year_is_relative'):
+        date_to_return += dateutil.relativedelta.relativedelta(years=date_entity['year'])
     else:
-        date_to_return = date_to_return.replace(year=date_entity['year'])
-    if date_entity['month_is_relative']:
-        date_to_return += dateutil.relativedelta(months=date_entity['month'])
+        if date_entity.get('year'):
+            date_to_return = date_to_return.replace(year=date_entity['year'])
+    if date_entity.get('month_is_relative'):
+        date_to_return += dateutil.relativedelta.relativedelta(months=date_entity['month'])
     else:
-        date_to_return = date_to_return.replace(month=date_entity['month'])
-    if date_entity['day_is_relative']:
+        if date_entity.get('month'):
+            date_to_return = date_to_return.replace(month=date_entity['month'])
+    if date_entity.get('day_is_relative'):
         date_to_return += datetime.timedelta(days=date_entity['day'])
     else:
-        date_to_return = date_to_return.replace(day=date_entity['day'])
+        if date_entity.get('day'):
+            date_to_return = date_to_return.replace(day=date_entity['day'])
     return date_to_return, ''
 
 
@@ -684,8 +687,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                                     'спросите меня что Вы ели')
 
     if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
+        target_date = transform_yandex_entities_into_date(entities_tag=request.get('nlu').get('entities'))[0]
         text, total_calories = what_i_have_eaten(
-                        date=datetime.date.today(),
+                        date=target_date,
                         user_id=session['user_id'],
                         database_client=database_client)
         return construct_response_with_session(
@@ -737,7 +741,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'что я ел?'.lower()
+    testing = 'что я ел вчера?'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
