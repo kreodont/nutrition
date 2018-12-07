@@ -477,7 +477,7 @@ def update_user_table(
 
 
 @timeit
-def what_i_have_eaten(*, date, user_id, database_client) -> typing.Tuple[str, float]:
+def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str = 'UTC') -> typing.Tuple[str, float]:
     result = database_client.get_item(
             TableName='nutrition_users',
             Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
@@ -491,11 +491,13 @@ def what_i_have_eaten(*, date, user_id, database_client) -> typing.Tuple[str, fl
         nutrition_dict = food['foods']
         this_food_calories = 0
         food_time = dateutil.parser.parse(food['time'])
+        food_time = food_time.astimezone(dateutil.tz.gettz(current_timezone))
+
         for f in nutrition_dict['foods']:
             calories = f.get("nf_calories", 0) or 0
             this_food_calories += calories
             total_calories += calories
-        full_text += f'{food_time.strftime("%H:%M")} {food["utterance"]} ({this_food_calories})\n'
+        full_text += f'[{food_time.strftime("%H:%M")}] {food["utterance"]} ({this_food_calories})\n'
 
     full_text += f'Всего: {choose_case(amount=total_calories)}'
     return full_text, total_calories
@@ -529,7 +531,6 @@ def transform_yandex_entities_into_date(entities_tag) -> typing.Tuple[typing.Opt
 
 
 def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typing.Tuple[str, bool, bool]:
-
     if len(full_phrase) > 70:
         return 'Ой, текст слишком длинный. Давайте попробуем частями?', True, False
 
@@ -689,9 +690,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
         target_date = transform_yandex_entities_into_date(entities_tag=request.get('nlu').get('entities'))[0]
         text, total_calories = what_i_have_eaten(
-                        date=target_date,
-                        user_id=session['user_id'],
-                        database_client=database_client)
+                date=target_date,
+                user_id=session['user_id'],
+                database_client=database_client,
+                current_timezone=event.get('meta').get('timezone'))
         return construct_response_with_session(
                 text=text,
                 tts=f'{choose_case(amount=total_calories, tts_mode=True, round_to_int=True)}')
