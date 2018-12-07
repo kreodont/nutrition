@@ -645,7 +645,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text='До свидания', end_session=True)
 
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
-            or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани']):
+            or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
+            tokens == ['сохрани']) or tokens == ['ну', 'сохрани']:
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -660,7 +661,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     if (tokens == ['нет', ] or tokens == ['неа', ] or tokens == ['нельзя', ] or tokens == ['ну', 'нет']
             or tokens == ['не', 'надо'] or tokens == ['не', ] or tokens == ['нет', 'не', 'надо'] or
-            tokens == ['да', 'нет'] or tokens == ['да', 'нет', 'наверное']):
+            tokens == ['да', 'нет'] or tokens == ['да', 'нет', 'наверное'] or tokens == ['не', 'сохраняй']):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
