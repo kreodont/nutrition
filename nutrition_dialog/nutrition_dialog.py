@@ -33,7 +33,7 @@ example_food_texts = ['Бочка варенья и коробка печень�
 start_text = 'Какую еду записать?'
 help_text = 'Я умею считать калории. Просто скажите что Вы съели, а я скажу сколько в этом было калорий. ' \
             'Текст не должен быть слишком длинным. Желательно не более трёх блюд. Например: 300 грамм картофельного ' \
-            'пюре и котлета.Чтобы выйти, скажите выход'
+            'пюре и котлета. Чтобы выйти, скажите выход'
 
 
 def construct_response(*,
@@ -489,13 +489,14 @@ def what_i_have_eaten(*, date, user_id, database_client) -> typing.Tuple[str, fl
     for food_number, food in enumerate(items_list, 1):
         nutrition_dict = food['foods']
         this_food_calories = 0
+        food_time = dateutil.parser.parse(food['time'])
         for f in nutrition_dict['foods']:
             calories = f.get("nf_calories", 0) or 0
             this_food_calories += calories
             total_calories += calories
-        full_text += f'{food_number}. {food["utterance"]} ({this_food_calories})\n'
+        full_text += f'{food_time.strftime("%H:%M")}: {food["utterance"]} ({this_food_calories})\n'
 
-    full_text += f'Всего: {total_calories} калорий'
+    full_text += f'Всего: {int(total_calories)} калорий'
     return full_text, total_calories
 
 
@@ -521,6 +522,54 @@ def transform_yandex_entities_into_date(entities_tag) -> typing.Tuple[typing.Opt
     else:
         date_to_return = date_to_return.replace(day=date_entity['day'])
     return date_to_return, ''
+
+
+def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typing.Tuple[str, bool, bool]:
+
+    if len(full_phrase) > 70:
+        return 'Ой, текст слишком длинный. Давайте попробуем частями?', True, False
+
+    if (
+            'помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
+            'help' in tokens):
+        return help_text, True, False
+
+    if (
+            'хорошо' in tokens or
+            'молодец' in tokens or
+            'замечательно' in tokens or
+            'спасибо' in tokens or
+            'отлично' in tokens
+    ):
+        return 'Спасибо, я стараюсь', True, False
+
+    if (
+            'привет' in tokens or
+            'здравствуй' in tokens or
+            'здравствуйте' in tokens
+    ):
+        return 'Здравствуйте. А теперь расскажите что вы съели, а скажу сколько там было калорий и ' \
+               'питательных веществ.', True, False
+
+    if (
+            'выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in tokens
+    ):
+        return 'До свидания', True, True
+
+    return '', False, False
 
 
 @timeit
@@ -598,51 +647,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     tokens = request.get('nlu').get('tokens')  # type: list
     full_phrase = request.get('command').lower()
     print(full_phrase)
-    full_phrase = russian_replacements(full_phrase, tokens)
+    full_phrase_with_replacements = russian_replacements(full_phrase, tokens)
 
-    if len(full_phrase) > 70:
-        return construct_response_with_session(text='Ой, текст слишком длинный. Давайте попробуем частями?')
-
-    if (
-            'помощь' in tokens or
-            'справка' in tokens or
-            'хелп' in tokens or
-            'информация' in tokens or
-            'ping' in tokens or
-            'пинг' in tokens or
-            request.get('original_utterance').endswith('?') or
-            'умеешь' in tokens or
-            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
-            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
-        return construct_response_with_session(text=help_text)
-
-    if (
-            'хорошо' in tokens or
-            'молодец' in tokens or
-            'замечательно' in tokens or
-            'спасибо' in tokens or
-            'отлично' in tokens
-    ):
-        return construct_response_with_session(text='Спасибо, я стараюсь')
-
-    if (
-            'привет' in tokens or
-            'здравствуй' in tokens or
-            'здравствуйте' in tokens
-    ):
-        return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
-                                                    'а скажу сколько там было калорий и питательных веществ.')
-
-    if (
-            'выход' in tokens or
-            'выйти' in tokens or
-            'пока' in tokens or
-            'выйди' in tokens or
-            'до свидания' in tokens
-    ):
-        return construct_response_with_session(text='До свидания', end_session=True)
+    common_response, stop_session, exit_session = respond_common_phrases(full_phrase=full_phrase, tokens=tokens)
+    if exit_session:
+        return construct_response_with_session(text=common_response, end_session=exit_session)
+    if stop_session:
+        return construct_response_with_session(text=common_response)
 
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
@@ -669,6 +680,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         clear_session(database_client=database_client, session_id=session['session_id'])
         return construct_response_with_session(text='Забыли')
 
+    if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
+        return construct_response_with_session(
+                text=what_i_have_eaten(
+                        date=datetime.date.today(),
+                        user_id=session['user_id'],
+                        database_client=database_client)[0])
+
     # searching in cache database first
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
                                                      database_client=database_client)
@@ -676,7 +694,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if not nutrition_dict or not context:  # if run locally, database entry is overwritten
         # translation block
         full_phrase_translated = translate(
-                russian_phrase=full_phrase,
+                russian_phrase=full_phrase_with_replacements,
                 translation_client=translation_client,
                 debug=debug)
 
@@ -714,7 +732,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '200 грамм шоколада риттер спорт'.lower()
+    testing = 'что я ел?'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
