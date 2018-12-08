@@ -346,6 +346,9 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [], 'replacement': 'зефир'},
         {'search_tokens': ['соленый', 'соленая', 'соленого', 'соленой', 'соленым', 'соленом', 'соленое', 'солеными',
                            'соленых'], 'search_text': [], 'replacement': ''},
+        {'search_tokens': [], 'search_text': ['макароны карбонара', 'макарон карбонара', 'вермишель карбонара',
+                                              'вермишели карбонара', 'паста карбонара', 'пасты карбонара'],
+         'replacement': 'Carbonara'},
         {'search_tokens': [], 'search_text': ['риттер спорта', 'риттер спорт', 'шоколада риттер спорта',
                                               'шоколад риттер спорт'],
          'replacement': 'ritter sport'}
@@ -732,6 +735,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
 
     response_text, total_calories = make_final_text(nutrition_dict=nutrition_dict)
+    print(response_text)
     save_session(
             session_id=session['session_id'],
             database_client=database_client,
@@ -749,7 +753,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'соленый арбуз 400 грамм'.lower()
+    testing = 'паста карбонара 100 грамм'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
