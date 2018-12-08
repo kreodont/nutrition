@@ -9,6 +9,7 @@ import typing
 import dateutil.parser
 import dateutil.tz
 import datetime
+import re
 
 default_texts = ['Это не похоже на название еды. Попробуйте сформулировать иначе',
                  'Хм. Не могу понять что это. Попробуйте сказать иначе',
@@ -288,6 +289,7 @@ def translate(*, russian_phrase, translation_client, debug):
         return 'timeout'
 
     full_phrase_translated = full_phrase_translated.lower().replace('bisque', 'soup')
+    full_phrase_translated = re.sub('without (\w+)', '', full_phrase_translated)
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -342,6 +344,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['бочек', 'бочки', 'бочка'], 'search_text': [], 'replacement': '208 liters'},
         {'search_tokens': [], 'search_text': ['кока кола зеро', ], 'replacement': 'Pepsi Cola Zero'},
         {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [], 'replacement': 'зефир'},
+        {'search_tokens': ['соленый', 'соленая', 'соленого', 'соленой', 'соленым', 'соленом', 'соленое', 'солеными',
+                           'соленых'], 'search_text': [], 'replacement': ''},
         {'search_tokens': [], 'search_text': ['риттер спорта', 'риттер спорт', 'шоколада риттер спорта',
                                               'шоколад риттер спорт'],
          'replacement': 'ritter sport'}
@@ -745,7 +749,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'что я ел вчера?'.lower()
+    testing = 'соленый арбуз 400 грамм'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
