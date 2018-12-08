@@ -349,6 +349,13 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': [], 'search_text': ['макароны карбонара', 'макарон карбонара', 'вермишель карбонара',
                                               'вермишели карбонара', 'паста карбонара', 'пасты карбонара'],
          'replacement': 'Carbonara'},
+        {'search_tokens': [], 'search_text': ['кукурузная каша', 'кукурузные каши', 'кукурузной каши',
+                                              'каша кукурузная', 'каши кукурузные', 'каши кукурузной'],
+         'replacement': 'grits'},
+        {'search_tokens': [], 'search_text': ['картофель по-деревенски', 'картофель по деревенски',
+                                              'картофеля по-деревенски', 'картофеля по деревенски',
+                                              'картофелей по-деревенски', 'картофелей по-деревенски',],
+         'replacement': 'Roast Potato'},
         {'search_tokens': [], 'search_text': ['риттер спорта', 'риттер спорт', 'шоколада риттер спорта',
                                               'шоколад риттер спорт'],
          'replacement': 'ritter sport'}
@@ -671,7 +678,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
-            tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить']):
+            tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
+            tokens == ['да', 'сохранит']):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -753,7 +761,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'паста карбонара 100 грамм'.lower()
+    testing = 'картофельный пирог'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
