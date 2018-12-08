@@ -108,40 +108,78 @@ def transform_yandex_entities_into_date(entities_tag) -> typing.Tuple[typing.Opt
     return date_to_return, ''
 
 
-transform_yandex_entities_into_date([
-        {
-          "tokens": {
-            "end": 4,
-            "start": 3
-          },
-          "type": "YANDEX.NUMBER",
-          "value": 20
-        },
-        {
-          "tokens": {
-            "end": 6,
-            "start": 3
-          },
-          "type": "YANDEX.DATETIME",
-          "value": {
-            "day": 20,
-            "day_is_relative": False,
-            "month": 4,
-            "month_is_relative": False,
-            "year": 2016,
-            "year_is_relative": False
-          }
-        },
-        {
-          "tokens": {
-            "end": 6,
-            "start": 5
-          },
-          "type": "YANDEX.NUMBER",
-          "value": 2016
-        }
-      ])
+def delete_food(*,
+                database_client,
+                date: datetime.date,
+                utterance_to_delete: str,
+                user_id: str) -> str:
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
 
+    if 'Item' not in result:
+        return f'Никакой еды не найдено за {date}'
+
+    items = json.loads(result['Item']['value']['S'])
+    items_to_delete = []
+    for item in items:
+        if item['utterance'] and utterance_to_delete in item['utterance']:
+            items_to_delete.append(item)
+    if not items_to_delete:
+        return f'"{utterance_to_delete}" не найдено за {date}. Найдено: {[i["utterance"] for i in items]}'
+    elif len(items_to_delete) > 1:
+        return f'Несколько значений подходят: {[i["utterance"] for i in items_to_delete]}. Уточните, какое удалить?'
+    items.remove(items_to_delete[0])
+    database_client.put_item(TableName='nutrition_users',
+                             Item={
+                                 'id': {
+                                     'S': user_id,
+                                 },
+                                 'date': {'S': str(date)},
+                                 'value': {
+                                     'S': json.dumps(items),
+                                 }})
+    return f'"{utterance_to_delete}" удалено'
+
+
+# transform_yandex_entities_into_date([
+#     {
+#         "tokens": {
+#             "end": 4,
+#             "start": 3
+#         },
+#         "type": "YANDEX.NUMBER",
+#         "value": 20
+#     },
+#     {
+#         "tokens": {
+#             "end": 6,
+#             "start": 3
+#         },
+#         "type": "YANDEX.DATETIME",
+#         "value": {
+#             "day": 20,
+#             "day_is_relative": False,
+#             "month": 4,
+#             "month_is_relative": False,
+#             "year": 2016,
+#             "year_is_relative": False
+#         }
+#     },
+#     {
+#         "tokens": {
+#             "end": 6,
+#             "start": 5
+#         },
+#         "type": "YANDEX.NUMBER",
+#         "value": 2016
+#     }
+# ])
+print(delete_food(
+        database_client=client,
+        date=datetime.date.today(),
+        utterance_to_delete='2000 килограммов блинов',
+        user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065'))
 # text, c = what_i_have_eaten(
 #         date=datetime.date.today() - datetime.timedelta(days=0),
 #         user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
