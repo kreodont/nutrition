@@ -354,7 +354,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
          'replacement': 'grits'},
         {'search_tokens': [], 'search_text': ['картофель по-деревенски', 'картофель по деревенски',
                                               'картофеля по-деревенски', 'картофеля по деревенски',
-                                              'картофелей по-деревенски', 'картофелей по-деревенски',],
+                                              'картофелей по-деревенски', 'картофелей по-деревенски', ],
          'replacement': 'Roast Potato'},
         {'search_tokens': [], 'search_text': ['риттер спорта', 'риттер спорт', 'шоколада риттер спорта',
                                               'шоколад риттер спорт'],
@@ -499,6 +499,11 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
         return f'Не могу ничего найти за {date}', 0
 
     total_calories = 0
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
+
     full_text = ''
     items_list = json.loads(result['Item']['value']['S'])
     for food_number, food in enumerate(items_list, 1):
@@ -511,9 +516,23 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
             calories = f.get("nf_calories", 0) or 0
             this_food_calories += calories
             total_calories += calories
+            protein = f.get("nf_protein", 0) or 0
+            total_protein += protein
+            fat = f.get("nf_total_fat", 0) or 0
+            total_fat += fat
+            carbohydrates = f.get("nf_total_carbohydrate", 0) or 0
+            total_carbohydrates += carbohydrates
+            sugar = f.get("nf_sugars", 0) or 0
+            total_sugar += sugar
         full_text += f'[{food_time.strftime("%H:%M")}] {food["utterance"]} ({this_food_calories})\n'
 
-    full_text += f'Всего: {choose_case(amount=total_calories)}'
+    all_total = total_protein + total_fat + total_carbohydrates
+    percent_protein = round((total_protein / all_total) * 100)
+    percent_fat = round((total_fat / all_total) * 100)
+    percent_carbohydrates = round((total_carbohydrates / all_total) * 100)
+    full_text += f'Всего: {choose_case(amount=round(total_calories))}\n{round(total_protein)} ({percent_protein}%) ' \
+        f'бел. {round(total_fat)} ({percent_fat}%) жир. {round(total_carbohydrates)} ({percent_carbohydrates}%) ' \
+        f'угл. {round(total_sugar)} сах.'
     return full_text, total_calories
 
 
@@ -761,7 +780,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'картофельный пирог'.lower()
+    testing = 'что я ел вчера?'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
