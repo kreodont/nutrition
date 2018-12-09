@@ -338,7 +338,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['граната', 'гранат', ], 'search_text': [], 'replacement': 'pomegranate'},
         {'search_tokens': ['оливье', ], 'search_text': [], 'replacement': 'Ham Salad'},
         {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o meal"},
-        {'search_tokens': [], 'search_text': ['пшенная каша', 'пшенной каши', 'пшенные каши'],
+        {'search_tokens': [], 'search_text': ['пшенная каша', 'пшенной каши', 'пшенной каши'],
          'replacement': "malt o meal"},
         {'search_tokens': [], 'search_text': ['котлета из нута', 'котлет из нута', 'котлеты из нута', ],
          'replacement': '70 grams of chickpea'},
@@ -707,7 +707,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
             tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
-            tokens == ['да', 'сохранит']):
+            tokens == ['да', 'сохранит'] or tokens == ['да', 'да']):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
