@@ -302,7 +302,12 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
     replacements = [
         {'search_tokens': ['щи', 'щей'], 'search_text': [], 'replacement': 'cabbage soup'},
         {'search_tokens': ['борща', 'борщ'], 'search_text': [], 'replacement': 'vegetable soup'},
+        {'search_tokens': ['рассольника', 'рассольники', 'рассольников', 'рассольник'],
+         'search_text': [], 'replacement': 'vegetable soup'},
         {'search_tokens': [], 'search_text': ['биг мак', 'биг мака', 'биг маков'], 'replacement': 'big mac'},
+        {'search_tokens': [], 'search_text': ['селедка под шубой', 'селедки под шубой', 'селедок под шубой',
+                                              'сельдь под шубой', 'сельди под шубой', 'сельдей под шубой', ],
+         'replacement': 'Dressed Herring'},
         {'search_tokens': ['риса', 'рис'], 'search_text': [], 'replacement': 'rice'},
         {'search_tokens': ['мороженое', 'мороженого', 'мороженых'], 'search_text': [], 'replacement': 'ice cream'},
         {'search_tokens': ['кисель', 'киселя', 'киселей'], 'search_text': [], 'replacement': 'jelly'},
@@ -316,6 +321,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [], 'replacement': 'loaf', },
         {'search_tokens': ['пол', ], 'search_text': [], 'replacement': 'half'},
         {'search_tokens': ['раков', 'рака', 'раки', 'рак'], 'search_text': [], 'replacement': 'cray-fish'},
+        {'search_tokens': ['панкейка', 'панкейков', 'панкейк', 'панкейки'],
+         'search_text': [], 'replacement': 'pancake'},
         {'search_tokens': ['угорь', 'угре', 'угря', 'угрей'], 'search_text': [], 'replacement': 'eel'},
         {'search_tokens': ['ведро', 'ведра', 'ведер'], 'search_text': [], 'replacement': '7 liters'},
         {'search_tokens': ['сало', 'сала', ], 'search_text': [], 'replacement': 'fat meat'},
@@ -331,6 +338,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['граната', 'гранат', ], 'search_text': [], 'replacement': 'pomegranate'},
         {'search_tokens': ['оливье', ], 'search_text': [], 'replacement': 'Ham Salad'},
         {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o meal"},
+        {'search_tokens': [], 'search_text': ['пшенная каша', 'пшенной каши', 'пшенные каши'],
+         'replacement': "malt o meal"},
         {'search_tokens': [], 'search_text': ['котлета из нута', 'котлет из нута', 'котлеты из нута', ],
          'replacement': '70 grams of chickpea'},
         {'search_tokens': [], 'search_text': ['котлета из капусты', 'котлет из капусты', 'котлеты из капусты',
@@ -780,7 +789,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'что я ел вчера?'.lower()
+    testing = '150 грамм селедки под шубой'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
