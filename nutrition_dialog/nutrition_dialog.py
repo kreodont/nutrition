@@ -704,6 +704,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if stop_session:
         return construct_response_with_session(text=common_response)
 
+    if [t for t in tokens if 'человечин' in t]:
+        return construct_response_with_session(text='Доктор Лектер, это вы?')
+
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
             tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
