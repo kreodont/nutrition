@@ -536,6 +536,8 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
         full_text += f'[{food_time.strftime("%H:%M")}] {food["utterance"]} ({this_food_calories})\n'
 
     all_total = total_protein + total_fat + total_carbohydrates
+    if all_total == 0:
+        return f'Не могу ничего найти за {date}', 0
     percent_protein = round((total_protein / all_total) * 100)
     percent_fat = round((total_fat / all_total) * 100)
     percent_carbohydrates = round((total_carbohydrates / all_total) * 100)
@@ -657,7 +659,7 @@ def delete_food(*,
     items = json.loads(result['Item']['value']['S'])
     items_to_delete = []
     for item in items:
-        if item['utterance'] and utterance_to_delete in item['utterance']:
+        if item['utterance'] and utterance_to_delete in item['utterance'].replace(',', ''):
             items_to_delete.append(item)
     if not items_to_delete:
         return f'"{utterance_to_delete}" не найдено за {date}. Найдено: {[i["utterance"] for i in items]}'
