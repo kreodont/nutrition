@@ -545,31 +545,40 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
     return full_text, total_calories
 
 
-def transform_yandex_entities_into_date(entities_tag) -> typing.Tuple[typing.Optional[datetime.date], str]:
-    print(entities_tag)
+def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
+    """
+    Takes entities tag and returns list of [date, note, (start, end)]
+    :param entities_tag:
+    :return:
+    """
     date_entities = [e for e in entities_tag if e['type'] == "YANDEX.DATETIME"]
     if len(date_entities) == 0:
-        return datetime.date.today(), ''
+        return []
 
-    date_entity = date_entities[0]['value']
-    date_to_return = datetime.date.today()
+    dates = []
+    for d in date_entities:
+        date_entity = d['value']
+        date_to_return = datetime.datetime.now()
+        start_token = d['tokens']['start'] - 1
+        end_token = d['tokens']['end'] - 1
 
-    if date_entity.get('year_is_relative'):
-        date_to_return += dateutil.relativedelta.relativedelta(years=date_entity['year'])
-    else:
-        if date_entity.get('year'):
-            date_to_return = date_to_return.replace(year=date_entity['year'])
-    if date_entity.get('month_is_relative'):
-        date_to_return += dateutil.relativedelta.relativedelta(months=date_entity['month'])
-    else:
-        if date_entity.get('month'):
-            date_to_return = date_to_return.replace(month=date_entity['month'])
-    if date_entity.get('day_is_relative'):
-        date_to_return += datetime.timedelta(days=date_entity['day'])
-    else:
-        if date_entity.get('day'):
-            date_to_return = date_to_return.replace(day=date_entity['day'])
-    return date_to_return, ''
+        if 'year_is_relative' in date_entity and date_entity['year_is_relative']:
+            date_to_return += dateutil.relativedelta(years=date_entity['year'])
+        else:
+            if 'year' in date_entity:
+                date_to_return = date_to_return.replace(year=date_entity['year'])
+        if 'month_is_relative' in date_entity and date_entity['month_is_relative']:
+            date_to_return += dateutil.relativedelta(months=date_entity['month'])
+        else:
+            if 'month' in date_entity:
+                date_to_return = date_to_return.replace(month=date_entity['month'])
+        if 'day_is_relative' in date_entity and date_entity['day_is_relative']:
+            date_to_return += datetime.timedelta(days=date_entity['day'])
+        else:
+            if 'day' in date_entity:
+                date_to_return = date_to_return.replace(day=date_entity['day'])
+        dates.append({'datetime': date_to_return, 'notes': '', 'start': start_token, 'end': end_token})
+    return dates
 
 
 def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typing.Tuple[str, bool, bool]:
@@ -619,6 +628,40 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
         return 'До свидания', True, True
 
     return '', False, False
+
+
+def delete_food(*,
+                database_client,
+                date: datetime.date,
+                utterance_to_delete: str,
+                user_id: str) -> str:
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
+
+    if 'Item' not in result:
+        return f'Никакой еды не найдено за {date}'
+
+    items = json.loads(result['Item']['value']['S'])
+    items_to_delete = []
+    for item in items:
+        if item['utterance'] and utterance_to_delete in item['utterance']:
+            items_to_delete.append(item)
+    if not items_to_delete:
+        return f'"{utterance_to_delete}" не найдено за {date}. Найдено: {[i["utterance"] for i in items]}'
+    elif len(items_to_delete) > 1:
+        return f'Несколько значений подходят: {[i["utterance"] for i in items_to_delete]}. Уточните, какое удалить?'
+    items.remove(items_to_delete[0])
+    database_client.put_item(TableName='nutrition_users',
+                             Item={
+                                 'id': {
+                                     'S': user_id,
+                                 },
+                                 'date': {'S': str(date)},
+                                 'value': {
+                                     'S': json.dumps(items),
+                                 }})
+    return f'"{utterance_to_delete}" удалено'
 
 
 @timeit
@@ -704,6 +747,23 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if stop_session:
         return construct_response_with_session(text=common_response)
 
+    if 'удалить' in tokens and 'еду' in tokens:
+        cleaned_tokens = [t for t in tokens if t not in ('удалить', 'еду')]
+        if not cleaned_tokens:
+            return construct_response_with_session(text='Скажите название еды, которую надо удалить')
+
+        found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
+        if not found_dates:
+            target_date = datetime.date.today()
+            food_to_search = ' '.join(cleaned_tokens)
+            delete_food(
+                    database_client=database_client,
+                    date=target_date,
+                    utterance_to_delete=food_to_search,
+                    user_id=session['user_id'])
+
+        return construct_response_with_session(text='Удаляю')
+
     if [t for t in tokens if 'человечин' in t]:
         return construct_response_with_session(text='Доктор Лектер, это вы?')
 
@@ -737,7 +797,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                                     'спросите меня что Вы ели')
 
     if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
-        target_date = transform_yandex_entities_into_date(entities_tag=request.get('nlu').get('entities'))[0]
+        found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
+        if not found_dates:
+            target_date = datetime.date.today()
+        else:
+            target_date = found_dates[0]['datetime'].date()
+        # target_date = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
+        # [0]['datetime'].date()
         text, total_calories = what_i_have_eaten(
                 date=target_date,
                 user_id=session['user_id'],
