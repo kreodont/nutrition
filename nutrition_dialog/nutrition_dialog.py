@@ -820,6 +820,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text='Забыли. Чтобы посмотреть список сохраненной еды, '
                                                     'спросите меня что Вы ели')
 
+    # checking if we want to save for specific day
     dates_in_tokens = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
     if (dates_in_tokens and len(dates_in_tokens) == 1 and dates_in_tokens[0]['start'] == 0 and
             dates_in_tokens[0]['end'] == len(tokens)):  # if all there is date in tokens and all the tokens is date
