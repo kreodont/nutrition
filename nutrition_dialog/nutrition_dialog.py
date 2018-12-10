@@ -33,9 +33,10 @@ example_food_texts = ['Бочка варенья и коробка печень�
 # start_text = 'Скажите мне сколько и чего вы съели, а я скажу сколько это калорий. ' \
 #              'Например: 300 грамм картофельного пюре и котлета. Чтобы выйти, произнесите выход'
 start_text = 'Какую еду записать?'
-help_text = 'Я умею считать калории. Просто скажите что Вы съели, а я скажу сколько в этом было калорий. ' \
+help_text = 'Я считаю калории. Просто скажите что вы съели, а я скажу сколько в этом было калорий. ' \
             'Текст не должен быть слишком длинным. Желательно не более трёх блюд. Например: 300 грамм картофельного ' \
-            'пюре и котлета. Чтобы выйти, скажите выход'
+            'пюре и котлета. Еще я могу быть дневником питания. Все приемы пищи, которые вы сохраните, вы сможете ' \
+            'потом найти. Например, что я ел 20 октября. Чтобы выйти, скажите выход'
 
 
 def construct_response(*,
@@ -590,7 +591,6 @@ def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
             if 'minute' in date_entity:
                 date_to_return = date_to_return.replace(minute=date_entity['minute'])
         dates.append({'datetime': date_to_return, 'notes': '', 'start': start_token, 'end': end_token})
-        dates.append({'datetime': date_to_return, 'notes': '', 'start': start_token, 'end': end_token})
 
     return dates
 
@@ -820,14 +820,29 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text='Забыли. Чтобы посмотреть список сохраненной еды, '
                                                     'спросите меня что Вы ели')
 
+    dates_in_tokens = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
+    if (dates_in_tokens and len(dates_in_tokens) == 1 and dates_in_tokens[0]['start'] == 0 and
+            dates_in_tokens[0]['end'] == len(tokens)):  # if all there is date in tokens and all the tokens is date
+        saved_session = check_session(session_id=session['session_id'], database_client=database_client)
+        if not saved_session:
+            return construct_response_with_session(text=make_default_text())
+        update_user_table(
+                database_client=database_client,
+                event_time=dates_in_tokens[0]['datetime'],
+                foods_dict=saved_session['foods'],
+                user_id=session['user_id'],
+                utterance=saved_session['utterance'])
+        clear_session(database_client=database_client, session_id=session['session_id'])
+        return construct_response_with_session(
+                text=f'Сохранено за {dates_in_tokens[0]["datetime"].date()}. Чтобы посмотреть список сохраненной еды, '
+                f'спросите меня что Вы ели')
+
     if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
             target_date = datetime.date.today()
         else:
             target_date = found_dates[0]['datetime'].date()
-        # target_date = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
-        # [0]['datetime'].date()
         text, total_calories = what_i_have_eaten(
                 date=target_date,
                 user_id=session['user_id'],
