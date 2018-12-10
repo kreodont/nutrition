@@ -559,8 +559,8 @@ def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
     for d in date_entities:
         date_entity = d['value']
         date_to_return = datetime.datetime.now()
-        start_token = d['tokens']['start'] - 1
-        end_token = d['tokens']['end'] - 1
+        start_token = d['tokens']['start']
+        end_token = d['tokens']['end']
 
         if 'year_is_relative' in date_entity and date_entity['year_is_relative']:
             date_to_return += dateutil.relativedelta(years=date_entity['year'])
@@ -577,7 +577,19 @@ def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
         else:
             if 'day' in date_entity:
                 date_to_return = date_to_return.replace(day=date_entity['day'])
+        if 'hour_is_relative' in date_entity and date_entity['hour_is_relative']:
+            date_to_return += datetime.timedelta(minutes=date_entity['hour'] * 60)
+        else:
+            if 'hour' in date_entity:
+                date_to_return = date_to_return.replace(hour=date_entity['hour'])
+        if 'minute_is_relative' in date_entity and date_entity['minute_is_relative']:
+            date_to_return += datetime.timedelta(minutes=date_entity['minute'])
+        else:
+            if 'minute' in date_entity:
+                date_to_return = date_to_return.replace(minute=date_entity['minute'])
         dates.append({'datetime': date_to_return, 'notes': '', 'start': start_token, 'end': end_token})
+        dates.append({'datetime': date_to_return, 'notes': '', 'start': start_token, 'end': end_token})
+
     return dates
 
 
@@ -756,13 +768,23 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         if not found_dates:
             target_date = datetime.date.today()
             food_to_search = ' '.join(cleaned_tokens)
-            delete_food(
+            return construct_response_with_session(text=delete_food(
                     database_client=database_client,
                     date=target_date,
                     utterance_to_delete=food_to_search,
-                    user_id=session['user_id'])
-
-        return construct_response_with_session(text='Удаляю')
+                    user_id=session['user_id']))
+        else:
+            target_date = found_dates[0]['datetime'].date()
+            date_tokens = tokens[found_dates[0]['start']:found_dates[0]['end']]
+            print(f'Tokens: {tokens}')
+            print(f'Start: {found_dates[0]["start"]} End: {found_dates[0]["start"]}')
+            print(date_tokens)
+            cleaned_tokens = [t for t in cleaned_tokens if t not in date_tokens]
+            return construct_response_with_session(text=delete_food(
+                    database_client=database_client,
+                    date=target_date,
+                    utterance_to_delete=' '.join(cleaned_tokens),
+                    user_id=session['user_id']))
 
     if [t for t in tokens if 'человечин' in t]:
         return construct_response_with_session(text='Доктор Лектер, это вы?')

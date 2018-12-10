@@ -84,38 +84,6 @@ def what_i_have_eaten(*,
     return full_text, total_calories
 
 
-def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
-    """
-    Takes entities tag and returns list of [date, note, (start, end)]
-    :param entities_tag:
-    :return:
-    """
-    date_entities = [e for e in entities_tag if e['type'] == "YANDEX.DATETIME"]
-    if len(date_entities) == 0:
-        return []
-
-    dates = []
-    for d in date_entities:
-        date_entity = d['value']
-        date_to_return = datetime.datetime.now()
-        start_token = d['tokens']['start'] - 1
-        end_token = d['tokens']['end'] - 1
-
-        if date_entity['year_is_relative']:
-            date_to_return += dateutil.relativedelta(years=date_entity['year'])
-        else:
-            date_to_return = date_to_return.replace(year=date_entity['year'])
-        if date_entity['month_is_relative']:
-            date_to_return += dateutil.relativedelta(months=date_entity['month'])
-        else:
-            date_to_return = date_to_return.replace(month=date_entity['month'])
-        if date_entity['day_is_relative']:
-            date_to_return += datetime.timedelta(days=date_entity['day'])
-        else:
-            date_to_return = date_to_return.replace(day=date_entity['day'])
-        dates.append({'datetime': date_to_return, 'notes': '', 'start': start_token, 'end': end_token})
-    return dates
-
 
 def delete_food(*,
                 database_client,
@@ -151,40 +119,40 @@ def delete_food(*,
     return f'"{utterance_to_delete}" удалено'
 
 
-r = transform_yandex_entities_into_dates([
-    {
-        "tokens": {
-            "end": 4,
-            "start": 3
-        },
-        "type": "YANDEX.NUMBER",
-        "value": 20
-    },
-    {
-        "tokens": {
-            "end": 6,
-            "start": 3
-        },
-        "type": "YANDEX.DATETIME",
-        "value": {
-            "day": 20,
-            "day_is_relative": False,
-            "month": 4,
-            "month_is_relative": False,
-            "year": 2016,
-            "year_is_relative": False
-        }
-    },
-    {
-        "tokens": {
-            "end": 6,
-            "start": 5
-        },
-        "type": "YANDEX.NUMBER",
-        "value": 2016
-    }
-])
-print(r)
+# r = transform_yandex_entities_into_dates([
+#     {
+#         "tokens": {
+#             "end": 4,
+#             "start": 3
+#         },
+#         "type": "YANDEX.NUMBER",
+#         "value": 20
+#     },
+#     {
+#         "tokens": {
+#             "end": 6,
+#             "start": 3
+#         },
+#         "type": "YANDEX.DATETIME",
+#         "value": {
+#             "day": 20,
+#             "day_is_relative": False,
+#             "month": 4,
+#             "month_is_relative": False,
+#             "year": 2016,
+#             "year_is_relative": False
+#         }
+#     },
+#     {
+#         "tokens": {
+#             "end": 6,
+#             "start": 5
+#         },
+#         "type": "YANDEX.NUMBER",
+#         "value": 2016
+#     }
+# ])
+# print(r)
 # print(delete_food(
 #         database_client=client,
 #         date=datetime.date.today(),
