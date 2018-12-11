@@ -102,6 +102,7 @@ def report(
         return 'Дата начала должна быть меньше или равна дате окончания'
     if (date_to - date_from).days > 31:
         return 'Максимальный размер отчета один месяц'
+    week_days = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье', ]
     impacted_days = [str(d) for d in [date_from + datetime.timedelta(days=i) for
                                       i in range((date_to-date_from).days + 1)]]
 
@@ -116,7 +117,8 @@ def report(
                 'nutrition_users': {
                     'Keys': [{'id': {'S': user_id}, 'date': {'S': d}} for d in impacted_days]}})
     for item in sorted(items['Responses']['nutrition_users'], key=lambda x: x['date']['S']):
-        print('\n' + item['date']['S'])
+        date = dateutil.parser.parse(item['date']['S']).date()
+        print(f'\n{date} ({week_days[date.isoweekday() - 1]})')
         food_list = json.loads(item['value']['S'])
         day_calories = 0
         day_protein = 0

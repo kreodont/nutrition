@@ -338,6 +338,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['соя', 'сои', ], 'search_text': [], 'replacement': 'soynut'},
         {'search_tokens': ['кукуруза', 'кукурузы', ], 'search_text': [], 'replacement': 'corn'},
         {'search_tokens': ['граната', 'гранат', ], 'search_text': [], 'replacement': 'pomegranate'},
+        {'search_tokens': ['голубец', 'голубцы', 'голубца', 'голубцов'], 'search_text': [],
+         'replacement': 'cabbage roll'},
         {'search_tokens': ['оливье', ], 'search_text': [], 'replacement': 'Ham Salad'},
         {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o meal"},
         {'search_tokens': [], 'search_text': ['пшенная каша', 'пшенной каши', 'пшенной каши'],
