@@ -1,7 +1,7 @@
-import typing
 import boto3
 import json
 import datetime
+import dateutil
 
 session = boto3.Session(profile_name='kreodont')
 client = session.client('dynamodb')
@@ -57,32 +57,6 @@ def clear_session(
                                     }, })
 
 
-def what_i_have_eaten(*,
-                      date: datetime.date,
-                      user_id: str,
-                      database_client) -> typing.Tuple[str, float]:
-    result = database_client.get_item(
-            TableName='nutrition_users',
-            Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
-    if 'Item' not in result:
-        return f'Не могу ничего найти за {date}', 0
-
-    total_calories = 0
-    full_text = ''
-    items_list = json.loads(result['Item']['value']['S'])
-    for food_number, food in enumerate(items_list, 1):
-        nutrition_dict = food['foods']
-        this_food_calories = 0
-        for f in nutrition_dict['foods']:
-            calories = f.get("nf_calories", 0) or 0
-            this_food_calories += calories
-            total_calories += calories
-        full_text += f'{food_number}. {food["utterance"]} ({this_food_calories})\n'
-
-    full_text += f'Всего: {total_calories} калорий'
-    return full_text, total_calories
-
-
 def delete_food(*,
                 database_client,
                 date: datetime.date,
@@ -117,13 +91,25 @@ def delete_food(*,
     return f'"{utterance_to_delete}" удалено'
 
 
-def report(*, database_client, date_from: datetime.date, date_to: datetime.date, user_id: str) -> str:
+def report(
+        *,
+        database_client,
+        date_from: datetime.date,
+        date_to: datetime.date,
+        user_id: str,
+        current_timezone: str) -> str:
     if date_to < date_from:
         return 'Дата начала должна быть меньше или равна дате окончания'
     if (date_to - date_from).days > 31:
         return 'Максимальный размер отчета один месяц'
     impacted_days = [str(d) for d in [date_from + datetime.timedelta(days=i) for
                                       i in range((date_to-date_from).days + 1)]]
+
+    total_calories = 0
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
 
     items = database_client.batch_get_item(
             RequestItems={
@@ -132,8 +118,66 @@ def report(*, database_client, date_from: datetime.date, date_to: datetime.date,
     for item in sorted(items['Responses']['nutrition_users'], key=lambda x: x['date']['S']):
         print('\n' + item['date']['S'])
         food_list = json.loads(item['value']['S'])
+        day_calories = 0
+        day_protein = 0
+        day_fat = 0
+        day_sugar = 0
+        day_carbohydrates = 0
         for food in food_list:
-            print(food['utterance'])
+            nutrition_dict = food['foods']
+            food_calories = 0
+            food_protein = 0
+            food_fat = 0
+            food_carbohydrates = 0
+            food_sugar = 0
+            food_time = dateutil.parser.parse(food['time'])
+            food_time = food_time.replace(tzinfo=dateutil.tz.gettz('UTC')).\
+                astimezone(dateutil.tz.gettz(current_timezone))
+            # food_time = food_time.astimezone(dateutil.tz.gettz(current_timezone))
+            for f in nutrition_dict['foods']:
+                calories = f.get("nf_calories", 0) or 0
+                food_calories += calories
+                total_calories += calories
+                day_calories += calories
+                protein = f.get("nf_protein", 0) or 0
+                total_protein += protein
+                food_protein += protein
+                day_protein += protein
+                fat = f.get("nf_total_fat", 0) or 0
+                total_fat += fat
+                food_fat += fat
+                day_fat += fat
+                carbohydrates = f.get("nf_total_carbohydrate", 0) or 0
+                total_carbohydrates += carbohydrates
+                food_carbohydrates += carbohydrates
+                day_carbohydrates += carbohydrates
+                sugar = f.get("nf_sugars", 0) or 0
+                total_sugar += sugar
+                food_sugar += sugar
+                day_sugar += sugar
+            food_total_nutritions = food_protein + food_fat + food_carbohydrates
+            food_protein_percent = int((food_protein / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
+            food_fat_percent = int((food_fat / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
+            food_carbohydrates_percent = int((food_carbohydrates / food_total_nutritions) * 100) if \
+                food_total_nutritions > 0 else 0
+            print(food_time.strftime('%H:%M'), food['utterance'], int(food_protein), str(food_protein_percent) + '%',
+                  int(food_fat), str(food_fat_percent) + '%', int(food_carbohydrates),
+                  str(food_carbohydrates_percent) + '%', food_calories)
+        day_total_nutritions = day_protein + day_fat + day_carbohydrates
+        day_protein_percent = int((day_protein / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
+        day_fat_percent = int((day_fat / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
+        day_carbohydrates_percent = int((day_carbohydrates / day_total_nutritions) * 100) if \
+            day_total_nutritions > 0 else 0
+        print(f'Итого за день: \t{int(day_protein)}({day_protein_percent}%)\t{int(day_fat)}({day_fat_percent}%)'
+              f'\t{int(day_carbohydrates)}({day_carbohydrates_percent}%)\t{int(day_sugar)}\t{int(day_calories)}')
+    total_nutritions = total_protein + total_fat + total_carbohydrates
+    total_protein_percent = int((total_protein / total_nutritions) * 100) if total_nutritions > 0 else 0
+    total_fat_percent = int((total_fat / total_nutritions) * 100) if total_nutritions > 0 else 0
+    total_carbohydrates_percent = int((total_carbohydrates / total_nutritions) * 100) if \
+        total_nutritions > 0 else 0
+    print(f'\nИтого за период: \t{int(total_protein)}({total_protein_percent}%)\t{int(total_fat)}({total_fat_percent}%)'
+          f'\t{int(total_carbohydrates)}({total_carbohydrates_percent}%)\t{int(total_sugar)}'
+          f'\t{int(total_calories)}')
     return 'OI'
 
 
@@ -141,9 +185,10 @@ if __name__ == '__main__':
     print(
             report(
                     database_client=client,
-                    date_from=datetime.date.today() - datetime.timedelta(days=4),
+                    date_from=datetime.date.today() - datetime.timedelta(days=17),
                     date_to=datetime.date.today(),
-                    user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065'))
+                    user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
+                    current_timezone='Europe/Moscow'))
 
 # r = transform_yandex_entities_into_dates([
 #     {
