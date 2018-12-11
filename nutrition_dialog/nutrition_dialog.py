@@ -48,8 +48,9 @@ def construct_response(*,
                        user_id='',
                        verions='1.0',
                        debug=False,
+                       has_screen=True,
                        ) -> dict:
-    if tts is None:
+    if tts is None or not has_screen:  # for devices without screen we need to pronounce everything
         tts = text
 
     response = {
@@ -735,11 +736,17 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if not session:
         return construct_response(text='Неверный запрос, нет поля session')
 
+    has_screen = event.get('meta').get('interfaces').get('screen')
+    if has_screen == {}:
+        has_screen = True
+    else:
+        has_screen = False
     construct_response_with_session = partial(construct_response,
                                               session=session['session_id'],
                                               user_id=session['user_id'],
                                               message_id=session.get('message_id'),
                                               debug=debug,
+                                              has_screen=has_screen
                                               )
 
     is_new_session = session.get('new')
