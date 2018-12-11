@@ -1,5 +1,4 @@
 import typing
-import dateutil.relativedelta
 import boto3
 import json
 import datetime
@@ -84,7 +83,6 @@ def what_i_have_eaten(*,
     return full_text, total_calories
 
 
-
 def delete_food(*,
                 database_client,
                 date: datetime.date,
@@ -118,6 +116,34 @@ def delete_food(*,
                                  }})
     return f'"{utterance_to_delete}" удалено'
 
+
+def report(*, database_client, date_from: datetime.date, date_to: datetime.date, user_id: str) -> str:
+    if date_to < date_from:
+        return 'Дата начала должна быть меньше или равна дате окончания'
+    if (date_to - date_from).days > 31:
+        return 'Максимальный размер отчета один месяц'
+    impacted_days = [str(d) for d in [date_from + datetime.timedelta(days=i) for
+                                      i in range((date_to-date_from).days + 1)]]
+
+    items = database_client.batch_get_item(
+            RequestItems={
+                'nutrition_users': {
+                    'Keys': [{'id': {'S': user_id}, 'date': {'S': d}} for d in impacted_days]}})
+    for item in sorted(items['Responses']['nutrition_users'], key=lambda x: x['date']['S']):
+        print('\n' + item['date']['S'])
+        food_list = json.loads(item['value']['S'])
+        for food in food_list:
+            print(food['utterance'])
+    return 'OI'
+
+
+if __name__ == '__main__':
+    print(
+            report(
+                    database_client=client,
+                    date_from=datetime.date.today() - datetime.timedelta(days=4),
+                    date_to=datetime.date.today(),
+                    user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065'))
 
 # r = transform_yandex_entities_into_dates([
 #     {

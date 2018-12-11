@@ -836,7 +836,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
         update_user_table(
                 database_client=database_client,
-                event_time=dates_in_tokens[0]['datetime'],
+                event_time=dates_in_tokens[0]['datetime'].replace(
+                        tzinfo=dateutil.tz.gettz(
+                                event.get('meta').get('timezone'))
+                ).astimezone(dateutil.tz.gettz('UTC')),
                 foods_dict=saved_session['foods'],
                 user_id=session['user_id'],
                 utterance=saved_session['utterance'])
