@@ -761,7 +761,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if stop_session:
         return construct_response_with_session(text=common_response)
 
-    if 'удалить' in tokens and 'еду' in tokens:
+    if 'удалить' in tokens:
         cleaned_tokens = [t for t in tokens if t not in ('удалить', 'еду')]
         if not cleaned_tokens:
             return construct_response_with_session(text='Скажите название еды, которую надо удалить')
@@ -806,7 +806,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 utterance=saved_session['utterance'])
         clear_session(database_client=database_client, session_id=session['session_id'])
         return construct_response_with_session(text='Сохранено. Чтобы посмотреть список сохраненной еды, '
-                                                    'спросите меня что Вы ели')
+                                                    'спросите меня что Вы ели', tts='Сохранено')
 
     if (tokens == ['нет', ] or tokens == ['неа', ] or tokens == ['нельзя', ] or tokens == ['ну', 'нет']
             or tokens == ['не', 'надо'] or tokens == ['не', ] or tokens == ['нет', 'не', 'надо'] or
@@ -818,7 +818,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
         clear_session(database_client=database_client, session_id=session['session_id'])
         return construct_response_with_session(text='Забыли. Чтобы посмотреть список сохраненной еды, '
-                                                    'спросите меня что Вы ели')
+                                                    'спросите меня что Вы ели', tts='Сохранено')
 
     # checking if we want to save for specific day
     dates_in_tokens = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
@@ -836,7 +836,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         clear_session(database_client=database_client, session_id=session['session_id'])
         return construct_response_with_session(
                 text=f'Сохранено за {dates_in_tokens[0]["datetime"].date()}. Чтобы посмотреть список сохраненной еды, '
-                f'спросите меня что Вы ели')
+                f'спросите меня что Вы ели', tts='Сохранено')
 
     if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
