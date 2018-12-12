@@ -2,6 +2,7 @@ import boto3
 import json
 import datetime
 import dateutil
+from fpdf import FPDF
 
 session = boto3.Session(profile_name='kreodont')
 client = session.client('dynamodb')
@@ -91,6 +92,125 @@ def delete_food(*,
     return f'"{utterance_to_delete}" удалено'
 
 
+def draw_daily_table(*,
+                     date: datetime.date,
+                     foods_list: list,
+                     pdf_object: FPDF,
+                     current_timezone: str) -> dict:
+    if len(foods_list) == 0:
+        return {}
+    week_days = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье', ]
+    pdf_object.set_font('FreeSans', size=14)
+    pdf_object.set_text_color(255, 255, 255)
+    pdf_object.set_fill_color(12, 82, 130)
+    pdf_object.cell(190, 12, txt=f'{date} ({week_days[date.isoweekday() - 1]})', border=1, align='C', fill=1)
+    pdf_object.ln(12)
+    pdf_object.set_font('FreeSans', size=7)
+    pdf_object.cell(15, 6, txt=f'Время', border=1, align='C', fill=1)
+    pdf_object.cell(82, 6, txt=f"Наименование", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Белки", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"% белков", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Жиры", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"% жиров", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Углев", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"% углев", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Сахар", border=1, align='C', fill=1)
+    pdf_object.cell(16, 6, txt=f"Калории", border=1, align='C', fill=1)
+    pdf_object.ln(6)
+    pdf_object.set_text_color(0, 0, 0)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.set_font('FreeSans', size=10)
+    row_height = 10
+    day_calories = 0
+    day_protein = 0
+    day_fat = 0
+    day_sugar = 0
+    day_carbohydrates = 0
+
+    for food in foods_list:
+        nutrition_dict = food['foods']
+        food_calories = 0
+        food_protein = 0
+        food_fat = 0
+        food_carbohydrates = 0
+        food_sugar = 0
+        food_time = dateutil.parser.parse(food['time'])
+        food_time = food_time.replace(tzinfo=dateutil.tz.gettz('UTC')). \
+            astimezone(dateutil.tz.gettz(current_timezone))
+        for f in nutrition_dict['foods']:
+            calories = f.get("nf_calories", 0) or 0
+            food_calories += calories
+            day_calories += calories
+            protein = f.get("nf_protein", 0) or 0
+            food_protein += protein
+            day_protein += protein
+            fat = f.get("nf_total_fat", 0) or 0
+            food_fat += fat
+            day_fat += fat
+            carbohydrates = f.get("nf_total_carbohydrate", 0) or 0
+            food_carbohydrates += carbohydrates
+            day_carbohydrates += carbohydrates
+            sugar = f.get("nf_sugars", 0) or 0
+            food_sugar += sugar
+            day_sugar += sugar
+        food_total_nutritions = food_protein + food_fat + food_carbohydrates
+        food_protein_percent = int((food_protein / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
+        food_fat_percent = int((food_fat / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
+        food_carbohydrates_percent = int((food_carbohydrates / food_total_nutritions) * 100) if \
+            food_total_nutritions > 0 else 0
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(15, row_height, txt=f'{food_time.strftime("%H:%M")}', border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(82, row_height, txt=f" {food['utterance']}", border=1, align='L', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_protein)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(11, row_height, txt=f"{food_protein_percent}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_fat)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(11, row_height, txt=f"{food_fat_percent}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_carbohydrates)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(11, row_height, txt=f"{food_carbohydrates_percent}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_sugar)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(16, row_height, txt=f"{int(food_calories)}", border=1, align='C', fill=1)
+        pdf_object.ln(row_height)
+        print(food_time.strftime('%H:%M'), food['utterance'], int(food_protein), str(food_protein_percent) + '%',
+              int(food_fat), str(food_fat_percent) + '%', int(food_carbohydrates),
+              str(food_carbohydrates_percent) + '%', food_calories)
+    day_total_nutritions = day_protein + day_fat + day_carbohydrates
+    day_protein_percent = int((day_protein / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
+    day_fat_percent = int((day_fat / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
+    day_carbohydrates_percent = int((day_carbohydrates / day_total_nutritions) * 100) if \
+        day_total_nutritions > 0 else 0
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(97, row_height, txt=f'Итого: {round(day_calories, 2)} калорий', border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_protein)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(11, row_height, txt=f"{day_protein_percent}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_fat)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(11, row_height, txt=f"{day_fat_percent}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_carbohydrates)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(11, row_height, txt=f"{day_carbohydrates_percent}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_sugar)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.set_font('FreeSans', size=14)
+    pdf_object.cell(16, row_height, txt=f"{int(day_calories)}", border=1, align='C', fill=1)
+    pdf_object.ln(25)
+    print(f'Итого за день: \t{int(day_protein)}({day_protein_percent}%)\t{int(day_fat)}({day_fat_percent}%)'
+          f'\t{int(day_carbohydrates)}({day_carbohydrates_percent}%)\t{int(day_sugar)}\t{int(day_calories)}')
+
+
 def report(
         *,
         database_client,
@@ -106,11 +226,10 @@ def report(
     impacted_days = [str(d) for d in [date_from + datetime.timedelta(days=i) for
                                       i in range((date_to-date_from).days + 1)]]
 
-    total_calories = 0
-    total_fat = 0.0
-    total_carbohydrates = 0.0
-    total_protein = 0.0
-    total_sugar = 0.0
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.add_page()
+    pdf.add_font('FreeSans', '', 'FreeSans.ttf', uni=True)
+    pdf.set_font('FreeSans')
 
     items = database_client.batch_get_item(
             RequestItems={
@@ -120,66 +239,8 @@ def report(
         date = dateutil.parser.parse(item['date']['S']).date()
         print(f'\n{date} ({week_days[date.isoweekday() - 1]})')
         food_list = json.loads(item['value']['S'])
-        day_calories = 0
-        day_protein = 0
-        day_fat = 0
-        day_sugar = 0
-        day_carbohydrates = 0
-        for food in food_list:
-            nutrition_dict = food['foods']
-            food_calories = 0
-            food_protein = 0
-            food_fat = 0
-            food_carbohydrates = 0
-            food_sugar = 0
-            food_time = dateutil.parser.parse(food['time'])
-            food_time = food_time.replace(tzinfo=dateutil.tz.gettz('UTC')).\
-                astimezone(dateutil.tz.gettz(current_timezone))
-            # food_time = food_time.astimezone(dateutil.tz.gettz(current_timezone))
-            for f in nutrition_dict['foods']:
-                calories = f.get("nf_calories", 0) or 0
-                food_calories += calories
-                total_calories += calories
-                day_calories += calories
-                protein = f.get("nf_protein", 0) or 0
-                total_protein += protein
-                food_protein += protein
-                day_protein += protein
-                fat = f.get("nf_total_fat", 0) or 0
-                total_fat += fat
-                food_fat += fat
-                day_fat += fat
-                carbohydrates = f.get("nf_total_carbohydrate", 0) or 0
-                total_carbohydrates += carbohydrates
-                food_carbohydrates += carbohydrates
-                day_carbohydrates += carbohydrates
-                sugar = f.get("nf_sugars", 0) or 0
-                total_sugar += sugar
-                food_sugar += sugar
-                day_sugar += sugar
-            food_total_nutritions = food_protein + food_fat + food_carbohydrates
-            food_protein_percent = int((food_protein / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
-            food_fat_percent = int((food_fat / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
-            food_carbohydrates_percent = int((food_carbohydrates / food_total_nutritions) * 100) if \
-                food_total_nutritions > 0 else 0
-            print(food_time.strftime('%H:%M'), food['utterance'], int(food_protein), str(food_protein_percent) + '%',
-                  int(food_fat), str(food_fat_percent) + '%', int(food_carbohydrates),
-                  str(food_carbohydrates_percent) + '%', food_calories)
-        day_total_nutritions = day_protein + day_fat + day_carbohydrates
-        day_protein_percent = int((day_protein / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
-        day_fat_percent = int((day_fat / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
-        day_carbohydrates_percent = int((day_carbohydrates / day_total_nutritions) * 100) if \
-            day_total_nutritions > 0 else 0
-        print(f'Итого за день: \t{int(day_protein)}({day_protein_percent}%)\t{int(day_fat)}({day_fat_percent}%)'
-              f'\t{int(day_carbohydrates)}({day_carbohydrates_percent}%)\t{int(day_sugar)}\t{int(day_calories)}')
-    total_nutritions = total_protein + total_fat + total_carbohydrates
-    total_protein_percent = int((total_protein / total_nutritions) * 100) if total_nutritions > 0 else 0
-    total_fat_percent = int((total_fat / total_nutritions) * 100) if total_nutritions > 0 else 0
-    total_carbohydrates_percent = int((total_carbohydrates / total_nutritions) * 100) if \
-        total_nutritions > 0 else 0
-    print(f'\nИтого за период: \t{int(total_protein)}({total_protein_percent}%)\t{int(total_fat)}({total_fat_percent}%)'
-          f'\t{int(total_carbohydrates)}({total_carbohydrates_percent}%)\t{int(total_sugar)}'
-          f'\t{int(total_calories)}')
+        draw_daily_table(date=date, foods_list=food_list, pdf_object=pdf, current_timezone=current_timezone)
+    pdf.output('simple_demo.pdf')
     return 'OI'
 
 

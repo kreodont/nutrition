@@ -12,26 +12,26 @@ def draw_daily_table(*,
     if len(foods_list) == 0:
         return {}
     week_days = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье', ]
-    pdf.set_font('FreeSans', size=14)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_fill_color(12, 82, 130)
-    pdf.cell(190, 12, txt=f'{date} ({week_days[date.isoweekday() - 1]})', border=1, align='C', fill=1)
-    pdf.ln(12)
-    pdf.set_font('FreeSans', size=7)
-    pdf.cell(15, 6, txt=f'Время', border=1, align='C', fill=1)
-    pdf.cell(82, 6, txt=f"Наименование", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"Белки", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"% белков", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"Жиры", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"% жиров", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"Углев", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"% углев", border=1, align='C', fill=1)
-    pdf.cell(11, 6, txt=f"Сахар", border=1, align='C', fill=1)
-    pdf.cell(16, 6, txt=f"Калории", border=1, align='C', fill=1)
-    pdf.ln(6)
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_fill_color(246, 246, 246)
-    pdf.set_font('FreeSans', size=10)
+    pdf_object.set_font('FreeSans', size=14)
+    pdf_object.set_text_color(255, 255, 255)
+    pdf_object.set_fill_color(12, 82, 130)
+    pdf_object.cell(190, 12, txt=f'{date} ({week_days[date.isoweekday() - 1]})', border=1, align='C', fill=1)
+    pdf_object.ln(12)
+    pdf_object.set_font('FreeSans', size=7)
+    pdf_object.cell(15, 6, txt=f'Время', border=1, align='C', fill=1)
+    pdf_object.cell(82, 6, txt=f"Наименование", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Белки", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"% белков", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Жиры", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"% жиров", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Углев", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"% углев", border=1, align='C', fill=1)
+    pdf_object.cell(11, 6, txt=f"Сахар", border=1, align='C', fill=1)
+    pdf_object.cell(16, 6, txt=f"Калории", border=1, align='C', fill=1)
+    pdf_object.ln(6)
+    pdf_object.set_text_color(0, 0, 0)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.set_font('FreeSans', size=10)
     row_height = 10
     day_calories = 0
     day_protein = 0
@@ -70,27 +70,27 @@ def draw_daily_table(*,
         food_fat_percent = int((food_fat / food_total_nutritions) * 100) if food_total_nutritions > 0 else 0
         food_carbohydrates_percent = int((food_carbohydrates / food_total_nutritions) * 100) if \
             food_total_nutritions > 0 else 0
-        pdf.set_fill_color(246, 246, 246)
-        pdf.cell(15, row_height, txt=f'{food_time.strftime("%H:%M")}', border=1, align='C', fill=1)
-        pdf.set_fill_color(255, 255, 255)
-        pdf.cell(82, row_height, txt=f" {food['utterance']}", border=1, align='L', fill=1)
-        pdf.set_fill_color(246, 246, 246)
-        pdf.cell(11, row_height, txt=f"{int(food_protein)}", border=1, align='C', fill=1)
-        pdf.set_fill_color(255, 255, 255)
-        pdf.cell(11, row_height, txt=f"{food_protein_percent}", border=1, align='C', fill=1)
-        pdf.set_fill_color(246, 246, 246)
-        pdf.cell(11, row_height, txt=f"{int(food_fat)}", border=1, align='C', fill=1)
-        pdf.set_fill_color(255, 255, 255)
-        pdf.cell(11, row_height, txt=f"{food_fat_percent}", border=1, align='C', fill=1)
-        pdf.set_fill_color(246, 246, 246)
-        pdf.cell(11, row_height, txt=f"{int(food_carbohydrates)}", border=1, align='C', fill=1)
-        pdf.set_fill_color(255, 255, 255)
-        pdf.cell(11, row_height, txt=f"{food_carbohydrates_percent}", border=1, align='C', fill=1)
-        pdf.set_fill_color(246, 246, 246)
-        pdf.cell(11, row_height, txt=f"{int(food_sugar)}", border=1, align='C', fill=1)
-        pdf.set_fill_color(255, 255, 255)
-        pdf.cell(16, row_height, txt=f"{int(food_calories)}", border=1, align='C', fill=1)
-        pdf.ln(row_height)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(15, row_height, txt=f'{food_time.strftime("%H:%M")}', border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(82, row_height, txt=f" {food['utterance']}", border=1, align='L', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_protein)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(11, row_height, txt=f"{food_protein_percent}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_fat)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(11, row_height, txt=f"{food_fat_percent}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_carbohydrates)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(11, row_height, txt=f"{food_carbohydrates_percent}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(246, 246, 246)
+        pdf_object.cell(11, row_height, txt=f"{int(food_sugar)}", border=1, align='C', fill=1)
+        pdf_object.set_fill_color(255, 255, 255)
+        pdf_object.cell(16, row_height, txt=f"{int(food_calories)}", border=1, align='C', fill=1)
+        pdf_object.ln(row_height)
         print(food_time.strftime('%H:%M'), food['utterance'], int(food_protein), str(food_protein_percent) + '%',
               int(food_fat), str(food_fat_percent) + '%', int(food_carbohydrates),
               str(food_carbohydrates_percent) + '%', food_calories)
@@ -99,6 +99,26 @@ def draw_daily_table(*,
     day_fat_percent = int((day_fat / day_total_nutritions) * 100) if day_total_nutritions > 0 else 0
     day_carbohydrates_percent = int((day_carbohydrates / day_total_nutritions) * 100) if \
         day_total_nutritions > 0 else 0
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(97, row_height, txt=f'Итого: {day_calories} калорий', border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_protein)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(11, row_height, txt=f"{day_protein_percent}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_fat)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(11, row_height, txt=f"{day_fat_percent}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_carbohydrates)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.cell(11, row_height, txt=f"{day_carbohydrates_percent}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(246, 246, 246)
+    pdf_object.cell(11, row_height, txt=f"{int(day_sugar)}", border=1, align='C', fill=1)
+    pdf_object.set_fill_color(255, 255, 255)
+    pdf_object.set_font('FreeSans', size=14)
+    pdf_object.cell(16, row_height, txt=f"{int(day_calories)}", border=1, align='C', fill=1)
+    pdf_object.ln(12)
     print(f'Итого за день: \t{int(day_protein)}({day_protein_percent}%)\t{int(day_fat)}({day_fat_percent}%)'
           f'\t{int(day_carbohydrates)}({day_carbohydrates_percent}%)\t{int(day_sugar)}\t{int(day_calories)}')
 
@@ -157,7 +177,7 @@ draw_daily_table(date=datetime.date(2018, 12, 5), pdf_object=pdf, current_timezo
      'meal_type': 1, 'photo': {'thumb': 'https://d2xdmhkmkbyw75.cloudfront.net/865_thumb.jpg',
                                'highres': 'https://d2xdmhkmkbyw75.cloudfront.net/865_highres.jpg',
                                'is_user_uploaded': False}, 'sub_recipe': None}]}, 'utterance': 'тарелка борща'},
-                                                              {'time': '2018-12-05 09:50:49', 'foods': {'foods': [
+                                                                                                                       {'time': '2018-12-05 09:50:49', 'foods': {'foods': [
                                                                   {'food_name': 'ice cream', 'brand_name': None,
                                                                    'serving_qty': 1, 'serving_unit': 'cup',
                                                                    'serving_weight_grams': 132, 'nf_calories': 273.24,
@@ -290,7 +310,7 @@ draw_daily_table(date=datetime.date(2018, 12, 5), pdf_object=pdf, current_timezo
                                                                           'https://d2xdmhkmkbyw75.cloudfront.net/39_highres.jpg',
                                                                       'is_user_uploaded': False}, 'sub_recipe': None}]},
                                                                'utterance': 'ice-cream'},
-                                                              {'time': '2018-12-05 10:00:13', 'foods': {'foods': [
+                                                                                                                       {'time': '2018-12-05 10:00:13', 'foods': {'foods': [
                                                                   {'food_name': 'carrots', 'brand_name': None,
                                                                    'serving_qty': 2, 'serving_unit': 'carrot',
                                                                    'serving_weight_grams': 92, 'nf_calories': 32.2,
@@ -447,7 +467,7 @@ draw_daily_table(date=datetime.date(2018, 12, 5), pdf_object=pdf, current_timezo
                                                                           'https://d2xdmhkmkbyw75.cloudfront.net/452_highres.jpg',
                                                                       'is_user_uploaded': False}, 'sub_recipe': None}]},
                                                                'utterance': 'две морковки'},
-                                                              {'time': '2018-12-05 11:34:38', 'foods': {'foods': [
+                                                                                                                       {'time': '2018-12-05 11:34:38', 'foods': {'foods': [
                                                                   {'food_name': 'vegetable', 'brand_name': None,
                                                                    'serving_qty': 500, 'serving_unit': 'grams',
                                                                    'serving_weight_grams': 500, 'nf_calories': 161.72,
@@ -619,7 +639,7 @@ draw_daily_table(date=datetime.date(2018, 12, 5), pdf_object=pdf, current_timezo
                                                                       'highres': 'https://d2xdmhkmkbyw75.cloudfront.net/685_highres.jpg',
                                                                       'is_user_uploaded': False}, 'sub_recipe': None}]},
                                                                'utterance': 'пятьсот грамм борща'},
-                                                              {'time': '2018-12-05 11:44:47', 'foods': {'foods': [
+                                                                                                                       {'time': '2018-12-05 11:44:47', 'foods': {'foods': [
                                                                   {'food_name': 'mandarin', 'brand_name': None,
                                                                    'serving_qty': 1, 'serving_unit': 'fruit',
                                                                    'serving_weight_grams': 74, 'nf_calories': 34.78,
@@ -932,7 +952,7 @@ draw_daily_table(date=datetime.date(2018, 12, 5), pdf_object=pdf, current_timezo
                                                                                                    'is_user_uploaded': False},
                                                                                                'sub_recipe': None}]},
                                                                                           'utterance': 'хурма'},
-                                                              {'time': '2018-12-05 15:03:29', 'foods': {'foods': [
+                                                                                                                       {'time': '2018-12-05 15:03:29', 'foods': {'foods': [
                                                                   {'food_name': 'rice', 'brand_name': None,
                                                                    'serving_qty': 400, 'serving_unit': 'grams',
                                                                    'serving_weight_grams': 400, 'nf_calories': 520,
@@ -1051,7 +1071,7 @@ draw_daily_table(date=datetime.date(2018, 12, 5), pdf_object=pdf, current_timezo
                                                                       'highres': 'https://d2xdmhkmkbyw75.cloudfront.net/784_highres.jpg',
                                                                       'is_user_uploaded': False}, 'sub_recipe': None}]},
                                                                'utterance': 'четыреста грамм rice'},
-                                                              {'time': '2018-12-05 15:03:47', 'foods': {'foods': [
+                                                                                                                       {'time': '2018-12-05 15:03:47', 'foods': {'foods': [
                                                                   {'food_name': 'beet green', 'brand_name': None,
                                                                    'serving_qty': 1, 'serving_unit': 'cup (1" pieces)',
                                                                    'serving_weight_grams': 144, 'nf_calories': 38.88,
