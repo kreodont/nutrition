@@ -161,7 +161,6 @@ def draw_daily_table(*,
         pdf_object.set_fill_color(246, 246, 246)
         pdf_object.cell(15, row_height, txt=f'{food_time.strftime("%H:%M")}', border=1, align='C', fill=1)
         pdf_object.set_fill_color(255, 255, 255)
-        print(len(food['utterance']))
         if len(food['utterance']) > 44:
             pdf_object.set_font('FreeSans', size=8)
         pdf_object.cell(82, row_height, txt=f" {food['utterance']}", border=1, align='L', fill=1)

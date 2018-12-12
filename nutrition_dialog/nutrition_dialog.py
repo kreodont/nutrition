@@ -245,44 +245,6 @@ def get_boto3_clients(context):
     return translation_client, database_client
 
 
-def search_common_phrases(tokens, request, construct_response_with_session):
-    if ('помощь' in tokens or
-            'справка' in tokens or
-            'хелп' in tokens or
-            'информация' in tokens or
-            'ping' in tokens or
-            'пинг' in tokens or
-            request.get('original_utterance').endswith('?') or
-            'умеешь' in tokens or
-            ('что' in tokens and [t for t in tokens if 'дел' in t]) or
-            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
-        return construct_response_with_session(text=help_text)
-
-    if (
-            tokens == ['хорошо', ] or
-            tokens == ['спасибо', ] or
-            tokens == ['молодец', ] or
-            tokens == ['окей', ]
-    ):
-        return construct_response_with_session(text='Спасибо, я стараюсь')
-
-    if (
-            'привет' in tokens or
-            'здравствуй' in tokens or
-            'здравствуйте' in tokens):
-        return construct_response_with_session(text='Здравствуйте. А теперь расскажите что вы съели, '
-                                                    'а скажу сколько там было калорий и питательных веществ.')
-
-    if ('выход' in tokens or
-            'выйти' in tokens or
-            'пока' in tokens or
-            'выйди' in tokens or
-            'до свидания' in tokens):
-        return construct_response_with_session(text='До свидания', end_session=True)
-
-
 @timeit
 def translate(*, russian_phrase, translation_client, debug):
     try:
@@ -621,11 +583,11 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
         return help_text, True, False
 
     if (
-            'хорошо' in tokens or
-            'молодец' in tokens or
-            'замечательно' in tokens or
-            'спасибо' in tokens or
-            'отлично' in tokens
+            tokens == ['спасибо', ] or
+            tokens == ['молодец', ] or
+            tokens == ['спасибо', ] or
+            tokens == ['отлично', ] or
+            tokens == ['окей', ]
     ):
         return 'Спасибо, я стараюсь', True, False
 
