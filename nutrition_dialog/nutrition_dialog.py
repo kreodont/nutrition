@@ -261,8 +261,11 @@ def search_common_phrases(tokens, request, construct_response_with_session):
         return construct_response_with_session(text=help_text)
 
     if (
-            'хорошо' in tokens or
-            'молодец' in tokens):
+            tokens == ['хорошо', ] or
+            tokens == ['спасибо', ] or
+            tokens == ['молодец', ] or
+            tokens == ['окей', ]
+    ):
         return construct_response_with_session(text='Спасибо, я стараюсь')
 
     if (
@@ -357,6 +360,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['бочек', 'бочки', 'бочка'], 'search_text': [], 'replacement': '208 liters'},
         {'search_tokens': [], 'search_text': ['кока кола зеро', ], 'replacement': 'Pepsi Cola Zero'},
         {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [], 'replacement': 'зефир'},
+        {'search_tokens': ['халва', 'халвы', 'халв', ], 'search_text': [], 'replacement': 'halvah'},
         {'search_tokens': ['соленый', 'соленая', 'соленого', 'соленой', 'соленым', 'соленом', 'соленое', 'солеными',
                            'соленых'], 'search_text': [], 'replacement': ''},
         {'search_tokens': [], 'search_text': ['макароны карбонара', 'макарон карбонара', 'вермишель карбонара',
@@ -911,7 +915,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '150 грамм селедки под шубой'.lower()
+    testing = 'халва 100 грамм'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
