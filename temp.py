@@ -2,6 +2,7 @@ import boto3
 import json
 import datetime
 import dateutil
+import typing
 from fpdf import FPDF
 
 session = boto3.Session(profile_name='kreodont')
@@ -217,14 +218,26 @@ def draw_daily_table(*,
 def report(
         *,
         database_client,
-        date_from: datetime.date,
-        date_to: datetime.date,
+        date_from: typing.Optional[datetime.date]=None,
+        date_to: typing.Optional[datetime.date]=None,
         user_id: str,
         current_timezone: str) -> str:
+    filename = None
+    if date_from is None and date_to is not None:
+        date_from = date_to - datetime.timedelta(days=7)
+    elif date_from is not None and date_to is None:
+        date_to = datetime.date.today()
+    elif date_from is None and date_to is None:
+        days_delta = datetime.timedelta(days=datetime.date.today().weekday(), weeks=1)
+        date_from = datetime.date.today() - days_delta
+        date_to = date_from + datetime.timedelta(days=6)
+        filename = f'week_{date_from.isocalendar()[1]}.pdf'
+
     if date_to < date_from:
         return 'Дата начала должна быть меньше или равна дате окончания'
     if (date_to - date_from).days > 31:
         return 'Максимальный размер отчета один месяц'
+
     week_days = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье', ]
     impacted_days = [str(d) for d in [date_from + datetime.timedelta(days=i) for
                                       i in range((date_to-date_from).days + 1)]]
@@ -243,7 +256,9 @@ def report(
         print(f'\n{date} ({week_days[date.isoweekday() - 1]})')
         food_list = json.loads(item['value']['S'])
         draw_daily_table(date=date, foods_list=food_list, pdf_object=pdf, current_timezone=current_timezone)
-    pdf.output('simple_demo.pdf')
+    if filename is None:
+        filename = f'{date_from}_{date_to}.pdf'
+    pdf.output(filename)
     return 'OI'
 
 
@@ -251,8 +266,8 @@ if __name__ == '__main__':
     print(
             report(
                     database_client=client,
-                    date_from=datetime.date.today() - datetime.timedelta(days=7),
-                    date_to=datetime.date.today(),
+                    # date_from=datetime.date.today() - datetime.timedelta(days=7),
+                    # date_to=datetime.date.today(),
                     user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
                     current_timezone='Europe/Moscow'))
 
