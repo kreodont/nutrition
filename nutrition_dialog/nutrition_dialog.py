@@ -278,6 +278,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['риса', 'рис'], 'search_text': [], 'replacement': 'rice'},
         {'search_tokens': ['мороженое', 'мороженого', 'мороженых'], 'search_text': [], 'replacement': 'ice cream'},
         {'search_tokens': ['кисель', 'киселя', 'киселей'], 'search_text': [], 'replacement': 'jelly'},
+        {'search_tokens': ['сырники', 'сырника', 'сырников', 'сырник', 'сырниками'], 'search_text': [],
+         'replacement': 'cottage chese'},
         {'search_tokens': ['пломбиров', 'пломбира', 'пломбир'], 'search_text': [], 'replacement': 'ice cream'},
         {'search_tokens': ['какао', ], 'search_text': [], 'replacement': 'hot chocolate'},
         {'search_tokens': ['сало', 'сала', ], 'search_text': [], 'replacement': 'fat meat'},
@@ -793,7 +795,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
         clear_session(database_client=database_client, session_id=session['session_id'])
         return construct_response_with_session(text='Забыли. Чтобы посмотреть список сохраненной еды, '
-                                                    'спросите меня что Вы ели', tts='Сохранено')
+                                                    'спросите меня что Вы ели', tts='Забыли')
 
     # checking if we want to save for specific day
     dates_in_tokens = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
@@ -877,7 +879,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'халва 100 грамм'.lower()
+    testing = 'сырник'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
