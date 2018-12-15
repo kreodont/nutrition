@@ -420,10 +420,10 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
             f'{round(sugar, 1)} сах.)\n'
 
     if len(nutrition_dict["foods"]) > 1:
-        response_text += f'Итого: {choose_case(amount=total_calories)}\n' \
-            f'({round(total_protein, 1)} бел. ' \
+        response_text += f'Итого: ({round(total_protein, 1)} бел. ' \
             f'{round(total_fat, 1)} жир. ' \
-            f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.)'
+            f'{round(total_carbohydrates, 1)} угл. {round(total_sugar, 1)} сах.' \
+            f')\n_\n{choose_case(amount=total_calories)}\n_\n'
 
     return response_text, total_calories
 
