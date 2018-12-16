@@ -230,7 +230,10 @@ def report(
     elif date_from is not None and date_to is None:
         date_to = datetime.date.today()
     elif date_from is None and date_to is None:
-        days_delta = datetime.timedelta(days=datetime.date.today().weekday(), weeks=1)
+        if datetime.date.today().isoweekday() == 7:
+            days_delta = datetime.timedelta(days=datetime.date.today().weekday(), weeks=0)
+        else:
+            days_delta = datetime.timedelta(days=datetime.date.today().weekday(), weeks=1)
         date_from = datetime.date.today() - days_delta
         date_to = date_from + datetime.timedelta(days=6)
         filename = f'week_{date_from.isocalendar()[1]}.pdf'
@@ -261,7 +264,7 @@ def report(
     if filename is None:
         filename = f'{date_from}_{date_to}.pdf'
     pdf.output(filename)
-    return 'OI'
+    return filename
 
 
 if __name__ == '__main__':
@@ -269,7 +272,7 @@ if __name__ == '__main__':
             report(
                     database_client=client,
                     # date_from=datetime.date.today() - datetime.timedelta(days=7),
-                    date_to=datetime.date.today(),
+                    # date_to=datetime.date.today(),
                     user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
                     current_timezone='Europe/Moscow'))
 
