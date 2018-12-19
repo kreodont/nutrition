@@ -272,7 +272,7 @@ if __name__ == '__main__':
             report(
                     database_client=client,
                     # date_from=datetime.date.today() - datetime.timedelta(days=7),
-                    # date_to=datetime.date.today(),
+                    date_to=datetime.date.today(),
                     user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
                     current_timezone='Europe/Moscow'))
 

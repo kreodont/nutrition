@@ -543,12 +543,12 @@ def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
         end_token = d['tokens']['end']
 
         if 'year_is_relative' in date_entity and date_entity['year_is_relative']:
-            date_to_return += dateutil.relativedelta(years=date_entity['year'])
+            date_to_return += dateutil.relativedelta.relativedelta(years=date_entity['year'])
         else:
             if 'year' in date_entity:
                 date_to_return = date_to_return.replace(year=date_entity['year'])
         if 'month_is_relative' in date_entity and date_entity['month_is_relative']:
-            date_to_return += dateutil.relativedelta(months=date_entity['month'])
+            date_to_return += dateutil.relativedelta.relativedelta(months=date_entity['month'])
         else:
             if 'month' in date_entity:
                 date_to_return = date_to_return.replace(month=date_entity['month'])
@@ -885,7 +885,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'винегрет 600 грамм'.lower()
+    testing = 'что я ел год назад '.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
