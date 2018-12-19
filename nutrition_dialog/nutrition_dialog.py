@@ -771,7 +771,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     utterance_to_delete=' '.join(cleaned_tokens),
                     user_id=session['user_id']))
 
-    if [t for t in tokens if 'человечин' in t]:
+    if [t for t in tokens if 'человеч' in t]:
         return construct_response_with_session(text='Доктор Лектер, это вы?')
 
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
