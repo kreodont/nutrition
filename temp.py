@@ -4,6 +4,7 @@ import datetime
 import dateutil
 import typing
 from fpdf import FPDF
+import requests
 
 session = boto3.Session(profile_name='kreodont')
 client = session.client('dynamodb')
@@ -268,13 +269,17 @@ def report(
 
 
 if __name__ == '__main__':
-    print(
-            report(
-                    database_client=client,
-                    # date_from=datetime.date.today() - datetime.timedelta(days=7),
-                    date_to=datetime.date.today(),
-                    user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
-                    current_timezone='Europe/Moscow'))
+    response = requests.post(
+            'https://xggk60khe2.execute-api.us-east-1.amazonaws.com/test/button',
+            data=json.dumps({'user_id': 'some'}))
+    print(response.text)
+    # print(
+    #         report(
+    #                 database_client=client,
+    #                 # date_from=datetime.date.today() - datetime.timedelta(days=7),
+    #                 # date_to=datetime.date.today(),
+    #                 user_id='C7661DB7B22C25BC151DBC1DB202B5624348B30B4325F2A67BB0721648216065',
+    #                 current_timezone='Europe/Moscow'))
 
 # r = transform_yandex_entities_into_dates([
 #     {
