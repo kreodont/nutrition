@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+     <link rel="stylesheet" type="text/css" href="style.css">
+    <script
+      src="https://code.jquery.com/jquery-3.3.1.min.js"
+      integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+      crossorigin="anonymous"></script>
+    <script>
+        function buttonPressed(){
+            let user_id = document.getElementById('1').value;
+            let dataaa = {"user_id": user_id};
+            $.ajax({
+                type:"POST",
+                url:"https://xggk60khe2.execute-api.us-east-1.amazonaws.com/test/button",
+                data: JSON.stringify(dataaa),
+                contentType: 'application/json',
+                success: function(res) {
+                    console.log(res);
+                }.bind(this),
+                error: function(xhr, status, err) {
+                    console.error(xhr, status, err.toString());
+                }.bind(this)
+    });
+    }
+    </script>
+    <title>Button</title>
+</head>
+<body>
+    <div class="input">
+        <input id="1">
+    </div>
+
+    <div class="body">
+        <button class="button" onclick="buttonPressed()">OK</button>
+    </div>
+</body>
+</html>
