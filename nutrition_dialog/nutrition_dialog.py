@@ -310,6 +310,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['голубец', 'голубцы', 'голубца', 'голубцов'], 'search_text': [],
          'replacement': 'cabbage roll'},
         {'search_tokens': ['оливье', ], 'search_text': [], 'replacement': 'Ham Salad'},
+        {'search_tokens': [], 'search_text': ['салат оливье'], 'replacement': 'Ham Salad'},
         {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ], 'replacement': "malt o meal"},
         {'search_tokens': [], 'search_text': ['пшенная каша', 'пшенной каши', 'пшенной каши'],
          'replacement': "malt o meal"},
@@ -777,7 +778,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
             tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
-            tokens == ['да', 'сохранит'] or tokens == ['да', 'да'] or tokens == ['да', 'спасибо']):
+            tokens == ['да', 'сохранит'] or tokens == ['да', 'сохранить'] or tokens == ['да', 'да'] or
+            tokens == ['да', 'спасибо']):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())

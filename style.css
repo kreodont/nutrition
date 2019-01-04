@@ -1,7 +1,7 @@
 .body {
     width: 100%;
     height: 1000px;
-    animation-name: colorChange;
+    /*animation-name: colorChange;*/
     animation-duration: 1s;
     animation-iteration-count: 1;
     text-align: center;
@@ -21,3 +21,14 @@
     height: 80%;
     font-size: 50px;
 }
+@keyframes colorChangeRed{
+    100% {
+        background: red;
+    }
+}
+@keyframes colorChangeGreen{
+    100% {
+        background: green;
+    }
+}
+

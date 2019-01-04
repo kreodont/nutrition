@@ -9,20 +9,44 @@
       crossorigin="anonymous"></script>
     <script>
         function buttonPressed(){
-            let user_id = document.getElementById('1').value;
-            let dataaa = {"user_id": user_id};
+            var user_id = document.getElementById('1').value;
+            var dataaa = {"user_id": user_id};
+            var background_element = document.getElementById('2');
+            background_element.classList.remove('body');
+            background_element.classList.add('body');
             $.ajax({
                 type:"POST",
                 url:"https://xggk60khe2.execute-api.us-east-1.amazonaws.com/test/button",
                 data: JSON.stringify(dataaa),
                 contentType: 'application/json',
                 success: function(res) {
-                    console.log(res);
+                    if (res === true){
+                        $( ".body" ).css( "animation-name", "colorChangeGreen" );
+                        if (user_id === 'master') {
+                            console.log('disabled');
+                        }
+
+                    }
+                    else {
+                        $( ".body" ).css( "animation-name", "colorChangeRed" );
+                        if (user_id === 'master') {
+                            console.log('enabled');
+                        }
+                    }
+                    if (user_id !== 'master'){
+                        console.log(res);
+                    }
+
                 }.bind(this),
                 error: function(xhr, status, err) {
                     console.error(xhr, status, err.toString());
                 }.bind(this)
     });
+            if (user_id !== 'master') {
+                var audio = document.getElementById("audio");
+                audio.play();
+            }
+
     }
     </script>
     <title>Button</title>
@@ -32,8 +56,9 @@
         <input id="1">
     </div>
 
-    <div class="body">
+    <div class="body" id="2">
         <button class="button" onclick="buttonPressed()">OK</button>
     </div>
+<audio id="audio" src="key5.wav" ></audio>
 </body>
 </html>
