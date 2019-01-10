@@ -346,7 +346,11 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['морсом', 'морсов', 'морса', 'морсы', 'морс', ], 'search_text': [],
          'replacement': 'Cranberry Drink'},
         {'search_tokens': ['вареники', 'вареников', 'варениками', 'вареника', 'вареник', ], 'search_text': [],
-         'replacement': 'Veggie Dumplings'}
+         'replacement': 'Veggie Dumplings'},
+        {'search_tokens': ['плова', 'пловов', 'пловы', 'плов'], 'search_text': [],
+         'replacement': 'Rice Pilaf'},
+        {'search_tokens': ['сырков', 'сырка', 'сырки', 'сырок'], 'search_text': [],
+         'replacement': 'Cream Cheese'}
         # {'search_tokens': ['тарелка', 'тарелки', 'тарелок', ], 'search_text': [], 'replacement': '400 grams'}
 
     ]
