@@ -332,6 +332,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': [], 'search_text': ['кока кола зеро', ], 'replacement': 'Pepsi Cola Zero'},
         {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [], 'replacement': 'зефир'},
         {'search_tokens': ['халва', 'халвы', 'халв', ], 'search_text': [], 'replacement': 'halvah'},
+        {'search_tokens': ['пюрешка', 'пюрешки', 'пюрешкой', ], 'search_text': [], 'replacement': 'mashed potato'},
         {'search_tokens': ['соленый', 'соленая', 'соленого', 'соленой', 'соленым', 'соленом', 'соленое', 'солеными',
                            'соленых'], 'search_text': [], 'replacement': ''},
         {'search_tokens': [], 'search_text': ['макароны карбонара', 'макарон карбонара', 'вермишель карбонара',
@@ -897,7 +898,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'грецкий орех, 15 грамм'.lower()
+    testing = 'пюрешка'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
