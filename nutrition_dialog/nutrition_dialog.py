@@ -375,7 +375,6 @@ def make_default_text():
 
 @timeit
 def query_endpoint(*, link, login, password, phrase) -> dict:
-    t1 = time.time()
     try:
         response = requests.post(link,
                                  data=json.dumps({'query': phrase}),
@@ -386,7 +385,6 @@ def query_endpoint(*, link, login, password, phrase) -> dict:
                                  )
     except Exception as e:
         return {'error': str(e)}
-    print(f'Post request took {time.time() - t1}')
 
     if response.status_code != 200:
         return {'error': response.text}
@@ -863,9 +861,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
         # End of translation block
 
-        t1 = time.time()
         login, password, keys_dict = choose_key(keys_dict)
-        print(f'Part 2 fetching keys took {time.time() - t1} seconds')
 
         nutrition_dict = query_endpoint(
                 link=keys_dict['link'],
@@ -873,7 +869,6 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 password=password,
                 phrase=full_phrase_translated,
         )
-        print(f'Part 2 endpoint query took {time.time() - t1} seconds')
         if 'error' in nutrition_dict:
             print(nutrition_dict['error'])
             return construct_response_with_session(text=make_default_text())
