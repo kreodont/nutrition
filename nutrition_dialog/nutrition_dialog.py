@@ -800,7 +800,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 utterance=saved_session['utterance'])
         clear_session(database_client=database_client, session_id=session['session_id'])
         return construct_response_with_session(text='Сохранено. Чтобы посмотреть список сохраненной еды, '
-                                                    'спросите меня что Вы ели', tts='Сохранено')
+                                                    'спросите "Что я ел сегодня?"', tts='Сохранено')
 
     if (tokens == ['нет', ] or tokens == ['неа', ] or tokens == ['нельзя', ] or tokens == ['ну', 'нет']
             or tokens == ['не', 'надо'] or tokens == ['не', ] or tokens == ['нет', 'не', 'надо'] or
@@ -892,7 +892,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             keys_dict=keys_dict)
 
     return construct_response_with_session(
-            text=response_text + '\nСохранить?',
+            text=response_text + '\nСкажите да или сохранить, если хотите записать этот прием пищи.',
             tts=f'{choose_case(amount=total_calories, tts_mode=True, round_to_int=True)}. Сохранить?')
 
 
