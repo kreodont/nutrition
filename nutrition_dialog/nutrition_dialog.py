@@ -256,7 +256,7 @@ def translate(*, russian_phrase, translation_client, debug):
         return 'timeout'
 
     full_phrase_translated = full_phrase_translated.lower().replace('bisque', 'soup')
-    full_phrase_translated = re.sub('without (\w+)', '', full_phrase_translated)
+    full_phrase_translated = re.sub(r'without (\w+)', '', full_phrase_translated)
 
     if debug:
         print(f'Translated: {full_phrase_translated}')
@@ -375,6 +375,7 @@ def make_default_text():
 
 @timeit
 def query_endpoint(*, link, login, password, phrase) -> dict:
+    t1 = time.time()
     try:
         response = requests.post(link,
                                  data=json.dumps({'query': phrase}),
@@ -385,6 +386,7 @@ def query_endpoint(*, link, login, password, phrase) -> dict:
                                  )
     except Exception as e:
         return {'error': str(e)}
+    print(f'Post request took {time.time() - t1}')
 
     if response.status_code != 200:
         return {'error': response.text}
@@ -439,13 +441,14 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
     return response_text, total_calories
 
 
+@timeit
 def choose_key(keys_dict):
-    min_usage_value = float('inf')
+    min_usage_value = 90000
     min_usage_key = None
+    limit_date = str(datetime.datetime.now() - datetime.timedelta(hours=24))
     for k in keys_dict['keys']:
         # deleting keys usages if they are older than 24 hours
-        k['dates'] = [d for d in k['dates'] if
-                      dateutil.parser.parse(d) > datetime.datetime.now() - datetime.timedelta(hours=24)]
+        k['dates'] = [d for d in k['dates'] if d > limit_date]
         if min_usage_key is None:
             min_usage_key = k
         if min_usage_value > len(k['dates']):
@@ -860,7 +863,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
         # End of translation block
 
+        t1 = time.time()
         login, password, keys_dict = choose_key(keys_dict)
+        print(f'Part 2 fetching keys took {time.time() - t1} seconds')
 
         nutrition_dict = query_endpoint(
                 link=keys_dict['link'],
@@ -868,6 +873,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 password=password,
                 phrase=full_phrase_translated,
         )
+        print(f'Part 2 endpoint query took {time.time() - t1} seconds')
         if 'error' in nutrition_dict:
             print(nutrition_dict['error'])
             return construct_response_with_session(text=make_default_text())
@@ -885,13 +891,14 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             nutrition_dict=nutrition_dict,
             database_client=database_client,
             keys_dict=keys_dict)
+
     return construct_response_with_session(
             text=response_text + '\nСохранить?',
             tts=f'{choose_case(amount=total_calories, tts_mode=True, round_to_int=True)}. Сохранить?')
 
 
 if __name__ == '__main__':
-    testing = 'что я ел год назад '.lower()
+    testing = 'грецкий орех, 15 грамм'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',

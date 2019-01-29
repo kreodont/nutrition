@@ -5,6 +5,16 @@ import dateutil
 import typing
 from fpdf import FPDF
 import requests
+import time
+t1 = time.time()
+str_time = '2019-01-28 15:13:57.226218'
+d = datetime.datetime.strptime(str_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
+print(time.time() - t1)
+t1 = time.time()
+d = dateutil.parser.parse(str_time)
+print(time.time() - t1)
+
+exit(0)
 
 session = boto3.Session(profile_name='kreodont')
 client = session.client('dynamodb')
