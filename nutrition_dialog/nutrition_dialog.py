@@ -529,9 +529,9 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
     percent_protein = round((total_protein / all_total) * 100)
     percent_fat = round((total_fat / all_total) * 100)
     percent_carbohydrates = round((total_carbohydrates / all_total) * 100)
-    full_text += f'Всего: {choose_case(amount=round(total_calories))}\n{round(total_protein)} ({percent_protein}%) ' \
+    full_text += f'Всего: \n{round(total_protein)} ({percent_protein}%) ' \
         f'бел. {round(total_fat)} ({percent_fat}%) жир. {round(total_carbohydrates)} ({percent_carbohydrates}%) ' \
-        f'угл. {round(total_sugar)} сах.'
+        f'угл. {round(total_sugar)} сах.\n{choose_case(amount=round(total_calories))}'
     return full_text, total_calories
 
 
@@ -892,7 +892,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             keys_dict=keys_dict)
 
     return construct_response_with_session(
-            text=response_text + '\nСкажите да или сохранить, если хотите записать этот прием пищи.',
+            text=response_text + '\nСкажите "да" или "сохранить", если хотите записать этот прием пищи.',
             tts=f'{choose_case(amount=total_calories, tts_mode=True, round_to_int=True)}. Сохранить?')
 
 
