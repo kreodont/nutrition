@@ -30,7 +30,6 @@ example_food_texts = ['Бочка варенья и коробка печень�
                       'каша из топора и свежевыжатый березовый сок',
                       ]
 
-
 start_text = 'Какую еду записать?'
 help_text = 'Я считаю калории. Просто скажите что вы съели, а я скажу сколько в этом было калорий. Например: соевое ' \
             'молоко с хлебом. Потом я спрошу ' \
@@ -53,6 +52,7 @@ def construct_response(*,
                        verions='1.0',
                        debug=False,
                        has_screen=True,
+                       with_button=False
                        ) -> dict:
     if tts is None or not has_screen:  # for devices without screen we need to pronounce everything
         tts = text
@@ -70,6 +70,15 @@ def construct_response(*,
         },
         "version": verions
     }
+    if with_button and has_screen:
+        response["response"]['text'] += '\nКстати, если у вас закончились продукты, ' \
+                            'воспользуйтесь навыком Вторая память, чтобы не забыть, какие'
+        response["response"]['buttons'] = [{
+            "title": "Вторая память",
+            "payload": {},
+            "url": "https://dialogs.yandex.ru/store/skills/00203e6e-vtoraya-pamya",
+            "hide": False
+        }]
 
     if debug:
         print(response)
@@ -596,6 +605,7 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'пинг' in tokens or
             'умеешь' in tokens or
             ('что' in tokens and [t for t in tokens if 'делать' in t]) or
+            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
             ('как' in tokens and [t for t in tokens if 'польз' in t]) or
             'скучно' in tokens or
             'help' in tokens):
@@ -606,6 +616,7 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             tokens == ['молодец', ] or
             tokens == ['спасибо', ] or
             tokens == ['отлично', ] or
+            tokens == ['хорошо', ] or
             tokens == ['окей', ]
     ):
         return 'Спасибо, я стараюсь', True, False
@@ -745,7 +756,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
-    full_phrase = request.get('command').lower()
+    full_phrase = str(request.get('command')).lower()
     print(full_phrase)
     full_phrase_with_replacements = russian_replacements(full_phrase, tokens)
 
@@ -753,6 +764,14 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if exit_session:
         return construct_response_with_session(text=common_response, end_session=exit_session)
     if stop_session:
+        if 'Я считаю калории' in common_response:
+            return construct_response(session=session['session_id'],
+                                      user_id=session['user_id'],
+                                      message_id=session.get('message_id'),
+                                      debug=debug,
+                                      has_screen=has_screen,
+                                      text=common_response,
+                                      end_session=exit_session, with_button=True)
         return construct_response_with_session(text=common_response)
 
     if 'удалить' in tokens or 'удали' in tokens:
@@ -852,8 +871,12 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 tts=f'{choose_case(amount=total_calories, tts_mode=True, round_to_int=True)}')
 
     # searching in cache database first
-    keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
-                                                     database_client=database_client)
+    try:
+        keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
+                                                         database_client=database_client)
+    except Exception as e:
+        print(e)
+        return construct_response_with_session(text=make_default_text())
 
     if 'error' in nutrition_dict:
         return construct_response_with_session(text=make_default_text())
@@ -906,7 +929,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'мороженое'.lower()
+    testing = 'что умеешь'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
