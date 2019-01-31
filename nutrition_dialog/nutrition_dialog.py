@@ -855,6 +855,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     keys_dict, nutrition_dict = get_from_cache_table(request_text=full_phrase,
                                                      database_client=database_client)
 
+    if 'error' in nutrition_dict:
+        return construct_response_with_session(text=make_default_text())
+
     if not nutrition_dict or not context:  # if run locally, database entry is overwritten
         # translation block
         full_phrase_translated = translate(
@@ -876,6 +879,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         )
         if 'error' in nutrition_dict:
             print(nutrition_dict['error'])
+            write_to_cache_table(
+                    initial_phrase=full_phrase,
+                    nutrition_dict=nutrition_dict,
+                    database_client=database_client,
+                    keys_dict=keys_dict)
             return construct_response_with_session(text=make_default_text())
 
     response_text, total_calories = make_final_text(nutrition_dict=nutrition_dict)
@@ -898,7 +906,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'пюрешка'.lower()
+    testing = 'мороженое'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
