@@ -341,6 +341,10 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': [], 'search_text': ['кока кола зеро', ], 'replacement': 'Pepsi Cola Zero'},
         {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [], 'replacement': 'зефир'},
         {'search_tokens': ['халва', 'халвы', 'халв', ], 'search_text': [], 'replacement': 'halvah'},
+        {'search_tokens': ['творога', 'творогом', 'творогов', 'творог'], 'search_text': [], 'replacement':
+            'cottage cheese'},
+        {'search_tokens': ['обезжиренного', 'обезжиренным', 'обезжиренных', 'обезжиренный'], 'search_text': [],
+         'replacement': 'nonfat'},
         {'search_tokens': ['пюрешка', 'пюрешки', 'пюрешкой', ], 'search_text': [], 'replacement': 'mashed potato'},
         {'search_tokens': ['соленый', 'соленая', 'соленого', 'соленой', 'соленым', 'соленом', 'соленое', 'солеными',
                            'соленых'], 'search_text': [], 'replacement': ''},
@@ -896,11 +900,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         print(e)
         return construct_response_with_session(text=make_default_text())
 
-    if 'error' in nutrition_dict:
+    if 'error' in nutrition_dict and context:
         return construct_response_with_session(text=make_default_text())
 
     # If cursors retreive time is big, there probably won't be enough time to fetch API, so returning default
-    if boto3_fetching_time > 0.3:
+    if context and boto3_fetching_time > 0.3:
         return construct_response_with_session(text=make_default_text())
 
     if not nutrition_dict or not context:  # if run locally, database entry is overwritten
@@ -915,7 +919,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return construct_response_with_session(text=make_default_text())
         # End of translation block
         # If translation time is too big, there probably won't be enough time to fetch API, so returning default
-        if time.time() - t1 > 0.6:
+        if context and time.time() - t1 > 0.6:
             return construct_response_with_session(text=make_default_text())
 
         login, password, keys_dict = choose_key(keys_dict)
@@ -955,7 +959,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'хуй'.lower()
+    testing = '100 грамм обезжиренного творога'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
