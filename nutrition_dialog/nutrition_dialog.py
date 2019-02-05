@@ -807,17 +807,23 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека']:
         return construct_response_with_session(text='Доктор Лектер, это вы?')
 
-    if tokens == ['кот', ]:
+    if full_phrase == 'кот' or full_phrase == 'кошка':
         return construct_response_with_session(text='Неешь, подумой')
 
     if full_phrase == 'говно':
         return construct_response_with_session(text='Вы имели в виду "Сладкий хлеб"?')
 
+    if full_phrase == 'хуй' or full_phrase == 'моржовый хуй':
+        return construct_response_with_session(text='С солью или без соли?')
+
+    if full_phrase == 'никакую':
+        return construct_response_with_session(text='Хорошо, дайте знать, когда что-то появится')
+
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
             tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
             tokens == ['да', 'сохранит'] or tokens == ['да', 'сохранить'] or tokens == ['да', 'да'] or
-            tokens == ['да', 'спасибо']):
+            tokens == ['да', 'спасибо'] or full_phrase == 'да да сохрани'):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -865,7 +871,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 f'спросите меня что Вы ели', tts='Сохранено')
 
     if ('что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase)) or \
-            tokens == ['сколько', 'всего', 'калорий']:
+            tokens == ['сколько', 'всего', 'калорий'] or full_phrase == 'покажи результат' \
+            or full_phrase == 'скажи результат' or full_phrase == 'сколько всего' or \
+            full_phrase == 'сколько калорий' or full_phrase == 'какой результат':
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
             target_date = datetime.date.today()
@@ -943,7 +951,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'говно'.lower()
+    testing = 'хуй'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
