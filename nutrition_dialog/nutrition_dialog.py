@@ -905,6 +905,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
     if not nutrition_dict or not context:  # if run locally, database entry is overwritten
         # translation block
+        t1 = time.time()
         full_phrase_translated = translate(
                 russian_phrase=full_phrase_with_replacements,
                 translation_client=translation_client,
@@ -913,6 +914,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         if full_phrase_translated == 'timeout':
             return construct_response_with_session(text=make_default_text())
         # End of translation block
+        # If translation time is too big, there probably won't be enough time to fetch API, so returning default
+        if time.time() - t1 > 0.6:
+            return construct_response_with_session(text=make_default_text())
 
         login, password, keys_dict = choose_key(keys_dict)
 
