@@ -778,7 +778,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if 'удалить' in tokens or 'удали' in tokens:
         cleaned_tokens = [t for t in tokens if t not in ('удалить', 'еду', 'удали')]
         if not cleaned_tokens:
-            return construct_response_with_session(text='Скажите название еды, которую надо удалить')
+            return construct_response_with_session(text='Скажите название еды, которую надо удалить. Например: '
+                                                        '"Удалить пюре с котлетой"')
 
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
