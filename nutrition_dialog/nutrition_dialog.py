@@ -453,7 +453,6 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
     return response_text, total_calories
 
 
-@timeit
 def choose_key(keys_dict):
     min_usage_value = 90000
     min_usage_key = None
@@ -750,7 +749,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     is_new_session = session.get('new')
 
     # clients initialization must be before any checks to warm-up lambda function
+    t1 = time.time()
     translation_client, database_client = get_boto3_clients(context)
+    boto3_fetching_time = time.time() - t1
 
     if is_new_session:
         return construct_response_with_session(text=start_text)
@@ -881,6 +882,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if 'error' in nutrition_dict:
         return construct_response_with_session(text=make_default_text())
 
+    # If cursors retreive time is big, there probably won't be enough time to fetch API, so returning default
+    if boto3_fetching_time > 0.3:
+        return construct_response_with_session(text=make_default_text())
+
     if not nutrition_dict or not context:  # if run locally, database entry is overwritten
         # translation block
         full_phrase_translated = translate(
@@ -929,7 +934,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'что умеешь'.lower()
+    testing = '1 - р 0т '.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
