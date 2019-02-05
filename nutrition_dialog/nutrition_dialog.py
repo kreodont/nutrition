@@ -802,8 +802,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     utterance_to_delete=' '.join(cleaned_tokens),
                     user_id=session['user_id']))
 
-    if [t for t in tokens if 'человеч' in t]:
+    if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека']:
         return construct_response_with_session(text='Доктор Лектер, это вы?')
+
+    if tokens == ['кот', ]:
+        return construct_response_with_session(text='Неешь, подумой')
 
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
@@ -934,7 +937,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '1 - р 0т '.lower()
+    testing = 'кот'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
