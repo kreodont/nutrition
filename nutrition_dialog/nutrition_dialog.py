@@ -860,7 +860,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 text=f'Сохранено за {dates_in_tokens[0]["datetime"].date()}. Чтобы посмотреть список сохраненной еды, '
                 f'спросите меня что Вы ели', tts='Сохранено')
 
-    if 'что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase):
+    if ('что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase)) or \
+            tokens == ['сколько', 'всего', 'калорий']:
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
             target_date = datetime.date.today()
