@@ -622,7 +622,7 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             tokens == ['спасибо', ] or
             tokens == ['отлично', ] or
             tokens == ['хорошо', ] or
-            tokens == ['окей', ]
+            tokens == ['окей', ] or full_phrase in ('ты классная', )
     ):
         return 'Спасибо, я стараюсь', True, False
 
@@ -641,7 +641,7 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'выйди' in tokens or
             'до свидания' in full_phrase.lower() or
             'всего доброго' in full_phrase.lower() or
-            'алиса' in tokens
+            tokens == ['алиса', ]
 
     ):
         return 'До свидания', True, True
@@ -659,7 +659,8 @@ def delete_food(*,
             Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
 
     if 'Item' not in result:
-        return f'Никакой еды не найдено за {date}'
+        return f'Никакой еды не найдено за {date}. Чтобы еда появилась в моей базе, необходимо не ' \
+            f'забывать говорить "сохранить"'
 
     items = json.loads(result['Item']['value']['S'])
     items_to_delete = []
@@ -667,7 +668,9 @@ def delete_food(*,
         if item['utterance'] and utterance_to_delete in item['utterance'].replace(',', ''):
             items_to_delete.append(item)
     if not items_to_delete:
-        return f'"{utterance_to_delete}" не найдено за {date}. Найдено: {[i["utterance"] for i in items]}'
+        return f'"{utterance_to_delete}" не найдено за {date}. Найдено: {[i["utterance"] for i in items]}. Чтобы ' \
+            f'удалить еду, нужно произнести Удалить "еда" именно в том виде, как она записана. ' \
+            f'Например, удалить {items[0]["utterance"]}'
     elif len(items_to_delete) > 1:
         return f'Несколько значений подходят: {[i["utterance"] for i in items_to_delete]}. Уточните, какое удалить?'
     items.remove(items_to_delete[0])
@@ -813,11 +816,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека']:
         return construct_response_with_session(text='Доктор Лектер, это вы?')
 
-    if full_phrase == 'кот' or full_phrase == 'кошка':
+    if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
         return construct_response_with_session(text='Неешь, подумой')
 
-    if full_phrase == 'говно':
+    if full_phrase in ('говно', '', '', ''):
         return construct_response_with_session(text='Вы имели в виду "Сладкий хлеб"?')
+
+    if full_phrase in ('это много', 'это мало', 'что-то много', 'что-то мало', 'так много '):
+        return construct_response_with_session(text='Если вы нашли ошибку, напишите моему разработчику, '
+                                                    'и он объяснит мне, как правильно')
 
     if full_phrase == 'хуй' or full_phrase == 'моржовый хуй':
         return construct_response_with_session(text='С солью или без соли?')
@@ -849,7 +856,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
             tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
             tokens == ['да', 'сохранит'] or tokens == ['да', 'сохранить'] or tokens == ['да', 'да'] or
-            tokens == ['да', 'спасибо'] or full_phrase in ('да да сохрани', 'да да да', 'хранить')):
+            tokens == ['да', 'спасибо'] or full_phrase in (
+                    'да да сохрани',
+                    'да да да',
+                    'хранить',
+                    'да конечно',
+                    'ну давай',
+            )):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -872,6 +885,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'нет не сохранить',
             'нет не сохраняй',
             'нет нет',
+            'нет не сохраняет',
+            'не надо спасибо',
+            'не надо',
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -902,7 +918,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 text=f'Сохранено за {dates_in_tokens[0]["datetime"].date()}. Чтобы посмотреть список сохраненной еды, '
                 f'спросите меня что Вы ели', tts='Сохранено')
 
-    if ('что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase)) or \
+    if (('что' in tokens or 'сколько' in tokens ) and ('ел' in full_phrase or 'хран' in full_phrase)) or \
             full_phrase in ('покажи результат',
                             'открыть список сохранения',
                             'скажи результат',
@@ -924,6 +940,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'сколько всего калорий было в день',
                             'список сохраненные еды',
                             'список сохраненной еды',
+                            'общая сумма калорий за день',
+                            'посчитай все калории за сегодня',
+                            'сколько все вместе за весь день',
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
