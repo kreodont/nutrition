@@ -72,7 +72,7 @@ def construct_response(*,
     }
     if with_button and has_screen:
         response["response"]['text'] += '\nКстати, если у вас закончились продукты, ' \
-                            'воспользуйтесь навыком Вторая память, чтобы не забыть, какие'
+                                        'воспользуйтесь навыком Вторая память, чтобы не забыть, какие'
         response["response"]['buttons'] = [{
             "title": "Вторая память",
             "payload": {},
@@ -762,7 +762,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text=start_text)
 
     tokens = request.get('nlu').get('tokens')  # type: list
-    full_phrase = str(request.get('command')).lower()
+    full_phrase = str(request.get('command')).lower().strip()
     print(full_phrase)
     full_phrase_with_replacements = russian_replacements(full_phrase, tokens)
 
@@ -780,8 +780,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                       end_session=exit_session, with_button=True)
         return construct_response_with_session(text=common_response)
 
-    if 'удалить' in tokens or 'удали' in tokens:
-        cleaned_tokens = [t for t in tokens if t not in ('удалить', 'еду', 'удали')]
+    if 'удалить' in tokens or 'удали' in tokens or 'убери' in tokens or 'убрать' in tokens:
+        cleaned_tokens = [t for t in tokens if t not in ('удалить', 'еду', 'удали', 'убери', 'убрать')]
         if not cleaned_tokens:
             return construct_response_with_session(text='Скажите название еды, которую надо удалить. Например: '
                                                         '"Удалить пюре с котлетой"')
@@ -823,11 +823,28 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase == 'никакую':
         return construct_response_with_session(text='Хорошо, дайте знать, когда что-то появится')
 
+    if full_phrase in ('а где сохраняются', 'где сохраняются', 'где сохранить'):
+        return construct_response_with_session(text='Приемы пищи сохраняются в моей базе данных. Ваши приемы '
+                                                    'пищи будут доступны только Вам. Я могу быть Вашим личным '
+                                                    'дневником калорий')
+
+    if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер'):
+        return construct_response_with_session(text='Все мы можем ошибаться. Напишите моему разработчику, '
+                                                    'а он меня накажет и научит больше не ошибаться.')
+
+    if full_phrase in ('норма калорий', ):
+        return construct_response_with_session(text='Этого я пока не умею, но планирую скоро научиться. '
+                                                    'Следите за обновлениями')
+
+    if 'запусти навык' in full_phrase:
+        return construct_response_with_session(text='Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису и '
+                                                    'запустить другой навык, скажите Выход')
+
     if (tokens == ['да'] or tokens == ['ага'] or tokens == ['угу'] or tokens == ['конечно'] or tokens == ['ну', 'да']
             or tokens == ['давай'] or tokens == ['хорошо'] or tokens == ['можно'] or tokens == ['да', 'сохрани'] or
             tokens == ['сохрани'] or tokens == ['ну', 'сохрани'] or tokens == ['сохранить'] or
             tokens == ['да', 'сохранит'] or tokens == ['да', 'сохранить'] or tokens == ['да', 'да'] or
-            tokens == ['да', 'спасибо'] or full_phrase == 'да да сохрани'):
+            tokens == ['да', 'спасибо'] or full_phrase in ('да да сохрани', 'да да да', 'хранить')):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -842,9 +859,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                                     'спросите "Что я ел сегодня?"', tts='Сохранено')
 
     if (tokens == ['нет', ] or tokens == ['неа', ] or tokens == ['нельзя', ] or tokens == ['ну', 'нет']
-            or tokens == ['не', 'надо'] or tokens == ['не', ] or tokens == ['нет', 'не', 'надо'] or
-            tokens == ['да', 'нет'] or tokens == ['да', 'нет', 'наверное'] or tokens == ['не', 'сохраняй']
-            or tokens == ['нет', 'спасибо']) or full_phrase == 'не надо сохранять':
+        or tokens == ['не', 'надо'] or tokens == ['не', ] or tokens == ['нет', 'не', 'надо'] or
+        tokens == ['да', 'нет'] or tokens == ['да', 'нет', 'наверное'] or tokens == ['не', 'сохраняй']
+        or tokens == ['нет', 'спасибо']) or \
+            full_phrase in (
+            'не надо сохранять',
+            'нет не сохранить',
+    ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
             return construct_response_with_session(text=make_default_text())
@@ -875,9 +896,20 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 f'спросите меня что Вы ели', tts='Сохранено')
 
     if ('что' in tokens and ('ел' in full_phrase or 'хран' in full_phrase)) or \
-            tokens == ['сколько', 'всего', 'калорий'] or full_phrase == 'покажи результат' \
-            or full_phrase == 'скажи результат' or full_phrase == 'сколько всего' or \
-            full_phrase == 'сколько калорий' or full_phrase == 'какой результат':
+            full_phrase in ('покажи результат',
+                            'открыть список сохранения',
+                            'скажи результат',
+                            'сколько всего',
+                            'сколько калорий',
+                            'какой результат',
+                            'сколько в общем калорий',
+                            'сколько всего калорий',
+                            'сколько калорий в общей сумме',
+                            'сколько я съел калорий',
+                            'сколько я съела калорий',
+                            'покажи сохраненную',
+                            'покажи сколько калорий',
+                            ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
             target_date = datetime.date.today()
@@ -918,6 +950,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         if full_phrase_translated == 'timeout':
             return construct_response_with_session(text=make_default_text())
         # End of translation block
+
         # If translation time is too big, there probably won't be enough time to fetch API, so returning default
         if context and time.time() - t1 > 0.6:
             return construct_response_with_session(text=make_default_text())
