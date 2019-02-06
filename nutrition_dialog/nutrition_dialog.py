@@ -834,7 +834,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return construct_response_with_session(text='Все мы можем ошибаться. Напишите моему разработчику, '
                                                     'а он меня накажет и научит больше не ошибаться.')
 
-    if full_phrase in ('норма калорий', ):
+    if full_phrase in ('норма калорий',
+                       'сколько я набрала калорий',
+                       'сколько я набрал калорий',
+                       ):
         return construct_response_with_session(text='Этого я пока не умею, но планирую скоро научиться. '
                                                     'Следите за обновлениями')
 
@@ -868,6 +871,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'не надо сохранять',
             'нет не сохранить',
             'нет не сохраняй',
+            'нет нет',
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -917,7 +921,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'покажи сколько калорий',
                             'сколько я съел',
                             'сколько всего калорий было',
-                            'сколько всего калорий было в день'
+                            'сколько всего калорий было в день',
+                            'список сохраненные еды',
+                            'список сохраненной еды',
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
