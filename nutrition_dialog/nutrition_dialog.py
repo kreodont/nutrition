@@ -899,6 +899,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             full_phrase in ('покажи результат',
                             'открыть список сохранения',
                             'скажи результат',
+                            'общий результат',
+                            'общий итог',
+                            'какой итог',
                             'сколько всего',
                             'сколько калорий',
                             'какой результат',
@@ -909,6 +912,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'сколько я съела калорий',
                             'покажи сохраненную',
                             'покажи сколько калорий',
+                            'сколько я съел',
+                            'сколько всего калорий было',
+                            'сколько всего калорий было в день'
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
