@@ -289,7 +289,8 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
                                               'сельдь под шубой', 'сельди под шубой', 'сельдей под шубой', ],
          'replacement': 'Dressed Herring'},
         {'search_tokens': ['риса', 'рис'], 'search_text': [], 'replacement': 'rice'},
-        {'search_tokens': ['мороженое', 'мороженого', 'мороженых'], 'search_text': [], 'replacement': 'ice cream'},
+        {'search_tokens': ['мороженое', 'мороженого', 'мороженых', 'эскимо'], 'search_text': [],
+         'replacement': 'ice cream'},
         {'search_tokens': ['кисель', 'киселя', 'киселей'], 'search_text': [], 'replacement': 'jelly'},
         {'search_tokens': ['сырники', 'сырника', 'сырников', 'сырник', 'сырниками'], 'search_text': [],
          'replacement': 'cottage chese'},
@@ -534,17 +535,18 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
             total_carbohydrates += carbohydrates
             sugar = f.get("nf_sugars", 0) or 0
             total_sugar += sugar
-        full_text += f'[{food_time.strftime("%H:%M")}] {food["utterance"]} ({this_food_calories})\n'
+        full_text += f'[{food_time.strftime("%H:%M")}] {food["utterance"]} ({round(this_food_calories, 2)})\n'
 
     all_total = total_protein + total_fat + total_carbohydrates
     if all_total == 0:
-        return f'Не могу ничего найти за {date}', 0
+        return f'Не могу ничего найти за {date}. Я сохраняю еду в свою базу, только если вы скажете ' \
+                   f'Сохранить после того, как я спрошу.', 0
     percent_protein = round((total_protein / all_total) * 100)
     percent_fat = round((total_fat / all_total) * 100)
     percent_carbohydrates = round((total_carbohydrates / all_total) * 100)
     full_text += f'\nВсего: \n{round(total_protein)} ({percent_protein}%) ' \
         f'бел. {round(total_fat)} ({percent_fat}%) жир. {round(total_carbohydrates)} ({percent_carbohydrates}%) ' \
-        f'угл. {round(total_sugar)} сах.\n{choose_case(amount=round(total_calories))}'
+        f'угл. {round(total_sugar)} сах.\n_\n{choose_case(amount=round(total_calories, 2))}'
     return full_text, total_calories
 
 
@@ -865,6 +867,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             full_phrase in (
             'не надо сохранять',
             'нет не сохранить',
+            'нет не сохраняй',
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -998,7 +1001,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '100 грамм обезжиренного творога'.lower()
+    testing = '500 эскимо'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
