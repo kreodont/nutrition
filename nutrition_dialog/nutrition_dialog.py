@@ -598,7 +598,7 @@ def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
 
 
 def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typing.Tuple[str, bool, bool]:
-    if len(full_phrase) > 70:
+    if len(full_phrase) > 70 and 'удалить' not in full_phrase:
         return 'Ой, текст слишком длинный. Давайте попробуем частями?', True, False
 
     if (
@@ -622,7 +622,11 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             tokens == ['спасибо', ] or
             tokens == ['отлично', ] or
             tokens == ['хорошо', ] or
-            tokens == ['окей', ] or full_phrase in ('ты классная', )
+            tokens == ['окей', ] or full_phrase in (
+            'ты классная',
+            'классная штука',
+            'классно',
+            'ты молодец')
     ):
         return 'Спасибо, я стараюсь', True, False
 
@@ -819,7 +823,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
         return construct_response_with_session(text='Неешь, подумой')
 
-    if full_phrase in ('говно', '', '', ''):
+    if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо'):
         return construct_response_with_session(text='Вы имели в виду "Сладкий хлеб"?')
 
     if full_phrase in ('это много', 'это мало', 'что-то много', 'что-то мало', 'так много '):
@@ -832,7 +836,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase == 'никакую':
         return construct_response_with_session(text='Хорошо, дайте знать, когда что-то появится')
 
-    if full_phrase in ('а где сохраняются', 'где сохраняются', 'где сохранить'):
+    if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
+        return construct_response_with_session(text='Молчу')
+
+    if full_phrase in ('умный счетчик калорий', ):
+        return construct_response_with_session(text='Да, я здесь')
+
+    if full_phrase in ('а где сохраняются', 'где сохраняются', 'где сохранить', 'а зачем сохранять', 'зачем сохранять'):
         return construct_response_with_session(text='Приемы пищи сохраняются в моей базе данных. Ваши приемы '
                                                     'пищи будут доступны только Вам. Я могу быть Вашим личным '
                                                     'дневником калорий')
@@ -884,10 +894,12 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'не надо сохранять',
             'нет не сохранить',
             'нет не сохраняй',
+            'не нужно сохранять',
             'нет нет',
             'нет не сохраняет',
             'не надо спасибо',
             'не надо',
+            'нет не надо'
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -918,7 +930,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 text=f'Сохранено за {dates_in_tokens[0]["datetime"].date()}. Чтобы посмотреть список сохраненной еды, '
                 f'спросите меня что Вы ели', tts='Сохранено')
 
-    if (('что' in tokens or 'сколько' in tokens ) and ('ел' in full_phrase or 'хран' in full_phrase)) or \
+    if (('что' in tokens or 'сколько' in tokens) and ('ел' in full_phrase or 'хран' in full_phrase)) or \
             full_phrase in ('покажи результат',
                             'открыть список сохранения',
                             'скажи результат',
@@ -943,6 +955,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'общая сумма калорий за день',
                             'посчитай все калории за сегодня',
                             'сколько все вместе за весь день',
+                            'ну посчитай сколько всего калорий',
+                            'посчитай сколько всего калорий',
+                            'подсчитать калории',
+                            'сколько калорий у меня сегодня',
+                            'подсчитать все',
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
