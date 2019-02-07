@@ -320,6 +320,7 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['сникерса', 'сникерсов', 'сникерс'], 'search_text': [], 'replacement': 'Snicker'},
         {'search_tokens': ['соя', 'сои', ], 'search_text': [], 'replacement': 'soynut'},
         {'search_tokens': ['кукуруза', 'кукурузы', ], 'search_text': [], 'replacement': 'corn'},
+        {'search_tokens': ['яйца', 'яиц', ], 'search_text': [], 'replacement': 'eggs'},
         {'search_tokens': ['граната', 'гранат', ], 'search_text': [], 'replacement': 'pomegranate'},
         {'search_tokens': ['голубец', 'голубцы', 'голубца', 'голубцов'], 'search_text': [],
          'replacement': 'cabbage roll'},
@@ -817,7 +818,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     utterance_to_delete=' '.join(cleaned_tokens),
                     user_id=session['user_id']))
 
-    if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека']:
+    if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека'] or full_phrase in ('человек', ):
         return construct_response_with_session(text='Доктор Лектер, это вы?')
 
     if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
@@ -833,7 +834,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase == 'хуй' or full_phrase == 'моржовый хуй':
         return construct_response_with_session(text='С солью или без соли?')
 
-    if full_phrase == 'никакую':
+    if full_phrase in ('никакую', 'ничего'):
         return construct_response_with_session(text='Хорошо, дайте знать, когда что-то появится')
 
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
@@ -854,6 +855,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase in ('норма калорий',
                        'сколько я набрала калорий',
                        'сколько я набрал калорий',
+                       'сколько в день нужно калорий',
                        ):
         return construct_response_with_session(text='Этого я пока не умею, но планирую скоро научиться. '
                                                     'Следите за обновлениями')
@@ -960,6 +962,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'подсчитать калории',
                             'сколько калорий у меня сегодня',
                             'подсчитать все',
+                            'сколько всего получилось',
+                            'сколько за день',
+                            'сколько калорий за день',
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
@@ -1043,7 +1048,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '500 эскимо'.lower()
+    testing = 'яйца'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
