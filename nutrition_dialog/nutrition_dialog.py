@@ -650,7 +650,8 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'выйди' in tokens or
             'до свидания' in full_phrase.lower() or
             'всего доброго' in full_phrase.lower() or
-            tokens == ['алиса', ]
+            tokens == ['алиса', ] or
+            full_phrase == 'иди на хуй'
 
     ):
         return 'До свидания', True, True
@@ -878,6 +879,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     'хранить',
                     'да конечно',
                     'ну давай',
+                    'сохраняй',
+                    'сохранить да',
             )):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -905,7 +908,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'нет не сохраняет',
             'не надо спасибо',
             'не надо',
-            'нет не надо'
+            'нет не надо',
+            'нет не нужно',
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -1052,7 +1056,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'яйца'.lower()
+    testing = '200 миллиграмм черного чая'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
