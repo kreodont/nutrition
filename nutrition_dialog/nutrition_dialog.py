@@ -627,7 +627,11 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'ты классная',
             'классная штука',
             'классно',
-            'ты молодец')
+            'ты молодец',
+            'круто',
+            'обалдеть',
+            'прикольно',
+    )
     ):
         return 'Спасибо, я стараюсь', True, False
 
@@ -670,7 +674,7 @@ def delete_food(*,
     items = json.loads(result['Item']['value']['S'])
     items_to_delete = []
     for item in items:
-        if item['utterance'] and utterance_to_delete in item['utterance'].replace(',', ''):
+        if item['utterance'] and utterance_to_delete.strip() == item['utterance'].replace(',', '').strip():
             items_to_delete.append(item)
     if not items_to_delete:
         return f'"{utterance_to_delete}" не найдено за {date}. Найдено: {[i["utterance"] for i in items]}. Чтобы ' \
@@ -824,7 +828,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
         return construct_response_with_session(text='Неешь, подумой')
 
-    if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо'):
+    if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо', 'фекалии', 'какахе', 'какахи'):
         return construct_response_with_session(text='Вы имели в виду "Сладкий хлеб"?')
 
     if full_phrase in ('это много', 'это мало', 'что-то много', 'что-то мало', 'так много '):
