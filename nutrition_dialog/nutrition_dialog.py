@@ -983,6 +983,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'сколько всего получилось',
                             'сколько за день',
                             'сколько калорий за день',
+                            'сколько сегодня калорий',
+                            'сколько было сегодня калорий',
+                            'сколько сегодня калорий было'
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
