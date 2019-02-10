@@ -850,6 +850,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
         return construct_response_with_session(text='Молчу')
 
+    if full_phrase in ('как тебя зовут', ):
+        return construct_response_with_session(text='Я умный счетчик калорий, а имя мне пока не придумали. '
+                                                    'Может, Вы придумаете?')
+
     if full_phrase in ('умный счетчик калорий',):
         return construct_response_with_session(text='Да, я здесь')
 
@@ -868,6 +872,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                        'сколько я набрал калорий',
                        'сколько в день нужно калорий',
                        'сколько нужно съесть калорий в день',
+                       'дневная норма калорий',
 
                        ) or 'норма потребления калорий' in full_phrase:
         return construct_response_with_session(text='Этого я пока не умею, но планирую скоро научиться. '
