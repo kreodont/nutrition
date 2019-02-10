@@ -345,6 +345,10 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
         {'search_tokens': ['халва', 'халвы', 'халв', ], 'search_text': [], 'replacement': 'halvah'},
         {'search_tokens': ['творога', 'творогом', 'творогов', 'творог'], 'search_text': [], 'replacement':
             'cottage cheese'},
+        {'search_tokens': ['конфета', 'конфеты', 'конфетами', 'конфетой', 'конфет'], 'search_text': [], 'replacement':
+            'candy'},
+        {'search_tokens': ['миллиграммами', 'миллиграмма', 'миллиграмм', 'миллиграммом'], 'search_text': [],
+         'replacement': '0 g '},
         {'search_tokens': ['обезжиренного', 'обезжиренным', 'обезжиренных', 'обезжиренный'], 'search_text': [],
          'replacement': 'nonfat'},
         {'search_tokens': ['пюрешка', 'пюрешки', 'пюрешкой', ], 'search_text': [], 'replacement': 'mashed potato'},
@@ -508,7 +512,8 @@ def what_i_have_eaten(*, date, user_id, database_client, current_timezone: str =
             TableName='nutrition_users',
             Key={'id': {'S': user_id}, 'date': {'S': str(date)}})
     if 'Item' not in result:
-        return f'Не могу ничего найти за {date}', 0
+        return f'Не могу ничего найти за {date}. Чтобы еда сохранялась в мою базу, не забывайте говорить ' \
+                   f'"Сохранить", после того, как я посчитаю калории.', 0
 
     total_calories = 0
     total_fat = 0.0
@@ -631,7 +636,7 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'круто',
             'обалдеть',
             'прикольно',
-    )
+            'клево',)
     ):
         return 'Спасибо, я стараюсь', True, False
 
@@ -651,7 +656,7 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'до свидания' in full_phrase.lower() or
             'всего доброго' in full_phrase.lower() or
             tokens == ['алиса', ] or
-            full_phrase == 'иди на хуй'
+            full_phrase in ('иди на хуй', 'стоп')
 
     ):
         return 'До свидания', True, True
@@ -823,7 +828,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     utterance_to_delete=' '.join(cleaned_tokens),
                     user_id=session['user_id']))
 
-    if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека'] or full_phrase in ('человек', ):
+    if [t for t in tokens if 'человеч' in t] or tokens == ['мясо', 'человека'] or full_phrase in ('человек',):
         return construct_response_with_session(text='Доктор Лектер, это вы?')
 
     if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
@@ -845,7 +850,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
         return construct_response_with_session(text='Молчу')
 
-    if full_phrase in ('умный счетчик калорий', ):
+    if full_phrase in ('умный счетчик калорий',):
         return construct_response_with_session(text='Да, я здесь')
 
     if full_phrase in ('а где сохраняются', 'где сохраняются', 'где сохранить', 'а зачем сохранять', 'зачем сохранять'):
@@ -853,7 +858,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                                     'пищи будут доступны только Вам. Я могу быть Вашим личным '
                                                     'дневником калорий')
 
-    if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер'):
+    if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
+                       'идиотка', 'тупорылая', 'тупая'):
         return construct_response_with_session(text='Все мы можем ошибаться. Напишите моему разработчику, '
                                                     'а он меня накажет и научит больше не ошибаться.')
 
@@ -861,7 +867,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                        'сколько я набрала калорий',
                        'сколько я набрал калорий',
                        'сколько в день нужно калорий',
-                       ):
+                       'сколько нужно съесть калорий в день',
+
+                       ) or 'норма потребления калорий' in full_phrase:
         return construct_response_with_session(text='Этого я пока не умею, но планирую скоро научиться. '
                                                     'Следите за обновлениями')
 
@@ -881,6 +889,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     'ну давай',
                     'сохраняй',
                     'сохранить да',
+                    'давай да',
+                    'сохранять',
             )):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -1056,7 +1066,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '200 миллиграмм черного чая'.lower()
+    testing = '2 миллиграмма киселя, 100 грамм картошки, 100 миллиграмм чая'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
