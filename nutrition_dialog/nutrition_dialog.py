@@ -636,7 +636,9 @@ def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typ
             'круто',
             'обалдеть',
             'прикольно',
-            'клево',)
+            'клево',
+            'ты молодец',
+            'ништяк',)
     ):
         return 'Спасибо, я стараюсь', True, False
 
@@ -844,7 +846,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase == 'хуй' or full_phrase == 'моржовый хуй':
         return construct_response_with_session(text='С солью или без соли?')
 
-    if full_phrase in ('никакую', 'ничего'):
+    if full_phrase in ('никакую', 'ничего', 'все'):
         return construct_response_with_session(text='Хорошо, дайте знать, когда что-то появится')
 
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
@@ -871,6 +873,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                        'сколько я набрала калорий',
                        'сколько я набрал калорий',
                        'сколько в день нужно калорий',
+                       'норма потребления',
                        'сколько нужно съесть калорий в день',
                        'дневная норма калорий',
 
@@ -892,6 +895,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     'хранить',
                     'да конечно',
                     'ну давай',
+                    'храни',
+                    'сохранить да',
                     'сохраняй',
                     'сохранить да',
                     'давай да',
@@ -924,6 +929,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'не надо спасибо',
             'не надо',
             'нет не надо',
+            'не не надо',
+            'конечно нет',
             'нет не нужно',
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
@@ -991,6 +998,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'сколько сегодня калорий',
                             'сколько было сегодня калорий',
                             'сколько сегодня калорий было'
+                            'общее количество',
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:
@@ -1074,7 +1082,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = '2 миллиграмма киселя, 100 грамм картошки, 100 миллиграмм чая'.lower()
+    testing = 'яйца'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',
