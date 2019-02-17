@@ -604,7 +604,7 @@ def transform_yandex_entities_into_dates(entities_tag) -> typing.List[dict]:
 
 
 def respond_common_phrases(*, full_phrase: str, tokens: typing.List[str]) -> typing.Tuple[str, bool, bool]:
-    if len(full_phrase) > 70 and 'удалить' not in full_phrase:
+    if len(full_phrase) > 100 and 'удалить' not in full_phrase:
         return 'Ой, текст слишком длинный. Давайте попробуем частями?', True, False
 
     if (
@@ -852,7 +852,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
         return construct_response_with_session(text='Молчу')
 
-    if full_phrase in ('как тебя зовут', ):
+    if full_phrase in ('как тебя зовут', 'как вас зовут'):
         return construct_response_with_session(text='Я умный счетчик калорий, а имя мне пока не придумали. '
                                                     'Может, Вы придумаете?')
 
@@ -865,7 +865,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                                                     'дневником калорий')
 
     if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
-                       'идиотка', 'тупорылая', 'тупая'):
+                       'идиотка', 'тупорылая', 'тупая', 'ты дура'):
         return construct_response_with_session(text='Все мы можем ошибаться. Напишите моему разработчику, '
                                                     'а он меня накажет и научит больше не ошибаться.')
 
@@ -901,6 +901,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     'сохранить да',
                     'давай да',
                     'сохранять',
+                    'давай',
+                    'давай сохраняй',
             )):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -932,6 +934,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             'не не надо',
             'конечно нет',
             'нет не нужно',
+            'нет не надо сохранять',
     ):
         saved_session = check_session(session_id=session['session_id'], database_client=database_client)
         if not saved_session:
@@ -997,8 +1000,9 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                             'сколько калорий за день',
                             'сколько сегодня калорий',
                             'сколько было сегодня калорий',
-                            'сколько сегодня калорий было'
+                            'сколько сегодня калорий было',
                             'общее количество',
+                            'посчитай калории',
                             ):
         found_dates = transform_yandex_entities_into_dates(entities_tag=request.get('nlu').get('entities'))
         if not found_dates:

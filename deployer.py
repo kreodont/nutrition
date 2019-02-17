@@ -80,7 +80,7 @@ def deploy_lambda_from_s3(function_name, session, bucket_name, role_name):
                                    'S3Bucket': bucket_name,
                                    'S3Key': '%s.zip' % function_name,
                                },
-                               Runtime='python3.6',
+                               Runtime='python3.7',
                                Timeout=30,
                                MemorySize=128,
                                Role=role_name,
