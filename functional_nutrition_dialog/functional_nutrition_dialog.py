@@ -42,9 +42,6 @@ class YandexRequest:
 class YandexResponse:
     client_device_id: str
     has_screen: bool
-    timezone: str
-    original_utterance: str
-    is_new_session: bool
     user_guid: str
     message_id: str
     session_id: str
@@ -204,14 +201,49 @@ def transform_yandex_response_to_result_dict(
     return response
 
 
+def construct_yandex_response(
+        *,
+        yandex_request: YandexRequest,
+        text: str,
+        tts: str,
+        end_session: bool,
+        buttons: list):
+
+    return YandexResponse(
+            client_device_id=yandex_request.client_device_id,
+            has_screen=yandex_request.has_screen,
+            end_session=end_session,
+            message_id=yandex_request.message_id,
+            session_id=yandex_request.session_id,
+            user_guid=yandex_request.user_guid,
+            version=yandex_request.version,
+            response_text=text,
+            response_tts=tts,
+            buttons=buttons)
+
+
 def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     if context:
         pass
 
     yandex_request, error = transform_event_dict_to_yandex_request_object(
             event_dict=event)
-    print(yandex_request)
-    return {}
+    if error:
+        return transform_yandex_response_to_result_dict(
+                yandex_response=construct_yandex_response(
+                        yandex_request=yandex_request,
+                        text=error,
+                        tts=error,
+                        buttons=[],
+                        end_session=True))
+
+    return transform_yandex_response_to_result_dict(
+            yandex_response=construct_yandex_response(
+                    yandex_request=yandex_request,
+                    text='Удачно',
+                    tts='Cool',
+                    buttons=[],
+                    end_session=True))
     # event:dict ->
     # YandexRequest:YandexRequest ->
     # check_context:YandexRequest ->
@@ -222,7 +254,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 if __name__ == '__main__':
     test_command = '33 коровы'
-    functional_nutrition_dialog(event={
+    print(functional_nutrition_dialog(event={
         "meta": {
             "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
                          "4.4.2)",
@@ -252,4 +284,4 @@ if __name__ == '__main__':
                        "ABDA23A5CB2FF19E394C1915ED45CF467"
         },
         "version": "1.0"
-    }, context={})
+    }, context={}))
