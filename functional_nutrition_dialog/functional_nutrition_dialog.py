@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import typing
 from functools import reduce, partial
+import random
 
 
 @dataclass(frozen=True)
@@ -182,7 +183,7 @@ def transform_event_dict_to_yandex_request_object(
     return full_yandex_request_constructor(), ''
 
 
-def transform_yandex_response_to_result_dict(
+def transform_yandex_response_to_output_result_dict(
         *,
         yandex_response: YandexResponse) -> dict:
     response = {
@@ -208,7 +209,6 @@ def construct_yandex_response(
         tts: str,
         end_session: bool,
         buttons: list):
-
     return YandexResponse(
             client_device_id=yandex_request.client_device_id,
             has_screen=yandex_request.has_screen,
@@ -222,6 +222,75 @@ def construct_yandex_response(
             buttons=buttons)
 
 
+def respond_request(
+        *,
+        request: YandexRequest,
+        responding_function: typing.Callable) -> YandexResponse:
+    return responding_function(request)
+    pass
+
+
+def respond_with_context(request: YandexRequest, context) -> YandexResponse:
+    pass
+
+
+def respond_without_context(request: YandexRequest) -> YandexResponse:
+    pass
+
+
+def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
+    greeting_text = 'Какую еду записать?'
+    return construct_yandex_response(
+            yandex_request=request,
+            text=greeting_text,
+            tts=greeting_text,
+            end_session=False,
+            buttons=[])
+
+
+def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
+    first_parts_list = [
+        'Это не похоже на название еды. Попробуйте сформулировать иначе',
+        'Хм. Не могу понять что это. Попробуйте сказать иначе',
+        'Такой еды я пока не знаю. Попробуйте сказать иначе'
+    ]
+
+    food_examples_list = ['Бочка варенья и коробка печенья',
+                          'Литр молока и килограмм селедки',
+                          '2 куска пиццы с ананасом',
+                          '200 грамм брокколи и 100 грамм шпината',
+                          'ананас и рябчик',
+                          '2 блина со сгущенкой',
+                          'тарелка риса, котлета и стакан апельсинового сока',
+                          'банан, апельсин и манго',
+                          'черная икра, красная икра, баклажанная икра',
+                          'каша из топора и свежевыжатый березовый сок',
+                          ]
+
+    full_generated_text = f"{random.choice(first_parts_list)}, " \
+        f"например: {random.choice(food_examples_list)}"
+    if request.has_screen:
+        tts = "Попробуйте сказать иначе"
+    else:
+        tts = full_generated_text
+
+    return construct_yandex_response(
+            yandex_request=request,
+            text=full_generated_text,
+            tts=tts,
+            buttons=[],
+            end_session=False,
+    )
+
+
+def check_context(context: dict) -> typing.Callable:
+    return respond_with_context if context else respond_without_context
+
+
+def get_previous_context() -> dict:
+    return {}
+
+
 def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     if context:
         pass
@@ -229,7 +298,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     yandex_request, error = transform_event_dict_to_yandex_request_object(
             event_dict=event)
     if error:
-        return transform_yandex_response_to_result_dict(
+        return transform_yandex_response_to_output_result_dict(
                 yandex_response=construct_yandex_response(
                         yandex_request=yandex_request,
                         text=error,
@@ -237,13 +306,18 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
                         buttons=[],
                         end_session=True))
 
-    return transform_yandex_response_to_result_dict(
-            yandex_response=construct_yandex_response(
-                    yandex_request=yandex_request,
-                    text='Удачно',
-                    tts='Cool',
-                    buttons=[],
-                    end_session=True))
+    if yandex_request.is_new_session:
+        responding_function = respond_greeting_phrase
+    elif get_previous_context():
+        responding_function = respond_with_context
+    else:
+        responding_function = respond_i_dont_know
+
+    return transform_yandex_response_to_output_result_dict(
+            yandex_response=respond_request(
+                    request=yandex_request,
+                    responding_function=responding_function))
+
     # event:dict ->
     # YandexRequest:YandexRequest ->
     # check_context:YandexRequest ->
