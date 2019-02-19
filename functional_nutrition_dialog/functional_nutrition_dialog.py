@@ -230,12 +230,22 @@ def respond_request(
     pass
 
 
-def respond_with_context(request: YandexRequest, context) -> YandexResponse:
-    pass
+def respond_with_context(*, request: YandexRequest, context) -> YandexResponse:
+    return construct_yandex_response(
+            yandex_request=request,
+            text='With context' + str(context),
+            tts='With context',
+            end_session=False,
+            buttons=[])
 
 
 def respond_without_context(request: YandexRequest) -> YandexResponse:
-    pass
+    return construct_yandex_response(
+            yandex_request=request,
+            text='Without context',
+            tts='Without context',
+            end_session=False,
+            buttons=[])
 
 
 def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
@@ -283,12 +293,36 @@ def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
     )
 
 
-def check_context(context: dict) -> typing.Callable:
-    return respond_with_context if context else respond_without_context
+def check_context(context: dict) -> bool:
+    return True if len(context) > 0 else False
+
+
+def check_condition(
+        *,
+        condition_function: typing.Callable,
+        case_true: typing.Callable,
+        case_false: typing.Callable):
+    return case_true if condition_function() else case_false
 
 
 def get_previous_context() -> dict:
     return {}
+
+
+def check_if_new_session(yandex_request: YandexRequest):
+    return yandex_request.is_new_session
+
+
+def fetch_context_from_dynamo_database() -> dict:
+    return {}
+
+
+def respond_old_session(yandex_request: YandexRequest):
+    context = fetch_context_from_dynamo_database()
+    return check_condition(
+            condition_function=partial(check_context, context),
+            case_true=partial(respond_with_context, context=context),
+            case_false=respond_without_context)(yandex_request)
 
 
 def functional_nutrition_dialog(event: dict, context: dict) -> dict:
@@ -306,12 +340,14 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
                         buttons=[],
                         end_session=True))
 
-    if yandex_request.is_new_session:
-        responding_function = respond_greeting_phrase
-    elif get_previous_context():
-        responding_function = respond_with_context
-    else:
-        responding_function = respond_i_dont_know
+    # Don't check session context if it's the first message, maybe this
+    # should be changed
+    responding_function = check_condition(
+            condition_function=partial(
+                    check_if_new_session,
+                    yandex_request),
+            case_true=respond_greeting_phrase,
+            case_false=respond_old_session)
 
     return transform_yandex_response_to_output_result_dict(
             yandex_response=respond_request(
