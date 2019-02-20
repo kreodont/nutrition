@@ -1,7 +1,16 @@
+import datetime
 from dataclasses import dataclass
 import typing
 from functools import reduce, partial
 import random
+import boto3
+import botocore.client
+import json
+
+import dateutil
+
+boto3_translation_client = None  # make it global for caching
+boto3_database_client = None
 
 
 @dataclass(frozen=True)
@@ -59,6 +68,40 @@ class YandexResponse:
         return '\n'.join(
                 [f'{key:20}: {self.__dict__[key]}' for
                  key in sorted(self.__dict__.keys())])
+
+
+def get_boto3_clients(*, aws_lambda_mode: bool):
+    # global boto3_database_client, boto3_translation_client
+
+    def get_local_boto3_clients():
+        global boto3_database_client, boto3_translation_client
+        boto3_translation_client = boto3.Session(
+                profile_name='kreodont').client('translate')
+        boto3_database_client = boto3.Session(
+                profile_name='kreodont').client('dynamodb')
+        return boto3_translation_client, boto3_database_client
+
+    def get_aws_boto3_clients():
+        global boto3_database_client, boto3_translation_client
+        config = botocore.client.Config(
+                connect_timeout=0.5,
+                retries={'max_attempts': 0},
+        )
+        boto3_translation_client = boto3.client('translate', config=config)
+        boto3_database_client = boto3.client('dynamodb', config=config)
+        return boto3_translation_client, boto3_database_client
+
+    def return_cached_clients():
+        return boto3_translation_client, boto3_database_client
+
+    # already cached
+    if boto3_translation_client and boto3_database_client:
+        return return_cached_clients
+
+    if aws_lambda_mode:
+        return get_aws_boto3_clients
+
+    return get_local_boto3_clients
 
 
 def fetch_one_value_from_event_dict(
@@ -236,7 +279,104 @@ def respond_request(
     pass
 
 
-def respond_with_context(*, request: YandexRequest, context) -> YandexResponse:
+def update_user_table(
+        *,
+        database_client,
+        event_time: datetime.datetime,
+        foods_dict: dict,
+        utterance: str,
+        user_id: str):
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={'id': {'S': user_id}, 'date': {'S': str(event_time.date())}})
+    item_to_save = []
+    if 'Item' in result:
+        item_to_save = json.loads(result['Item']['value']['S'])
+    item_to_save.append({
+        'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
+        'foods': foods_dict,
+        'utterance': utterance})
+    database_client.put_item(TableName='nutrition_users',
+                             Item={
+                                 'id': {
+                                     'S': user_id,
+                                 },
+                                 'date': {'S': str(event_time.date())},
+                                 'value': {
+                                     'S': json.dumps(item_to_save),
+                                 }})
+
+
+def clear_session(
+        *,
+        session_id: str,
+        database_client) -> None:
+    database_client.delete_item(TableName='nutrition_sessions',
+                                Key={
+                                    'id': {
+                                        'S': session_id,
+                                    }, })
+
+
+def response_with_context_when_yes_in_request(
+        *,
+        request: YandexRequest,
+        context: dict,
+        database_client
+):
+    # Save to database
+    # Clear context
+    # Say Сохранено
+    update_user_table(
+            database_client=database_client,
+            event_time=dateutil.parser.parse(context['time']),
+            foods_dict=context['foods'],
+            user_id=request.user_guid,
+            utterance=context['utterance'])
+
+    clear_session(database_client=database_client,
+                  session_id=request.session_id)
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Сохранено',
+            tts='Сохранено',
+            end_session=False,
+            buttons=[],
+    )
+
+
+def check_if_yes_in_request(*, request: YandexRequest) -> bool:
+    tokens = request.tokens
+    if (
+            'да' in tokens or
+            'ага' in tokens or
+            'конечно' in tokens or
+            'хорошо' in tokens or
+            'хранить' in tokens or
+            'сохраняй' in tokens or
+            'давай' in tokens or
+            'можно' in tokens or
+            'сохрани' in tokens or
+            'храни' in tokens):
+        return True
+
+    return False
+
+
+def respond_with_context(
+        *,
+        request: YandexRequest,
+        context: dict,
+        database_client
+) -> YandexResponse:
+
+    if check_if_yes_in_request(request=request):
+        return response_with_context_when_yes_in_request(
+                request=request,
+                context=context,
+                database_client=database_client)
+
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text='With context' + str(context),
@@ -306,8 +446,22 @@ def check_if_new_session(yandex_request: YandexRequest):
     return yandex_request.is_new_session
 
 
-def fetch_context_from_dynamo_database() -> dict:
-    return {}
+def fetch_context_from_dynamo_database(
+        *,
+        aws_lambda_mode: bool,
+        session_id: str,
+) -> dict:
+
+    _, database_client = get_boto3_clients(aws_lambda_mode=aws_lambda_mode)()
+    result = database_client.get_item(
+            TableName='nutrition_sessions', Key={'id': {'S': session_id}})
+    if 'Item' not in result:
+        return {}
+    else:
+        try:
+            return json.loads(result['Item']['value']['S'])
+        except json.decoder.JSONDecodeError:
+            return {}
 
 
 def is_help_request(request: YandexRequest):
@@ -329,8 +483,8 @@ def is_help_request(request: YandexRequest):
     return False
 
 
-def respond_predefined_phrases(request: YandexRequest) -> YandexResponse:
-    pass
+# def respond_predefined_phrases(request: YandexRequest) -> YandexResponse:
+#     pass
 
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
@@ -344,9 +498,19 @@ def respond_text_too_long(request: YandexRequest) -> YandexResponse:
 
 
 def respond_existing_session(yandex_request: YandexRequest):
-    context = fetch_context_from_dynamo_database()
-    return partial(respond_with_context, context)(yandex_request) if \
-        context else respond_without_context(yandex_request)
+    context = fetch_context_from_dynamo_database(
+            aws_lambda_mode=yandex_request.aws_lambda_mode,
+            session_id=yandex_request.session_id,
+    )
+
+    _, database_client = get_boto3_clients(
+            aws_lambda_mode=yandex_request.aws_lambda_mode)()
+
+    return partial(
+            respond_with_context,
+            context=context,
+            database_client=database_client,)(request=yandex_request) if \
+        context else respond_without_context(request=yandex_request)
 
 
 def functional_nutrition_dialog(event: dict, context: dict) -> dict:
@@ -396,7 +560,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    test_command = '33 коровы'
+    test_command = 'да'
     print(functional_nutrition_dialog(event={
         "meta": {
             "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
