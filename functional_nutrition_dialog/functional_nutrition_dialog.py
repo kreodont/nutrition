@@ -53,7 +53,6 @@ class YandexResponse:
     response_tts: str
     end_session: bool
     version: str
-    aws_lambda_mode: bool
     buttons: typing.List[typing.Dict]
 
     def __repr__(self):
@@ -208,14 +207,14 @@ def transform_yandex_response_to_output_result_dict(
     return response
 
 
-def construct_yandex_response(
+def construct_yandex_response_from_yandex_request(
         *,
         yandex_request: YandexRequest,
         text: str,
         tts: str,
         end_session: bool,
-        aws_lambda_mode: bool,
         buttons: list):
+
     return YandexResponse(
             client_device_id=yandex_request.client_device_id,
             has_screen=yandex_request.has_screen,
@@ -227,7 +226,6 @@ def construct_yandex_response(
             response_text=text,
             response_tts=tts,
             buttons=buttons,
-            aws_lambda_mode=aws_lambda_mode,
     )
 
 
@@ -240,36 +238,33 @@ def respond_request(
 
 
 def respond_with_context(*, request: YandexRequest, context) -> YandexResponse:
-    return construct_yandex_response(
+    return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text='With context' + str(context),
             tts='With context',
             end_session=False,
             buttons=[],
-            aws_lambda_mode=request.aws_lambda_mode,
     )
 
 
 def respond_without_context(request: YandexRequest) -> YandexResponse:
-    return construct_yandex_response(
+    return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text='Without context',
             tts='Without context',
             end_session=False,
             buttons=[],
-            aws_lambda_mode=request.aws_lambda_mode,
     )
 
 
 def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
     greeting_text = 'Какую еду записать?'
-    return construct_yandex_response(
+    return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=greeting_text,
             tts=greeting_text,
             end_session=False,
             buttons=[],
-            aws_lambda_mode=request.aws_lambda_mode,
     )
 
 
@@ -299,13 +294,12 @@ def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
     else:
         tts = full_generated_text
 
-    return construct_yandex_response(
+    return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=full_generated_text,
             tts=tts,
             buttons=[],
             end_session=False,
-            aws_lambda_mode=request.aws_lambda_mode,
     )
 
 
@@ -341,13 +335,13 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     if error:
         # Exit immediatelly
         return transform_yandex_response_to_output_result_dict(
-                yandex_response=construct_yandex_response(
+                yandex_response=construct_yandex_response_from_yandex_request(
                         yandex_request=yandex_request,
                         text=error,
                         tts=error,
                         buttons=[],
                         end_session=True,
-                        aws_lambda_mode=bool(context)))
+                ))
 
     # Don't check session context if it's the first message, maybe this
     # should be changed. For example, the user left without his food to be
