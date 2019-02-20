@@ -214,7 +214,6 @@ def construct_yandex_response_from_yandex_request(
         tts: str,
         end_session: bool,
         buttons: list):
-
     return YandexResponse(
             client_device_id=yandex_request.client_device_id,
             has_screen=yandex_request.has_screen,
@@ -311,6 +310,39 @@ def fetch_context_from_dynamo_database() -> dict:
     return {}
 
 
+def is_help_request(request: YandexRequest):
+    tokens = request.tokens
+    if (
+            'помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'делать' in t]) or
+            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
+            'help' in tokens):
+        return True
+    return False
+
+
+def respond_predefined_phrases(request: YandexRequest) -> YandexResponse:
+    pass
+
+
+def respond_text_too_long(request: YandexRequest) -> YandexResponse:
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Ой, текст слишком длинный. Давайте попробуем частями?',
+            tts='Ой, текст слишком длинный. Давайте попробуем частями?',
+            end_session=False,
+            buttons=[],
+    )
+
+
 def respond_existing_session(yandex_request: YandexRequest):
     context = fetch_context_from_dynamo_database()
     return partial(respond_with_context, context)(yandex_request) if \
@@ -320,9 +352,10 @@ def respond_existing_session(yandex_request: YandexRequest):
 def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     """
     Main lambda entry point
-    :param event:
-    :param context:
-    :return:
+    # event:dict ->
+    # YandexRequest:YandexRequest ->
+    # YandexResponse:YandexResponse ->
+    # response:dict
     """
     if context:
         pass
@@ -343,6 +376,12 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
                         end_session=True,
                 ))
 
+    if len(yandex_request.original_utterance) >= 100:
+        return transform_yandex_response_to_output_result_dict(
+                yandex_response=respond_request(
+                        request=yandex_request,
+                        responding_function=respond_text_too_long))
+
     # Don't check session context if it's the first message, maybe this
     # should be changed. For example, the user left without his food to be
     # saved, then returned later and said Yes. Probably not worth doing.
@@ -354,13 +393,6 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
             yandex_response=respond_request(
                     request=yandex_request,
                     responding_function=responding_function))
-
-    # event:dict ->
-    # YandexRequest:YandexRequest ->
-    # check_context:YandexRequest ->
-    # choose_answer:str ->
-    # YandexResponse:YandexResponse ->
-    # response:dict
 
 
 if __name__ == '__main__':
@@ -381,7 +413,7 @@ if __name__ == '__main__':
                 "entities": [],
                 "tokens": test_command.lower().split()
             },
-            "original_utterance": "собака",
+            "original_utterance": test_command,
             "type": "SimpleUtterance"
         },
         "session": {
