@@ -608,8 +608,6 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     # YandexResponse:YandexResponse ->
     # response:dict
     """
-    if context:
-        pass
 
     yandex_request, error = transform_event_dict_to_yandex_request_object(
             event_dict=event,
@@ -617,7 +615,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     )
 
     if error:
-        # Exit immediatelly
+        # Exit immediatelly in case of mailformed request
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=construct_yandex_response_from_yandex_request(
                         yandex_request=yandex_request,
