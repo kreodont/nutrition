@@ -346,6 +346,26 @@ def response_with_context_when_yes_in_request(
     )
 
 
+def response_with_context_when_no_in_request(
+        *,
+        request: YandexRequest,
+        database_client
+):
+    # Clear context
+    # Say Забыли
+
+    clear_session(database_client=database_client,
+                  session_id=request.session_id)
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Забыли',
+            tts='Забыли',
+            end_session=False,
+            buttons=[],
+    )
+
+
 def check_if_yes_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -364,6 +384,39 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
+def check_if_no_in_request(*, request: YandexRequest) -> bool:
+    tokens = request.tokens
+    if (
+            'не' in tokens or
+            'нет' in tokens or
+            'забудь' in tokens or
+            'забыть' in tokens or
+            'удалить' in tokens):
+        return True
+
+    return False
+
+
+def check_if_help_in_request(*, request: YandexRequest) -> bool:
+    tokens = request.tokens
+    if (
+            'помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'делать' in t]) or
+            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
+            'help' in tokens):
+        return True
+
+    return False
+
+
 def respond_with_context(
         *,
         request: YandexRequest,
@@ -371,19 +424,20 @@ def respond_with_context(
         database_client
 ) -> YandexResponse:
 
+    if check_if_no_in_request(request=request):
+        return response_with_context_when_no_in_request(
+                request=request,
+                database_client=database_client)
+
     if check_if_yes_in_request(request=request):
         return response_with_context_when_yes_in_request(
                 request=request,
                 context=context,
                 database_client=database_client)
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='With context' + str(context),
-            tts='With context',
-            end_session=False,
-            buttons=[],
-    )
+    # We checked all possible context reaction, nothing fits,
+    # so act as we don't have context at all
+    return respond_without_context(request=request)
 
 
 def respond_without_context(request: YandexRequest) -> YandexResponse:
@@ -483,8 +537,41 @@ def is_help_request(request: YandexRequest):
     return False
 
 
-# def respond_predefined_phrases(request: YandexRequest) -> YandexResponse:
-#     pass
+def respond_help(request: YandexRequest) -> YandexResponse:
+    help_text = 'Я считаю калории. Просто скажите что вы съели, а я скажу ' \
+                'сколько в этом было калорий. Например: соевое молоко с ' \
+                'хлебом. Потом я спрошу надо ли сохранить этот прием пищи, и ' \
+                'если вы скажете да, я запишу его в свою базу данных. Можно ' \
+                'сказать не просто да, а указать время приема пищи, ' \
+                'например: да, вчера в 9 часов 30 минут. После того, как ' \
+                'прием пищи сохранен, вы сможете узнать свое суточное ' \
+                'потребление калорий с помощью команды "что я ел(а)?". ' \
+                'При этом также можно указать время, например: "Что я ел ' \
+                'вчера?" или "Что я ела неделю назад?". Если какая-то еда ' \
+                'была внесена ошибочно, можно сказать "Удалить соевое ' \
+                'молоко с хлебом".  Прием пищи "Соевое молоко с хлебом" ' \
+                'будет удален'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=help_text,
+            tts=help_text,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def respond_one_of_predefined_phrases(
+        request: YandexRequest) -> typing.Optional[YandexResponse]:
+    if len(request.original_utterance) >= 100:
+        return respond_request(
+                request=request,
+                responding_function=respond_text_too_long)
+
+    if check_if_help_in_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_help)
 
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
@@ -540,11 +627,14 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
                         end_session=True,
                 ))
 
-    if len(yandex_request.original_utterance) >= 100:
+    # there can be many hardcoded responses, need to check all of them before
+    # querying any databases
+    any_predifined_response = respond_one_of_predefined_phrases(
+            request=yandex_request)
+    if any_predifined_response:
+        # TODO: Should I clear context here? Maybe yes
         return transform_yandex_response_to_output_result_dict(
-                yandex_response=respond_request(
-                        request=yandex_request,
-                        responding_function=respond_text_too_long))
+                yandex_response=any_predifined_response)
 
     # Don't check session context if it's the first message, maybe this
     # should be changed. For example, the user left without his food to be
@@ -560,7 +650,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    test_command = 'да'
+    test_command = 'как пользоваться?'
     print(functional_nutrition_dialog(event={
         "meta": {
             "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
@@ -583,7 +673,7 @@ if __name__ == '__main__':
         "session": {
             "message_id": 3,
             "new": False,
-            "session_id": "4fc9367a-85300422-75187a15-4553186",
+            "session_id": "2600748f-a3029350-a94653be-1508e64a",
             "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
             "user_id": "E401738E621D9AAC04AB162E44F39B3"
                        "ABDA23A5CB2FF19E394C1915ED45CF467"
