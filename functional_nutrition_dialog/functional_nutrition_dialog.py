@@ -71,7 +71,6 @@ class YandexResponse:
 
 
 def get_boto3_clients(*, aws_lambda_mode: bool):
-    # global boto3_database_client, boto3_translation_client
 
     def get_local_boto3_clients():
         global boto3_database_client, boto3_translation_client
