@@ -4,7 +4,10 @@ import typing
 from functools import reduce, partial
 import random
 import boto3
+import botocore.client
+import botocore.vendored.requests
 import json
+import time
 
 import dateutil
 
@@ -31,9 +34,10 @@ class YandexRequest:
     tokens: typing.List[str]
     aws_lambda_mode: bool
     version: str
+    error: str = ''
 
     @staticmethod
-    def empty_request(*, aws_lambda_mode):
+    def empty_request(*, aws_lambda_mode: bool, error: str):
         return YandexRequest(
                 client_device_id='',
                 has_screen=False,
@@ -47,6 +51,7 @@ class YandexRequest:
                 session_id='',
                 version='',
                 aws_lambda_mode=aws_lambda_mode,
+                error=error
         )
 
     def __repr__(self):
@@ -74,14 +79,31 @@ class YandexResponse:
                  key in sorted(self.__dict__.keys())])
 
 
+def timeit(target_function):
+    def timed(*args, **kwargs):
+        start_time = time.time()
+        result = target_function(*args, **kwargs)
+        end_time = time.time()
+        milliseconds = (end_time - start_time) * 1000
+        print(f'Function "{target_function.__name__}" time: {milliseconds} ms')
+
+        return result
+
+    return timed
+
+
 def get_boto3_client(
         *,
         aws_lambda_mode: bool,
         service_name: str,
-        profile_name: str = 'default',
+        profile_name: str = 'kreodont',
+        connect_timeout: float = 0.1,
+        read_timeout: float = 0.5,
 ) -> typing.Optional[boto3.client]:
     """
     Dirty function to fetch s3_clients
+    :param connect_timeout:
+    :param read_timeout:
     :param aws_lambda_mode:
     :param service_name:
     :param profile_name:
@@ -89,6 +111,7 @@ def get_boto3_client(
     """
     known_services = ['translate', 'dynamodb', 's3']
     if service_name in global_cached_boto3_clients:
+        print(f'{service_name} client taken from cache!')
         return global_cached_boto3_clients[service_name]
 
     if service_name not in known_services:
@@ -97,9 +120,18 @@ def get_boto3_client(
                 f'name {service_name}. The following '
                 f'service names known: {", ".join(known_services)}')
 
-    client = boto3.client(service_name) if \
-        aws_lambda_mode else \
-        boto3.Session(profile_name=profile_name).client(service_name)
+    if aws_lambda_mode:
+        client = boto3.client(
+                service_name,
+                config=botocore.client.Config(
+                        connect_timeout=connect_timeout,
+                        read_timeout=read_timeout,
+                        parameter_validation=False,
+                        retries={'max_attempts': 0},
+                ),
+        )
+    else:
+        client = boto3.Session(profile_name=profile_name).client(service_name)
 
     global_cached_boto3_clients[service_name] = client
     return client
@@ -159,20 +191,22 @@ def transform_event_dict_to_yandex_request_object(
         *,
         event_dict: dict,
         aws_lambda_mode: bool,
-) -> typing.Tuple[YandexRequest, str]:
+) -> YandexRequest:
     meta = fetch_one_value_from_event_dict(
             event_dict=event_dict,
             path='meta')
     if meta is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: meta is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: meta is None')
 
     client_device_id = fetch_one_value_from_event_dict(
             path='meta -> client_id',
             event_dict=event_dict)
     if client_device_id is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: client_id is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: client_id is None')
     partial_constructor = partial(YandexRequest,
                                   client_device_id=client_device_id)
 
@@ -180,8 +214,9 @@ def transform_event_dict_to_yandex_request_object(
             path='meta -> timezone',
             event_dict=event_dict)
     if timezone is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: timezone is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: timezone is None')
     partial_constructor = partial(partial_constructor,
                                   timezone=timezone)
 
@@ -196,8 +231,9 @@ def transform_event_dict_to_yandex_request_object(
             path='session -> new',
             event_dict=event_dict)
     if is_new_session is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: is_new_session is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: is_new_session is None')
     partial_constructor = partial(partial_constructor,
                                   is_new_session=is_new_session)
 
@@ -205,8 +241,9 @@ def transform_event_dict_to_yandex_request_object(
             path='session -> user_id',
             event_dict=event_dict)
     if user_guid is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: user_guid is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: user_guid is None')
     partial_constructor = partial(partial_constructor,
                                   user_guid=user_guid)
 
@@ -221,8 +258,9 @@ def transform_event_dict_to_yandex_request_object(
             path='session -> session_id',
             event_dict=event_dict)
     if user_guid is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: session_id is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: session_id is None')
     partial_constructor = partial(partial_constructor,
                                   session_id=session_id)
 
@@ -230,8 +268,9 @@ def transform_event_dict_to_yandex_request_object(
             path='session -> message_id',
             event_dict=event_dict)
     if message_id is None:
-        return YandexRequest.empty_request(aws_lambda_mode=aws_lambda_mode), \
-               'Invalid request: message_id is None'
+        return YandexRequest.empty_request(
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: message_id is None')
     partial_constructor = partial(partial_constructor,
                                   message_id=message_id)
 
@@ -262,7 +301,7 @@ def transform_event_dict_to_yandex_request_object(
     full_yandex_request_constructor = partial(partial_constructor,
                                               entities=entities)
 
-    return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode), ''
+    return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode)
 
 
 def transform_yandex_response_to_output_result_dict(
@@ -345,11 +384,14 @@ def clear_session(
         *,
         session_id: str,
         database_client) -> None:
-    database_client.delete_item(TableName='nutrition_sessions',
-                                Key={
-                                    'id': {
-                                        'S': session_id,
-                                    }, })
+    try:
+        database_client.delete_item(TableName='nutrition_sessions',
+                                    Key={
+                                        'id': {
+                                            'S': session_id,
+                                        }, })
+    except botocore.vendored.requests.exceptions.ReadTimeout:
+        pass
 
 
 def response_with_context_when_yes_in_request(
@@ -457,7 +499,6 @@ def respond_with_context(
         context: dict,
         database_client
 ) -> YandexResponse:
-
     if check_if_no_in_request(request=request):
         return response_with_context_when_no_in_request(
                 request=request,
@@ -539,7 +580,6 @@ def fetch_context_from_dynamo_database(
         aws_lambda_mode: bool,
         session_id: str,
 ) -> dict:
-
     database_client = get_boto3_client(
             aws_lambda_mode=aws_lambda_mode,
             service_name='dynamo')
@@ -702,26 +742,89 @@ def respond_goodbye(request: YandexRequest) -> YandexResponse:
 
 
 def is_eat_cat_request(request: YandexRequest):
-    tokens = request.tokens
-    here
     full_phrase = request.original_utterance
-    if (
-            'выход' in tokens or
-            'выйти' in tokens or
-            'пока' in tokens or
-            'выйди' in tokens or
-            'до свидания' in full_phrase.lower() or
-            'всего доброго' in full_phrase.lower() or
-            tokens == ['алиса', ] or
-            full_phrase in ('иди на хуй', 'стоп')
-
-    ):
+    if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
         return True
     return False
 
 
 def respond_eat_cat(request: YandexRequest) -> YandexResponse:
     respond_string = 'Нееш, падумой'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_eat_poop_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
+                       'фекалии', 'какахе', 'какахи'):
+        return True
+    return False
+
+
+def respond_eat_poop(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Вы имели в виду "Сладкий хлеб"?'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_i_think_too_much_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('это много', 'это мало', 'что-то много',
+                       'что-то мало', 'так много'):
+        return True
+    return False
+
+
+def respond_i_think_too_much(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Если вы нашли ошибку, напишите моему разработчику, ' \
+                     'и он объяснит мне, как правильно'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_dick_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('хуй', 'моржовый хуй', 'хер'):
+        return True
+    return False
+
+
+def respond_dick(request: YandexRequest) -> YandexResponse:
+    respond_string = 'С солью или без соли?'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_nothing_to_add_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('никакую', 'ничего', 'никакой'):
+        return True
+    return False
+
+
+def respond_nothing_to_add(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Хорошо, дайте знать, когда что-то появится'
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=respond_string,
@@ -765,6 +868,31 @@ def respond_one_of_predefined_phrases(
                 request=request,
                 responding_function=respond_human_meat)
 
+    if is_eat_cat_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_eat_cat)
+
+    if is_eat_poop_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_eat_poop)
+
+    if is_i_think_too_much_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_i_think_too_much)
+
+    if is_dick_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_dick)
+
+    if is_nothing_to_add_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_nothing_to_add)
+
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
     return construct_yandex_response_from_yandex_request(
@@ -784,15 +912,65 @@ def respond_existing_session(yandex_request: YandexRequest):
 
     database_client = get_boto3_client(
             aws_lambda_mode=yandex_request.aws_lambda_mode,
-            service_name='dynamo')
+            service_name='dynamodb')
 
     return partial(
             respond_with_context,
             context=context,
-            database_client=database_client,)(request=yandex_request) if \
+            database_client=database_client, )(request=yandex_request) if \
         context else respond_without_context(request=yandex_request)
 
 
+@timeit
+def translate_yandex_request_into_english(
+        *,
+        yandex_request: YandexRequest):
+    translation_client = get_boto3_client(
+            aws_lambda_mode=yandex_request.aws_lambda_mode,
+            service_name='translate')
+
+    full_phrase_translated = translation_client.translate_text(
+            Text=yandex_request.original_utterance,
+            SourceLanguageCode='ru',
+            TargetLanguageCode='en'
+    ).get('TranslatedText')  # type:str
+
+    return full_phrase_translated
+
+
+def mock_incoming_event(*, phrase: str) -> dict:
+    return {
+        "meta": {
+            "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
+                         "4.4.2)",
+            "interfaces": {
+                "screen": {}
+            },
+            "locale": "ru-RU",
+            "timezone": "UTC"
+        },
+        "request": {
+            "command": phrase,
+            "nlu": {
+                "entities": [],
+                "tokens": phrase.lower().split()
+            },
+            "original_utterance": phrase,
+            "type": "SimpleUtterance"
+        },
+        "session": {
+            "message_id": 3,
+            "new": False,
+            "session_id": "2600748f-a3029350-a94653be-1508e64a",
+            "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+            "user_id": "E401738E621D9AAC04AB162E44F39B3"
+                       "ABDA23A5CB2FF19E394C1915ED45CF467"
+        },
+        "version": "1.0"
+    }
+
+
+@timeit
 def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     """
     Main lambda entry point
@@ -801,7 +979,6 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     # YandexResponse:YandexResponse ->
     # response:dict
     """
-
     yandex_request, error = transform_event_dict_to_yandex_request_object(
             event_dict=event,
             aws_lambda_mode=bool(context),
@@ -822,14 +999,20 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     # querying any databases
     any_predifined_response = respond_one_of_predefined_phrases(
             request=yandex_request)
+
     if any_predifined_response:
-        # TODO: Should I clear context here? Maybe yes
+        # If predefined answer given, forget all previous food, since
+        # conversation topic has been already changed
+        clear_session(
+                session_id=yandex_request.session_id,
+                database_client=get_boto3_client(
+                        aws_lambda_mode=yandex_request.aws_lambda_mode,
+                        service_name='dynamodb',
+                )
+        )
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=any_predifined_response)
 
-    # Don't check session context if it's the first message, maybe this
-    # should be changed. For example, the user left without his food to be
-    # saved, then returned later and said Yes. Probably not worth doing.
     responding_function = respond_greeting_phrase if \
         yandex_request.is_new_session else \
         respond_existing_session
@@ -841,33 +1024,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    test_command = 'пока'
-    print(functional_nutrition_dialog(event={
-        "meta": {
-            "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
-                         "4.4.2)",
-            "interfaces": {
-                "screen": {}
-            },
-            "locale": "ru-RU",
-            "timezone": "UTC"
-        },
-        "request": {
-            "command": test_command,
-            "nlu": {
-                "entities": [],
-                "tokens": test_command.lower().split()
-            },
-            "original_utterance": test_command,
-            "type": "SimpleUtterance"
-        },
-        "session": {
-            "message_id": 3,
-            "new": False,
-            "session_id": "2600748f-a3029350-a94653be-1508e64a",
-            "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-            "user_id": "E401738E621D9AAC04AB162E44F39B3"
-                       "ABDA23A5CB2FF19E394C1915ED45CF467"
-        },
-        "version": "1.0"
-    }, context={}))
+    print(functional_nutrition_dialog(
+            event=mock_incoming_event(
+                    phrase='ничего'),
+            context={}))
