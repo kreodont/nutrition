@@ -561,17 +561,141 @@ def respond_help(request: YandexRequest) -> YandexResponse:
     )
 
 
+def is_thanks_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in (
+            'спасибо', 'молодец', 'отлично', 'ты классная', 'классная штука',
+            'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
+            'клево', 'ништяк'):
+        return True
+    return False
+
+
+def respond_thanks(request: YandexRequest) -> YandexResponse:
+    welcome_phrases = [
+        'Спасибо, я стараюсь',
+        'Спасибо за комплимент',
+        'Приятно быть полезной',
+        'Доброе слово и боту приятно']
+    chosen_welcome_phrase = random.choice(welcome_phrases)
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=chosen_welcome_phrase,
+            tts=chosen_welcome_phrase,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_hello_request(request: YandexRequest):
+    tokens = request.tokens
+    if (
+            'привет' in tokens or
+            'здравствуй' in tokens or
+            'здравствуйте' in tokens or
+            'хелло' in tokens or
+            'hello' in tokens or
+            'приветик' in tokens
+    ):
+        return True
+    return False
+
+
+def is_human_meat_request(request: YandexRequest):
+    tokens = request.tokens
+    full_phrase = request.original_utterance
+    if [t for t in tokens if 'человеч' in t] or \
+            tokens == ['мясо', 'человека'] or \
+            full_phrase in ('человек',):
+        return True
+    return False
+
+
+def respond_human_meat(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Доктор Лектер, это вы?'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def respond_hello(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Здравствуйте. А теперь расскажите что вы съели, а я ' \
+                     'скажу сколько там было калорий и питательных веществ.'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_goodbye_request(request: YandexRequest):
+    tokens = request.tokens
+    full_phrase = request.original_utterance
+    if (
+            'выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in full_phrase.lower() or
+            'всего доброго' in full_phrase.lower() or
+            tokens == ['алиса', ] or
+            full_phrase in ('иди на хуй', 'стоп')
+
+    ):
+        return True
+    return False
+
+
+def respond_goodbye(request: YandexRequest) -> YandexResponse:
+    respond_string = 'До свидания'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=True,
+            buttons=[],
+    )
+
+
 def respond_one_of_predefined_phrases(
         request: YandexRequest) -> typing.Optional[YandexResponse]:
+    # Respond long phrases
     if len(request.original_utterance) >= 100:
         return respond_request(
                 request=request,
                 responding_function=respond_text_too_long)
 
+    # Respond help requests
     if check_if_help_in_request(request=request):
         return respond_request(
                 request=request,
                 responding_function=respond_help)
+
+    if is_thanks_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_thanks)
+
+    if is_hello_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_hello)
+
+    if is_goodbye_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_goodbye)
+
+    if is_human_meat_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_human_meat)
 
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
@@ -648,7 +772,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    test_command = 'как пользоваться?'
+    test_command = 'пока'
     print(functional_nutrition_dialog(event={
         "meta": {
             "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
@@ -660,7 +784,7 @@ if __name__ == '__main__':
             "timezone": "UTC"
         },
         "request": {
-            "command": "собака",
+            "command": test_command,
             "nlu": {
                 "entities": [],
                 "tokens": test_command.lower().split()
