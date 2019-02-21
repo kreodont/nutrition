@@ -4,13 +4,17 @@ import typing
 from functools import reduce, partial
 import random
 import boto3
-import botocore.client
 import json
 
 import dateutil
 
 boto3_translation_client = None  # make it global for caching
 boto3_database_client = None
+
+# This cache is useful because AWS lambda can keep it's state, so no
+# need to restantiate connections again. It is used in get_boto3_client
+# function, I know it is mess, but 100 ms are 100 ms
+global_cached_boto3_clients = {}
 
 
 @dataclass(frozen=True)
@@ -70,37 +74,68 @@ class YandexResponse:
                  key in sorted(self.__dict__.keys())])
 
 
-def get_boto3_clients(*, aws_lambda_mode: bool):
+def get_boto3_client(
+        *,
+        aws_lambda_mode: bool,
+        service_name: str,
+        profile_name: str = 'default',
+) -> typing.Optional[boto3.client]:
+    """
+    Dirty function to fetch s3_clients
+    :param aws_lambda_mode:
+    :param service_name:
+    :param profile_name:
+    :return:
+    """
+    known_services = ['translate', 'dynamodb', 's3']
+    if service_name in global_cached_boto3_clients:
+        return global_cached_boto3_clients[service_name]
 
-    def get_local_boto3_clients():
-        global boto3_database_client, boto3_translation_client
-        boto3_translation_client = boto3.Session(
-                profile_name='kreodont').client('translate')
-        boto3_database_client = boto3.Session(
-                profile_name='kreodont').client('dynamodb')
-        return boto3_translation_client, boto3_database_client
+    if service_name not in known_services:
+        raise Exception(
+                f'Not known service '
+                f'name {service_name}. The following '
+                f'service names known: {", ".join(known_services)}')
 
-    def get_aws_boto3_clients():
-        global boto3_database_client, boto3_translation_client
-        config = botocore.client.Config(
-                connect_timeout=0.5,
-                retries={'max_attempts': 0},
-        )
-        boto3_translation_client = boto3.client('translate', config=config)
-        boto3_database_client = boto3.client('dynamodb', config=config)
-        return boto3_translation_client, boto3_database_client
+    client = boto3.client(service_name) if \
+        aws_lambda_mode else \
+        boto3.Session(profile_name=profile_name).client(service_name)
 
-    def return_cached_clients():
-        return boto3_translation_client, boto3_database_client
+    global_cached_boto3_clients[service_name] = client
+    return client
 
-    # already cached
-    if boto3_translation_client and boto3_database_client:
-        return return_cached_clients
 
-    if aws_lambda_mode:
-        return get_aws_boto3_clients
-
-    return get_local_boto3_clients
+# def get_boto3_clients(*, aws_lambda_mode: bool):
+#
+#     def get_local_boto3_clients():
+#         global boto3_database_client, boto3_translation_client
+#         boto3_translation_client = boto3.Session(
+#                 profile_name='kreodont').client('translate')
+#         boto3_database_client = boto3.Session(
+#                 profile_name='kreodont').client('dynamodb')
+#         return boto3_translation_client, boto3_database_client
+#
+#     def get_aws_boto3_clients():
+#         global boto3_database_client, boto3_translation_client
+#         config = botocore.client.Config(
+#                 connect_timeout=0.5,
+#                 retries={'max_attempts': 0},
+#         )
+#         boto3_translation_client = boto3.client('translate', config=config)
+#         boto3_database_client = boto3.client('dynamodb', config=config)
+#         return boto3_translation_client, boto3_database_client
+#
+#     def return_cached_clients():
+#         return boto3_translation_client, boto3_database_client
+#
+#     # already cached
+#     if boto3_translation_client and boto3_database_client:
+#         return return_cached_clients
+#
+#     if aws_lambda_mode:
+#         return get_aws_boto3_clients
+#
+#     return get_local_boto3_clients
 
 
 def fetch_one_value_from_event_dict(
@@ -505,9 +540,13 @@ def fetch_context_from_dynamo_database(
         session_id: str,
 ) -> dict:
 
-    _, database_client = get_boto3_clients(aws_lambda_mode=aws_lambda_mode)()
+    database_client = get_boto3_client(
+            aws_lambda_mode=aws_lambda_mode,
+            service_name='dynamo')
+
     result = database_client.get_item(
-            TableName='nutrition_sessions', Key={'id': {'S': session_id}})
+            TableName='nutrition_sessions',
+            Key={'id': {'S': session_id}})
     if 'Item' not in result:
         return {}
     else:
@@ -713,8 +752,9 @@ def respond_existing_session(yandex_request: YandexRequest):
             session_id=yandex_request.session_id,
     )
 
-    _, database_client = get_boto3_clients(
-            aws_lambda_mode=yandex_request.aws_lambda_mode)()
+    database_client = get_boto3_client(
+            aws_lambda_mode=yandex_request.aws_lambda_mode,
+            service_name='dynamo')
 
     return partial(
             respond_with_context,
