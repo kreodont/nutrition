@@ -701,6 +701,36 @@ def respond_goodbye(request: YandexRequest) -> YandexResponse:
     )
 
 
+def is_eat_cat_request(request: YandexRequest):
+    tokens = request.tokens
+    here
+    full_phrase = request.original_utterance
+    if (
+            'выход' in tokens or
+            'выйти' in tokens or
+            'пока' in tokens or
+            'выйди' in tokens or
+            'до свидания' in full_phrase.lower() or
+            'всего доброго' in full_phrase.lower() or
+            tokens == ['алиса', ] or
+            full_phrase in ('иди на хуй', 'стоп')
+
+    ):
+        return True
+    return False
+
+
+def respond_eat_cat(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Нееш, падумой'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
 def respond_one_of_predefined_phrases(
         request: YandexRequest) -> typing.Optional[YandexResponse]:
     # Respond long phrases
