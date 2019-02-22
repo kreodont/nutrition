@@ -319,7 +319,6 @@ def construct_yandex_response_from_yandex_request(
     )
 
 
-@timeit
 def respond_request(
         *,
         request: YandexRequest,
