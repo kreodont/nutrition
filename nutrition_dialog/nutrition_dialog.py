@@ -375,8 +375,6 @@ def russian_replacements(initial_phrase: str, tokens) -> str:
          'replacement': 'Rice Pilaf'},
         {'search_tokens': ['сырков', 'сырка', 'сырки', 'сырок'], 'search_text': [],
          'replacement': 'Cream Cheese'}
-        # {'search_tokens': ['тарелка', 'тарелки', 'тарелок', ], 'search_text': [], 'replacement': '400 grams'}
-
     ]
     for replacement in replacements:
         for text in replacement['search_text']:

@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import typing
 from functools import reduce, partial
 import random
@@ -499,7 +499,218 @@ def respond_with_context(
 
 
 @timeit
+def russian_replacements_in_original_utterance(
+        *,
+        yandex_request: YandexRequest) -> YandexRequest:
+
+    phrase = yandex_request.original_utterance
+    tokens = yandex_request.tokens
+    replacements = [
+        {'search_tokens': ['щи', 'щей'], 'search_text': [],
+         'replacement': 'cabbage soup'},
+        {'search_tokens': ['борща', 'борщ'], 'search_text': [],
+         'replacement': 'vegetable soup'},
+        {'search_tokens': ['рассольника', 'рассольники', 'рассольников',
+                           'рассольник'],
+         'search_text': [], 'replacement': 'vegetable soup'},
+        {'search_tokens': [],
+         'search_text': ['биг мак', 'биг мака', 'биг маков'],
+         'replacement': 'big mac'},
+        {'search_tokens': [],
+         'search_text': ['селедка под шубой', 'селедки под шубой',
+                         'селедок под шубой',
+                         'сельдь под шубой', 'сельди под шубой',
+                         'сельдей под шубой', ],
+         'replacement': 'Dressed Herring'},
+        {'search_tokens': ['риса', 'рис'], 'search_text': [],
+         'replacement': 'rice'},
+        {'search_tokens': ['мороженое', 'мороженого', 'мороженых', 'эскимо'],
+         'search_text': [],
+         'replacement': 'ice cream'},
+        {'search_tokens': ['кисель', 'киселя', 'киселей'], 'search_text': [],
+         'replacement': 'jelly'},
+        {'search_tokens': ['сырники', 'сырника', 'сырников', 'сырник',
+                           'сырниками'], 'search_text': [],
+         'replacement': 'cottage chese'},
+        {'search_tokens': ['пломбиров', 'пломбира', 'пломбир'],
+         'search_text': [], 'replacement': 'ice cream'},
+        {'search_tokens': ['какао', ], 'search_text': [],
+         'replacement': 'hot chocolate'},
+        {'search_tokens': ['сало', 'сала', ], 'search_text': [],
+         'replacement': 'fat meat'},
+        {'search_tokens': ['бутылка', 'бутылки', ], 'search_text': [],
+         'replacement': '500 ml'},
+        {'search_tokens': ['банка', 'банки', 'банок'], 'search_text': [],
+         'replacement': '500 ml'},
+        {'search_tokens': ['ящика', 'ящиков', 'ящик'], 'search_text': [],
+         'replacement': '20 kg'},
+        {'search_tokens': ['буханок', 'буханки', 'буханка'], 'search_text': [],
+         'replacement': '700 g'},
+        {'search_tokens': ['батонов', 'батона', 'батон'], 'search_text': [],
+         'replacement': 'loaf', },
+        {'search_tokens': ['пол', ], 'search_text': [], 'replacement': 'half'},
+        {'search_tokens': ['раков', 'рака', 'раки', 'рак'], 'search_text': [],
+         'replacement': 'cray-fish'},
+        {'search_tokens': ['панкейка', 'панкейков', 'панкейк', 'панкейки'],
+         'search_text': [], 'replacement': 'pancake'},
+        {'search_tokens': ['угорь', 'угре', 'угря', 'угрей'], 'search_text': [],
+         'replacement': 'eel'},
+        {'search_tokens': ['ведро', 'ведра', 'ведер'], 'search_text': [],
+         'replacement': '7 liters'},
+        {'search_tokens': ['сало', 'сала', ], 'search_text': [],
+         'replacement': 'fat meat'},
+        {'search_tokens': ['патиссонов', 'патиссона', 'патиссон', ],
+         'search_text': [], 'replacement': 'squash'},
+        {'search_tokens': ['компота', 'компоты', 'компот'], 'search_text': [],
+         'replacement': 'Stewed Apples 250 grams'},
+        {'search_tokens': ['сушек', 'сушки', 'сушка', ], 'search_text': [],
+         'replacement': 'bagel'},
+        {'search_tokens': ['винегрета', 'винегретом', 'винегретов', 'винегрет',
+                           'винегреты', ], 'search_text': [],
+         'replacement': 'vegetable salad'},
+        {'search_tokens': ['рябчиков', 'рябчика', 'рябчики', 'рябчик', ],
+         'search_text': [], 'replacement': 'grouse'},
+        {'search_tokens': ['семечек', 'семечки', ], 'search_text': [],
+         'replacement': 'sunflower seeds'},
+        {'search_tokens': ['сникерса', 'сникерсов', 'сникерс'],
+         'search_text': [], 'replacement': 'Snicker'},
+        {'search_tokens': ['соя', 'сои', ], 'search_text': [],
+         'replacement': 'soynut'},
+        {'search_tokens': ['кукуруза', 'кукурузы', ], 'search_text': [],
+         'replacement': 'corn'},
+        {'search_tokens': ['яйца', 'яиц', ], 'search_text': [],
+         'replacement': 'eggs'},
+        {'search_tokens': ['граната', 'гранат', ], 'search_text': [],
+         'replacement': 'pomegranate'},
+        {'search_tokens': ['голубец', 'голубцы', 'голубца', 'голубцов'],
+         'search_text': [],
+         'replacement': 'cabbage roll'},
+        {'search_tokens': ['оливье', ], 'search_text': [],
+         'replacement': 'Ham Salad'},
+        {'search_tokens': [], 'search_text': ['салат оливье'],
+         'replacement': 'Ham Salad'},
+        {'search_tokens': [], 'search_text': ['манная каша', 'манной каши', ],
+         'replacement': "malt o meal"},
+        {'search_tokens': [],
+         'search_text': ['пшенная каша', 'пшенной каши', 'пшенной каши'],
+         'replacement': "malt o meal"},
+        {'search_tokens': [],
+         'search_text': ['котлета из нута', 'котлет из нута',
+                         'котлеты из нута', ],
+         'replacement': '70 grams of chickpea'},
+        {'search_tokens': [],
+         'search_text': ['котлета из капусты', 'котлет из капусты',
+                         'котлеты из капусты',
+                         'капустная котлета', 'капустных котлет',
+                         'капустные котлеты'],
+         'replacement': '70 grams of cabbage'},
+        {'search_tokens': ['желе', ], 'search_text': [],
+         'replacement': 'jello'},
+        {'search_tokens': ['холодца', 'холодцов', 'холодец'], 'search_text': [],
+         'replacement': 'jelly'},
+        {'search_tokens': ['лэйза', 'лейзов', 'лэйс'], 'search_text': [],
+         'replacement': 'lays'},
+        {'search_tokens': ['кефира', 'кефир', ], 'search_text': [],
+         'replacement': 'kefir'},
+        {'search_tokens': ['стаканов', 'стакана', 'стакан'], 'search_text': [],
+         'replacement': '250 ml'},
+        {'search_tokens': ['бочек', 'бочки', 'бочка'], 'search_text': [],
+         'replacement': '208 liters'},
+        {'search_tokens': [], 'search_text': ['кока кола зеро', ],
+         'replacement': 'Pepsi Cola Zero'},
+        {'search_tokens': ['пастила', 'пастилы', 'пастил', ], 'search_text': [],
+         'replacement': 'зефир'},
+        {'search_tokens': ['халва', 'халвы', 'халв', ], 'search_text': [],
+         'replacement': 'halvah'},
+        {'search_tokens': ['творога', 'творогом', 'творогов', 'творог'],
+         'search_text': [], 'replacement':
+             'cottage cheese'},
+        {'search_tokens': ['конфета', 'конфеты', 'конфетами', 'конфетой',
+                           'конфет'], 'search_text': [], 'replacement':
+             'candy'},
+        {'search_tokens': ['миллиграммами', 'миллиграмма', 'миллиграмм',
+                           'миллиграммом'], 'search_text': [],
+         'replacement': '0 g '},
+        {'search_tokens': ['обезжиренного', 'обезжиренным', 'обезжиренных',
+                           'обезжиренный'], 'search_text': [],
+         'replacement': 'nonfat'},
+        {'search_tokens': ['пюрешка', 'пюрешки', 'пюрешкой', ],
+         'search_text': [], 'replacement': 'mashed potato'},
+        {'search_tokens': ['соленый', 'соленая', 'соленого', 'соленой',
+                           'соленым', 'соленом', 'соленое', 'солеными',
+                           'соленых'], 'search_text': [], 'replacement': ''},
+        {'search_tokens': [],
+         'search_text': ['макароны карбонара', 'макарон карбонара',
+                         'вермишель карбонара',
+                         'вермишели карбонара', 'паста карбонара',
+                         'пасты карбонара'],
+         'replacement': 'Carbonara'},
+        {'search_tokens': [],
+         'search_text': ['кукурузная каша', 'кукурузные каши',
+                         'кукурузной каши',
+                         'каша кукурузная', 'каши кукурузные',
+                         'каши кукурузной'],
+         'replacement': 'grits'},
+        {'search_tokens': [],
+         'search_text': ['картофель по-деревенски', 'картофель по деревенски',
+                         'картофеля по-деревенски', 'картофеля по деревенски',
+                         'картофелей по-деревенски',
+                         'картофелей по-деревенски', ],
+         'replacement': 'Roast Potato'},
+        {'search_tokens': [], 'search_text': ['риттер спорта', 'риттер спорт',
+                                              'шоколада риттер спорта',
+                                              'шоколад риттер спорт'],
+         'replacement': 'ritter sport'},
+        {'search_tokens': ['морсом', 'морсов', 'морса', 'морсы', 'морс', ],
+         'search_text': [],
+         'replacement': 'Cranberry Drink'},
+        {'search_tokens': ['вареники', 'вареников', 'варениками', 'вареника',
+                           'вареник', ], 'search_text': [],
+         'replacement': 'Veggie Dumplings'},
+        {'search_tokens': ['плова', 'пловов', 'пловы', 'плов'],
+         'search_text': [],
+         'replacement': 'Rice Pilaf'},
+        {'search_tokens': ['сырков', 'сырка', 'сырки', 'сырок'],
+         'search_text': [],
+         'replacement': 'Cream Cheese'}
+    ]
+    for replacement in replacements:
+        for text in replacement['search_text']:
+            if text in phrase:
+                phrase = phrase.replace(text, replacement['replacement'])
+
+        for token in replacement['search_tokens']:
+            if token not in tokens:
+                continue
+            if token in phrase:
+                phrase = phrase.replace(token, replacement['replacement'])
+
+    return replace(yandex_request, original_utterance=phrase)
+
+
+def string_is_only_latin_and_numbers(s):
+    try:
+        s.encode(encoding='utf-8').decode('ascii')
+    except UnicodeDecodeError:
+        return False
+    else:
+        return True
+
+
+@timeit
+def translate_request(*, yandex_request: YandexRequest):
+    if string_is_only_latin_and_numbers(yandex_request.original_utterance):
+        return yandex_request
+
+
+@timeit
 def respond_without_context(request: YandexRequest) -> YandexResponse:
+    get_from_cache_table
+    request_with_replacements = russian_replacements_in_original_utterance(
+            yandex_request=request)
+    translated_request = translate_request(
+            yandex_request=request_with_replacements)
+    print(translated_request)
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text='Without context',
@@ -507,6 +718,35 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
             end_session=False,
             buttons=[],
     )
+
+
+@timeit
+def get_from_cache_table(
+        *,
+        request_text: str,
+        database_client: boto3.client) -> typing.Tuple[dict, dict]:
+    keys_dict = {}
+    food_dict = {}
+    items = database_client.batch_get_item(
+            RequestItems={
+                'nutrition_cache': {
+                    'Keys': [
+                        {
+                            'initial_phrase': {
+                                'S': '_key'},
+                        },
+                        {
+                            'initial_phrase': {
+                                'S': request_text},
+                        }
+                    ]}})
+    for item in items['Responses']['nutrition_cache']:
+        if item['initial_phrase']['S'] == '_key':
+            keys_dict = json.loads(item['response']['S'])
+        if item['initial_phrase']['S'] == request_text:
+            food_dict = json.loads(item['response']['S'])
+
+    return keys_dict, food_dict
 
 
 @timeit
@@ -902,11 +1142,13 @@ def respond_existing_session(yandex_request: YandexRequest):
             aws_lambda_mode=yandex_request.aws_lambda_mode,
             service_name='dynamodb')
 
-    return partial(
-            respond_with_context,
-            context=context,
-            database_client=database_client, )(request=yandex_request) if \
-        context else respond_without_context(request=yandex_request)
+    if context:
+        return partial(
+                respond_with_context,
+                context=context,
+                database_client=database_client)(request=yandex_request)
+    else:
+        return respond_without_context(request=yandex_request)
 
 
 @timeit
@@ -1002,18 +1244,21 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=any_predifined_response)
 
-    responding_function = respond_greeting_phrase if \
-        yandex_request.is_new_session else \
-        respond_existing_session
+    if yandex_request.is_new_session:
+        responding_function = respond_greeting_phrase
+    else:
+        responding_function = respond_existing_session
 
     return transform_yandex_response_to_output_result_dict(
             yandex_response=respond_request(
                     request=yandex_request,
-                    responding_function=responding_function))
+                    responding_function=responding_function,
+            )
+    )
 
 
 if __name__ == '__main__':
     print(functional_nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='ничего'),
+                    phrase='2 сырка'),
             context={}))
