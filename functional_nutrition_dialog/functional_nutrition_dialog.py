@@ -85,13 +85,18 @@ def timeit(target_function):
         result = target_function(*args, **kwargs)
         end_time = time.time()
         milliseconds = (end_time - start_time) * 1000
-        print(f'Function "{target_function.__name__}" time: {milliseconds} ms')
-
+        first_column = f'Function "{target_function.__name__}" time:'
+        if target_function.__name__ == 'functional_nutrition_dialog':
+            print('-' * 90)
+        print(f'{first_column:80} {milliseconds:.1f} ms')
+        if target_function.__name__ == 'functional_nutrition_dialog':
+            print('-' * 90)
         return result
 
     return timed
 
 
+@timeit
 def get_boto3_client(
         *,
         aws_lambda_mode: bool,
@@ -137,39 +142,6 @@ def get_boto3_client(
     return client
 
 
-# def get_boto3_clients(*, aws_lambda_mode: bool):
-#
-#     def get_local_boto3_clients():
-#         global boto3_database_client, boto3_translation_client
-#         boto3_translation_client = boto3.Session(
-#                 profile_name='kreodont').client('translate')
-#         boto3_database_client = boto3.Session(
-#                 profile_name='kreodont').client('dynamodb')
-#         return boto3_translation_client, boto3_database_client
-#
-#     def get_aws_boto3_clients():
-#         global boto3_database_client, boto3_translation_client
-#         config = botocore.client.Config(
-#                 connect_timeout=0.5,
-#                 retries={'max_attempts': 0},
-#         )
-#         boto3_translation_client = boto3.client('translate', config=config)
-#         boto3_database_client = boto3.client('dynamodb', config=config)
-#         return boto3_translation_client, boto3_database_client
-#
-#     def return_cached_clients():
-#         return boto3_translation_client, boto3_database_client
-#
-#     # already cached
-#     if boto3_translation_client and boto3_database_client:
-#         return return_cached_clients
-#
-#     if aws_lambda_mode:
-#         return get_aws_boto3_clients
-#
-#     return get_local_boto3_clients
-
-
 def fetch_one_value_from_event_dict(
         *,
         event_dict: dict,
@@ -187,6 +159,7 @@ def fetch_one_value_from_event_dict(
     return value
 
 
+@timeit
 def transform_event_dict_to_yandex_request_object(
         *,
         event_dict: dict,
@@ -304,6 +277,7 @@ def transform_event_dict_to_yandex_request_object(
     return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode)
 
 
+@timeit
 def transform_yandex_response_to_output_result_dict(
         *,
         yandex_response: YandexResponse) -> dict:
@@ -323,6 +297,7 @@ def transform_yandex_response_to_output_result_dict(
     return response
 
 
+@timeit
 def construct_yandex_response_from_yandex_request(
         *,
         yandex_request: YandexRequest,
@@ -344,6 +319,7 @@ def construct_yandex_response_from_yandex_request(
     )
 
 
+@timeit
 def respond_request(
         *,
         request: YandexRequest,
@@ -352,6 +328,7 @@ def respond_request(
     pass
 
 
+@timeit
 def update_user_table(
         *,
         database_client,
@@ -380,6 +357,7 @@ def update_user_table(
                                  }})
 
 
+@timeit
 def clear_session(
         *,
         session_id: str,
@@ -394,6 +372,7 @@ def clear_session(
         pass
 
 
+@timeit
 def response_with_context_when_yes_in_request(
         *,
         request: YandexRequest,
@@ -422,6 +401,7 @@ def response_with_context_when_yes_in_request(
     )
 
 
+@timeit
 def response_with_context_when_no_in_request(
         *,
         request: YandexRequest,
@@ -442,6 +422,7 @@ def response_with_context_when_no_in_request(
     )
 
 
+@timeit
 def check_if_yes_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -460,6 +441,7 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
+@timeit
 def check_if_no_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -473,6 +455,7 @@ def check_if_no_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
+@timeit
 def check_if_help_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -493,6 +476,7 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
+@timeit
 def respond_with_context(
         *,
         request: YandexRequest,
@@ -515,6 +499,7 @@ def respond_with_context(
     return respond_without_context(request=request)
 
 
+@timeit
 def respond_without_context(request: YandexRequest) -> YandexResponse:
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
@@ -525,6 +510,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     )
 
 
+@timeit
 def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
     greeting_text = 'Какую еду записать?'
     return construct_yandex_response_from_yandex_request(
@@ -536,6 +522,7 @@ def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
     )
 
 
+@timeit
 def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
     first_parts_list = [
         'Это не похоже на название еды. Попробуйте сформулировать иначе',
@@ -571,10 +558,12 @@ def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
     )
 
 
+@timeit
 def check_if_new_session(yandex_request: YandexRequest):
     return yandex_request.is_new_session
 
 
+@timeit
 def fetch_context_from_dynamo_database(
         *,
         aws_lambda_mode: bool,
@@ -582,7 +571,7 @@ def fetch_context_from_dynamo_database(
 ) -> dict:
     database_client = get_boto3_client(
             aws_lambda_mode=aws_lambda_mode,
-            service_name='dynamo')
+            service_name='dynamodb')
 
     result = database_client.get_item(
             TableName='nutrition_sessions',
@@ -938,6 +927,7 @@ def translate_yandex_request_into_english(
     return full_phrase_translated
 
 
+@timeit
 def mock_incoming_event(*, phrase: str) -> dict:
     return {
         "meta": {
@@ -979,18 +969,18 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
     # YandexResponse:YandexResponse ->
     # response:dict
     """
-    yandex_request, error = transform_event_dict_to_yandex_request_object(
+    yandex_request = transform_event_dict_to_yandex_request_object(
             event_dict=event,
             aws_lambda_mode=bool(context),
     )
 
-    if error:
+    if yandex_request.error:
         # Exit immediatelly in case of mailformed request
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=construct_yandex_response_from_yandex_request(
                         yandex_request=yandex_request,
-                        text=error,
-                        tts=error,
+                        text=yandex_request.error,
+                        tts=yandex_request.error,
                         buttons=[],
                         end_session=True,
                 ))
