@@ -1072,11 +1072,13 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             event_time=datetime.datetime.now(),
             foods_dict=nutrition_dict,
             utterance=full_phrase)
+
     write_to_cache_table(
             initial_phrase=full_phrase,
             nutrition_dict=nutrition_dict,
             database_client=database_client,
             keys_dict=keys_dict)
+
 
     return construct_response_with_session(
             text=response_text + '\nСкажите "да" или "сохранить", если хотите записать этот прием пищи.',
@@ -1084,7 +1086,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    testing = 'яйца'.lower()
+    testing = 'прозрачная медуза'.lower()
     nutrition_dialog({
         'meta': {
             'client_id': 'ru.yandex.searchplugin/7.16 (none none; android 4.4.2)',

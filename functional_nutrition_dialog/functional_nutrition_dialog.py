@@ -5,9 +5,10 @@ from functools import reduce, partial
 import random
 import boto3
 import botocore.client
-import botocore.vendored.requests
+from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
 import json
 import time
+import requests
 
 import dateutil
 
@@ -85,7 +86,7 @@ def timeit(target_function):
         result = target_function(*args, **kwargs)
         end_time = time.time()
         milliseconds = (end_time - start_time) * 1000
-        first_column = f'Function "{target_function.__name__}" time:'
+        first_column = f'Function "{target_function.__name__}":'
         if target_function.__name__ == 'functional_nutrition_dialog':
             print('-' * 90)
         print(f'{first_column:80} {milliseconds:.1f} ms')
@@ -102,8 +103,8 @@ def get_boto3_client(
         aws_lambda_mode: bool,
         service_name: str,
         profile_name: str = 'kreodont',
-        connect_timeout: float = 0.1,
-        read_timeout: float = 0.5,
+        connect_timeout: float = 0.2,
+        read_timeout: float = 0.4,
 ) -> typing.Optional[boto3.client]:
     """
     Dirty function to fetch s3_clients
@@ -319,6 +320,123 @@ def construct_yandex_response_from_yandex_request(
     )
 
 
+def construct_response_text_from_nutrition_dict(
+        *,
+        nutrition_dict: dict) -> typing.Tuple[str, float]:
+    response_text = ''  # type: str
+    total_calories = 0.0  # type: float
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
+
+    for number, food_name in enumerate(nutrition_dict['foods']):
+        calories = nutrition_dict["foods"][number].get("nf_calories", 0) or 0
+        total_calories += calories
+        weight = nutrition_dict['foods'][number].get(
+                'serving_weight_grams', 0) or 0
+
+        protein = nutrition_dict["foods"][number].get("nf_protein", 0) or 0
+        total_protein += protein
+        fat = nutrition_dict["foods"][number].get("nf_total_fat", 0) or 0
+        total_fat += fat
+        carbohydrates = nutrition_dict["foods"][number].get(
+                "nf_total_carbohydrate", 0) or 0
+
+        total_carbohydrates += carbohydrates
+        sugar = nutrition_dict["foods"][number].get("nf_sugars", 0) or 0
+        total_sugar += sugar
+        number_string = ''
+        if len(nutrition_dict["foods"]) > 1:
+            number_string = f'{number + 1}. '
+        response_text += f'{number_string}{choose_case(amount=calories)} ' \
+            f'в {weight} гр.\n' \
+            f'({round(protein, 1)} бел. ' \
+            f'{round(fat, 1)} жир. ' \
+            f'{round(carbohydrates, 1)} угл. ' \
+            f'{round(sugar, 1)} сах.)\n'
+
+    if len(nutrition_dict["foods"]) > 1:
+        response_text += f'Итого: ({round(total_protein, 1)} бел. ' \
+            f'{round(total_fat, 1)} жир. ' \
+            f'{round(total_carbohydrates, 1)} ' \
+            f'угл. {round(total_sugar, 1)} сах.' \
+            f')\n_\n{choose_case(amount=total_calories)}\n_\n'
+
+    return response_text, total_calories
+
+
+def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
+    if round_to_int:
+        str_amount = str(int(amount))
+    else:
+        # Leaving only 2 digits after comma (12.03 for example)
+        str_amount = str(round(amount, 2))
+        if int(amount) == amount:
+            str_amount = str(int(amount))
+
+    last_digit_str = str_amount[-1]
+
+    if not round_to_int and '.' in str_amount:  # 12.04 калории
+        return f'{str_amount} калории'
+    # below amount is integer for sure
+    if last_digit_str == '1':  # 21 калория (20 одна калория in tts mode)
+        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
+            return f'{str_amount} калорий'
+        if tts_mode:
+            if len(str_amount) > 1:
+                first_part = str(int(str_amount[:-1]) * 10)
+            else:
+                first_part = ''
+            str_amount = f'{first_part} одна'
+        return f'{str_amount} калория'
+    elif last_digit_str in ('2', '3', '4'):
+        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
+            return f'{str_amount} калорий'
+        if tts_mode:
+            if len(str_amount) > 1:
+                first_part = str(int(str_amount[:-1]) * 10)
+            else:
+                first_part = ''
+            if last_digit_str == '2':
+                str_amount = f'{first_part} две'
+        return f'{str_amount} калории'  # 22 калории
+    else:
+        return f'{str_amount} калорий'  # 35 калорий
+
+
+def construct_food_yandex_response_from_food_dict(
+        *,
+        yandex_request: YandexRequest,
+        cached_dict: dict) -> YandexResponse:
+    if 'error' in cached_dict:
+        return respond_i_dont_know(request=yandex_request)
+
+    respond_text, total_calories_float = \
+        construct_response_text_from_nutrition_dict(nutrition_dict=cached_dict)
+
+    if yandex_request.has_screen:
+        tts = choose_case(
+                amount=total_calories_float,
+                tts_mode=True,
+                round_to_int=True)
+    else:
+        tts = respond_text
+
+    return YandexResponse(
+            client_device_id=yandex_request.client_device_id,
+            has_screen=yandex_request.has_screen,
+            end_session=False,
+            message_id=yandex_request.message_id,
+            session_id=yandex_request.session_id,
+            user_guid=yandex_request.user_guid,
+            version=yandex_request.version,
+            response_text=respond_text,
+            response_tts=tts,
+            buttons=[],
+    )
+
+
 def respond_request(
         *,
         request: YandexRequest,
@@ -367,7 +485,7 @@ def clear_session(
                                         'id': {
                                             'S': session_id,
                                         }, })
-    except botocore.vendored.requests.exceptions.ReadTimeout:
+    except ReadTimeout:
         pass
 
 
@@ -502,7 +620,6 @@ def respond_with_context(
 def russian_replacements_in_original_utterance(
         *,
         yandex_request: YandexRequest) -> YandexRequest:
-
     phrase = yandex_request.original_utterance
     tokens = yandex_request.tokens
     replacements = [
@@ -702,21 +819,173 @@ def translate_request(*, yandex_request: YandexRequest):
     if string_is_only_latin_and_numbers(yandex_request.original_utterance):
         return yandex_request
 
+    translated_yandex_request = replace(
+            yandex_request,
+            original_utterance=translate_text_into_english(
+                    russian_text=yandex_request.original_utterance,
+                    aws_lambda_mode=yandex_request.aws_lambda_mode,
+            ),
+    )  # type: YandexRequest
+
+    if translated_yandex_request.original_utterance == 'Error: timeout':
+        translated_yandex_request = replace(
+                translated_yandex_request,
+                error='timeout')
+
+    return translated_yandex_request
+
+
+@timeit
+def query_endpoint(*, link, login, password, phrase) -> dict:
+    try:
+        response = requests.post(link,
+                                 data=json.dumps({'query': phrase}),
+                                 headers={'content-type': 'application/json',
+                                          'x-app-id': login,
+                                          'x-app-key': password},
+                                 timeout=0.5,
+                                 )
+    except Exception as e:
+        return {'fatal': str(e)}
+
+    if response.status_code != 200:
+        return {'error': response.text}
+
+    try:
+        nutrition_dict = json.loads(response.text)
+    except Exception as e:
+        return {'fatal': f'Failed to parse food json: {e}'}
+
+    if 'foods' not in nutrition_dict or not nutrition_dict['foods']:
+        return {'fatal': f'Tag foods not found or empty: {nutrition_dict}'}
+
+    return nutrition_dict
+
+
+@timeit
+def choose_key(keys_dict):
+    min_usage_value = 90000
+    min_usage_key = None
+    limit_date = str(datetime.datetime.now() - datetime.timedelta(hours=24))
+    for k in keys_dict['keys']:
+        # deleting keys usages if they are older than 24 hours
+        k['dates'] = [d for d in k['dates'] if d > limit_date]
+        if min_usage_key is None:
+            min_usage_key = k
+        if min_usage_value > len(k['dates']):
+            min_usage_key = k
+            min_usage_value = len(k['dates'])
+
+    min_usage_key['dates'].append(str(datetime.datetime.now()))
+    return min_usage_key['name'], min_usage_key['pass'], keys_dict
+
+
+@timeit
+def save_session(
+        *,
+        session_id: str,
+        event_time: datetime.datetime,
+        foods_dict: dict,
+        utterance: str,
+        database_client) -> None:
+
+    database_client.put_item(
+            TableName='nutrition_sessions',
+            Item={
+                'id': {
+                    'S': session_id,
+                },
+                'value': {
+                    'S': json.dumps({
+                        'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'foods': foods_dict,
+                        'utterance': utterance}),
+                }})
+
+
+@timeit
+def write_to_cache_table(
+        *,
+        initial_phrase: str,
+        nutrition_dict: dict,
+        database_client,
+        keys_dict: dict) -> None:
+    database_client.put_item(TableName='nutrition_cache',
+                             Item={
+                                 'initial_phrase': {
+                                     'S': initial_phrase,
+                                 },
+                                 'response': {
+                                     'S': json.dumps(nutrition_dict),
+                                 }})
+    database_client.put_item(TableName='nutrition_cache',
+                             Item={
+                                 'initial_phrase': {
+                                     'S': '_key',
+                                 },
+                                 'response': {
+                                     'S': json.dumps(keys_dict),
+                                 }})
+
 
 @timeit
 def respond_without_context(request: YandexRequest) -> YandexResponse:
-    get_from_cache_table
+    database_client = get_boto3_client(
+            aws_lambda_mode=request.aws_lambda_mode,
+            service_name='dynamodb',
+    )
+
+    keys_dict, cached_dict = get_from_cache_table(
+            request_text=request.original_utterance,
+            database_client=database_client)
+
+    if 'error' in keys_dict:
+        return respond_i_dont_know(request=request)
+
+    if cached_dict:
+        return construct_food_yandex_response_from_food_dict(
+                yandex_request=request,
+                cached_dict=cached_dict)
+
     request_with_replacements = russian_replacements_in_original_utterance(
             yandex_request=request)
+
     translated_request = translate_request(
             yandex_request=request_with_replacements)
-    print(translated_request)
-    return construct_yandex_response_from_yandex_request(
+
+    if translated_request.error:
+        return respond_i_dont_know(request=translated_request)
+
+    login, password, keys_dict = choose_key(keys_dict)
+    nutrition_dict = query_endpoint(
+            link=keys_dict['link'],
+            login=login,
+            password=password,
+            phrase=translated_request.original_utterance)
+
+    # if we recevied negative response,
+    if 'fatal' in nutrition_dict:
+        return respond_i_dont_know(request=translated_request)
+
+    write_to_cache_table(
+            initial_phrase=request.original_utterance,
+            nutrition_dict=nutrition_dict,
+            database_client=database_client,
+            keys_dict=keys_dict)
+
+    if 'error' in nutrition_dict:
+        return respond_i_dont_know(request=translated_request)
+
+    save_session(
+            session_id=translated_request.session_id,
+            database_client=database_client,
+            event_time=datetime.datetime.now(),
+            foods_dict=nutrition_dict,
+            utterance=request.original_utterance)
+
+    return construct_food_yandex_response_from_food_dict(
             yandex_request=request,
-            text='Without context',
-            tts='Without context',
-            end_session=False,
-            buttons=[],
+            cached_dict=nutrition_dict,
     )
 
 
@@ -727,19 +996,23 @@ def get_from_cache_table(
         database_client: boto3.client) -> typing.Tuple[dict, dict]:
     keys_dict = {}
     food_dict = {}
-    items = database_client.batch_get_item(
-            RequestItems={
-                'nutrition_cache': {
-                    'Keys': [
-                        {
-                            'initial_phrase': {
-                                'S': '_key'},
-                        },
-                        {
-                            'initial_phrase': {
-                                'S': request_text},
-                        }
-                    ]}})
+    try:
+        items = database_client.batch_get_item(
+                RequestItems={
+                    'nutrition_cache': {
+                        'Keys': [
+                            {
+                                'initial_phrase': {
+                                    'S': '_key'},
+                            },
+                            {
+                                'initial_phrase': {
+                                    'S': request_text},
+                            }
+                        ]}})
+    except (ConnectTimeout, ReadTimeout):
+        return {'error': 'timeout'}, {'error': 'timeout'}
+
     for item in items['Responses']['nutrition_cache']:
         if item['initial_phrase']['S'] == '_key':
             keys_dict = json.loads(item['response']['S'])
@@ -808,13 +1081,18 @@ def fetch_context_from_dynamo_database(
         aws_lambda_mode: bool,
         session_id: str,
 ) -> dict:
-    database_client = get_boto3_client(
-            aws_lambda_mode=aws_lambda_mode,
-            service_name='dynamodb')
+    try:
+        database_client = get_boto3_client(
+                aws_lambda_mode=aws_lambda_mode,
+                service_name='dynamodb')
 
-    result = database_client.get_item(
-            TableName='nutrition_sessions',
-            Key={'id': {'S': session_id}})
+        result = database_client.get_item(
+                TableName='nutrition_sessions',
+                Key={'id': {'S': session_id}})
+
+    except (ConnectTimeout, ReadTimeout):
+        return {}
+
     if 'Item' not in result:
         return {}
     else:
@@ -1152,31 +1430,37 @@ def respond_existing_session(yandex_request: YandexRequest):
 
 
 @timeit
-def translate_yandex_request_into_english(
+def translate_text_into_english(
         *,
-        yandex_request: YandexRequest):
+        russian_text: str, aws_lambda_mode: bool):
     translation_client = get_boto3_client(
-            aws_lambda_mode=yandex_request.aws_lambda_mode,
+            aws_lambda_mode=aws_lambda_mode,
             service_name='translate')
 
-    full_phrase_translated = translation_client.translate_text(
-            Text=yandex_request.original_utterance,
-            SourceLanguageCode='ru',
-            TargetLanguageCode='en'
-    ).get('TranslatedText')  # type:str
+    try:
+        full_phrase_translated = translation_client.translate_text(
+                Text=russian_text,
+                SourceLanguageCode='ru',
+                TargetLanguageCode='en'
+        ).get('TranslatedText')  # type:str
+
+    except (ConnectTimeout, ReadTimeout):
+        return 'Error: timeout'
 
     return full_phrase_translated
 
 
 @timeit
-def mock_incoming_event(*, phrase: str) -> dict:
+def mock_incoming_event(*, phrase: str, has_screen: bool = True) -> dict:
+    if has_screen:
+        interfaces = {"screen": {}}
+    else:
+        interfaces = {}
     return {
         "meta": {
             "client_id": "ru.yandex.searchplugin/7.16 (none none; android "
                          "4.4.2)",
-            "interfaces": {
-                "screen": {}
-            },
+            "interfaces": interfaces,
             "locale": "ru-RU",
             "timezone": "UTC"
         },
@@ -1258,7 +1542,11 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
+    # print(translate_text_into_english(
+    #         russian_text='Ну прям очень длинный текст, ',
+    #         aws_lambda_mode=True))
     print(functional_nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='2 сырка'),
+                    phrase='200 грамм брокколи и 100 грамм шпината',
+                    has_screen=True),
             context={}))
