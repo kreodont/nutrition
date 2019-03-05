@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass, replace
+from dataclasses import replace
 import typing
 from functools import reduce, partial
 import random
@@ -7,8 +7,13 @@ import boto3
 import botocore.client
 from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
 import json
-import time
-import requests
+from botocore.vendored import requests
+import standard_responses
+from russian_language import choose_case
+from yandex_types import YandexResponse, YandexRequest
+from decorators import timeit
+from responses_constructors import respond_request, \
+    construct_yandex_response_from_yandex_request
 
 import dateutil
 
@@ -19,82 +24,6 @@ boto3_database_client = None
 # need to restantiate connections again. It is used in get_boto3_client
 # function, I know it is mess, but 100 ms are 100 ms
 global_cached_boto3_clients = {}
-
-
-@dataclass(frozen=True)
-class YandexRequest:
-    client_device_id: str
-    has_screen: bool
-    timezone: str
-    original_utterance: str
-    is_new_session: bool
-    user_guid: str
-    message_id: str
-    session_id: str
-    entities: typing.List[typing.Dict[str, str]]
-    tokens: typing.List[str]
-    aws_lambda_mode: bool
-    version: str
-    error: str = ''
-
-    @staticmethod
-    def empty_request(*, aws_lambda_mode: bool, error: str):
-        return YandexRequest(
-                client_device_id='',
-                has_screen=False,
-                timezone='UTC',
-                original_utterance='',
-                entities=[],
-                tokens=[],
-                is_new_session=False,
-                user_guid='',
-                message_id='',
-                session_id='',
-                version='',
-                aws_lambda_mode=aws_lambda_mode,
-                error=error
-        )
-
-    def __repr__(self):
-        return '\n'.join(
-                [f'{key:20}: {self.__dict__[key]}' for
-                 key in sorted(self.__dict__.keys())])
-
-
-@dataclass(frozen=True)
-class YandexResponse:
-    client_device_id: str
-    has_screen: bool
-    user_guid: str
-    message_id: str
-    session_id: str
-    response_text: str
-    response_tts: str
-    end_session: bool
-    version: str
-    buttons: typing.List[typing.Dict]
-
-    def __repr__(self):
-        return '\n'.join(
-                [f'{key:20}: {self.__dict__[key]}' for
-                 key in sorted(self.__dict__.keys())])
-
-
-def timeit(target_function):
-    def timed(*args, **kwargs):
-        start_time = time.time()
-        result = target_function(*args, **kwargs)
-        end_time = time.time()
-        milliseconds = (end_time - start_time) * 1000
-        first_column = f'Function "{target_function.__name__}":'
-        if target_function.__name__ == 'functional_nutrition_dialog':
-            print('-' * 90)
-        print(f'{first_column:80} {milliseconds:.1f} ms')
-        if target_function.__name__ == 'functional_nutrition_dialog':
-            print('-' * 90)
-        return result
-
-    return timed
 
 
 @timeit
@@ -298,28 +227,6 @@ def transform_yandex_response_to_output_result_dict(
     return response
 
 
-@timeit
-def construct_yandex_response_from_yandex_request(
-        *,
-        yandex_request: YandexRequest,
-        text: str,
-        tts: str,
-        end_session: bool,
-        buttons: list):
-    return YandexResponse(
-            client_device_id=yandex_request.client_device_id,
-            has_screen=yandex_request.has_screen,
-            end_session=end_session,
-            message_id=yandex_request.message_id,
-            session_id=yandex_request.session_id,
-            user_guid=yandex_request.user_guid,
-            version=yandex_request.version,
-            response_text=text,
-            response_tts=tts,
-            buttons=buttons,
-    )
-
-
 def construct_response_text_from_nutrition_dict(
         *,
         nutrition_dict: dict) -> typing.Tuple[str, float]:
@@ -366,45 +273,6 @@ def construct_response_text_from_nutrition_dict(
     return response_text, total_calories
 
 
-def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
-    if round_to_int:
-        str_amount = str(int(amount))
-    else:
-        # Leaving only 2 digits after comma (12.03 for example)
-        str_amount = str(round(amount, 2))
-        if int(amount) == amount:
-            str_amount = str(int(amount))
-
-    last_digit_str = str_amount[-1]
-
-    if not round_to_int and '.' in str_amount:  # 12.04 калории
-        return f'{str_amount} калории'
-    # below amount is integer for sure
-    if last_digit_str == '1':  # 21 калория (20 одна калория in tts mode)
-        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
-            return f'{str_amount} калорий'
-        if tts_mode:
-            if len(str_amount) > 1:
-                first_part = str(int(str_amount[:-1]) * 10)
-            else:
-                first_part = ''
-            str_amount = f'{first_part} одна'
-        return f'{str_amount} калория'
-    elif last_digit_str in ('2', '3', '4'):
-        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
-            return f'{str_amount} калорий'
-        if tts_mode:
-            if len(str_amount) > 1:
-                first_part = str(int(str_amount[:-1]) * 10)
-            else:
-                first_part = ''
-            if last_digit_str == '2':
-                str_amount = f'{first_part} две'
-        return f'{str_amount} калории'  # 22 калории
-    else:
-        return f'{str_amount} калорий'  # 35 калорий
-
-
 def construct_food_yandex_response_from_food_dict(
         *,
         yandex_request: YandexRequest,
@@ -415,11 +283,14 @@ def construct_food_yandex_response_from_food_dict(
     respond_text, total_calories_float = \
         construct_response_text_from_nutrition_dict(nutrition_dict=cached_dict)
 
+    respond_text += '\nСкажите "да" или "сохранить", если ' \
+                    'хотите записать этот прием пищи.'
+
     if yandex_request.has_screen:
         tts = choose_case(
                 amount=total_calories_float,
                 tts_mode=True,
-                round_to_int=True)
+                round_to_int=True) + '. Сохранить?'
     else:
         tts = respond_text
 
@@ -435,14 +306,6 @@ def construct_food_yandex_response_from_food_dict(
             response_tts=tts,
             buttons=[],
     )
-
-
-def respond_request(
-        *,
-        request: YandexRequest,
-        responding_function: typing.Callable) -> YandexResponse:
-    return responding_function(request)
-    pass
 
 
 @timeit
@@ -572,7 +435,6 @@ def check_if_no_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
-@timeit
 def check_if_help_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -1102,314 +964,6 @@ def fetch_context_from_dynamo_database(
             return {}
 
 
-def is_help_request(request: YandexRequest):
-    tokens = request.tokens
-    if (
-            'помощь' in tokens or
-            'справка' in tokens or
-            'хелп' in tokens or
-            'информация' in tokens or
-            'ping' in tokens or
-            'пинг' in tokens or
-            'умеешь' in tokens or
-            ('что' in tokens and [t for t in tokens if 'делать' in t]) or
-            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
-            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
-        return True
-    return False
-
-
-def respond_help(request: YandexRequest) -> YandexResponse:
-    help_text = 'Я считаю калории. Просто скажите что вы съели, а я скажу ' \
-                'сколько в этом было калорий. Например: соевое молоко с ' \
-                'хлебом. Потом я спрошу надо ли сохранить этот прием пищи, и ' \
-                'если вы скажете да, я запишу его в свою базу данных. Можно ' \
-                'сказать не просто да, а указать время приема пищи, ' \
-                'например: да, вчера в 9 часов 30 минут. После того, как ' \
-                'прием пищи сохранен, вы сможете узнать свое суточное ' \
-                'потребление калорий с помощью команды "что я ел(а)?". ' \
-                'При этом также можно указать время, например: "Что я ел ' \
-                'вчера?" или "Что я ела неделю назад?". Если какая-то еда ' \
-                'была внесена ошибочно, можно сказать "Удалить соевое ' \
-                'молоко с хлебом".  Прием пищи "Соевое молоко с хлебом" ' \
-                'будет удален'
-
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=help_text,
-            tts=help_text,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_thanks_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in (
-            'спасибо', 'молодец', 'отлично', 'ты классная', 'классная штука',
-            'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
-            'клево', 'ништяк'):
-        return True
-    return False
-
-
-def respond_thanks(request: YandexRequest) -> YandexResponse:
-    welcome_phrases = [
-        'Спасибо, я стараюсь',
-        'Спасибо за комплимент',
-        'Приятно быть полезной',
-        'Доброе слово и боту приятно']
-    chosen_welcome_phrase = random.choice(welcome_phrases)
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=chosen_welcome_phrase,
-            tts=chosen_welcome_phrase,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_hello_request(request: YandexRequest):
-    tokens = request.tokens
-    if (
-            'привет' in tokens or
-            'здравствуй' in tokens or
-            'здравствуйте' in tokens or
-            'хелло' in tokens or
-            'hello' in tokens or
-            'приветик' in tokens
-    ):
-        return True
-    return False
-
-
-def is_human_meat_request(request: YandexRequest):
-    tokens = request.tokens
-    full_phrase = request.original_utterance
-    if [t for t in tokens if 'человеч' in t] or \
-            tokens == ['мясо', 'человека'] or \
-            full_phrase in ('человек',):
-        return True
-    return False
-
-
-def respond_human_meat(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Доктор Лектер, это вы?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def respond_hello(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Здравствуйте. А теперь расскажите что вы съели, а я ' \
-                     'скажу сколько там было калорий и питательных веществ.'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_goodbye_request(request: YandexRequest):
-    tokens = request.tokens
-    full_phrase = request.original_utterance
-    if (
-            'выход' in tokens or
-            'выйти' in tokens or
-            'пока' in tokens or
-            'выйди' in tokens or
-            'до свидания' in full_phrase.lower() or
-            'всего доброго' in full_phrase.lower() or
-            tokens == ['алиса', ] or
-            full_phrase in ('иди на хуй', 'стоп')
-
-    ):
-        return True
-    return False
-
-
-def respond_goodbye(request: YandexRequest) -> YandexResponse:
-    respond_string = 'До свидания'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=True,
-            buttons=[],
-    )
-
-
-def is_eat_cat_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
-        return True
-    return False
-
-
-def respond_eat_cat(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Нееш, падумой'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_eat_poop_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
-                       'фекалии', 'какахе', 'какахи'):
-        return True
-    return False
-
-
-def respond_eat_poop(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Вы имели в виду "Сладкий хлеб"?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_i_think_too_much_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('это много', 'это мало', 'что-то много',
-                       'что-то мало', 'так много'):
-        return True
-    return False
-
-
-def respond_i_think_too_much(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Если вы нашли ошибку, напишите моему разработчику, ' \
-                     'и он объяснит мне, как правильно'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_dick_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('хуй', 'моржовый хуй', 'хер'):
-        return True
-    return False
-
-
-def respond_dick(request: YandexRequest) -> YandexResponse:
-    respond_string = 'С солью или без соли?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_nothing_to_add_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('никакую', 'ничего', 'никакой'):
-        return True
-    return False
-
-
-def respond_nothing_to_add(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Хорошо, дайте знать, когда что-то появится'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def respond_one_of_predefined_phrases(
-        request: YandexRequest) -> typing.Optional[YandexResponse]:
-    # Respond long phrases
-    if len(request.original_utterance) >= 100:
-        return respond_request(
-                request=request,
-                responding_function=respond_text_too_long)
-
-    # Respond help requests
-    if check_if_help_in_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_help)
-
-    if is_thanks_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_thanks)
-
-    if is_hello_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_hello)
-
-    if is_goodbye_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_goodbye)
-
-    if is_human_meat_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_human_meat)
-
-    if is_eat_cat_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_eat_cat)
-
-    if is_eat_poop_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_eat_poop)
-
-    if is_i_think_too_much_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_i_think_too_much)
-
-    if is_dick_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_dick)
-
-    if is_nothing_to_add_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_nothing_to_add)
-
-
-def respond_text_too_long(request: YandexRequest) -> YandexResponse:
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='Ой, текст слишком длинный. Давайте попробуем частями?',
-            tts='Ой, текст слишком длинный. Давайте попробуем частями?',
-            end_session=False,
-            buttons=[],
-    )
-
-
 def respond_existing_session(yandex_request: YandexRequest):
     context = fetch_context_from_dynamo_database(
             aws_lambda_mode=yandex_request.aws_lambda_mode,
@@ -1512,7 +1066,8 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
     # there can be many hardcoded responses, need to check all of them before
     # querying any databases
-    any_predifined_response = respond_one_of_predefined_phrases(
+    any_predifined_response = standard_responses.\
+        respond_one_of_predefined_phrases(
             request=yandex_request)
 
     if any_predifined_response:
@@ -1547,6 +1102,6 @@ if __name__ == '__main__':
     #         aws_lambda_mode=True))
     print(functional_nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='200 грамм брокколи и 100 грамм шпината',
+                    phrase='какашка',
                     has_screen=True),
             context={}))
