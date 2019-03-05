@@ -357,3 +357,49 @@ def respond_text_too_long(request: YandexRequest) -> YandexResponse:
             end_session=False,
             buttons=[],
     )
+
+
+def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
+    first_parts_list = [
+        'Это не похоже на название еды. Попробуйте сформулировать иначе',
+        'Хм. Не могу понять что это. Попробуйте сказать иначе',
+        'Такой еды я пока не знаю. Попробуйте сказать иначе'
+    ]
+
+    food_examples_list = ['Бочка варенья и коробка печенья',
+                          'Литр молока и килограмм селедки',
+                          '2 куска пиццы с ананасом',
+                          '200 грамм брокколи и 100 грамм шпината',
+                          'ананас и рябчик',
+                          '2 блина со сгущенкой',
+                          'тарелка риса, котлета и стакан апельсинового сока',
+                          'банан, апельсин и манго',
+                          'черная икра, красная икра, баклажанная икра',
+                          'каша из топора и свежевыжатый березовый сок',
+                          ]
+
+    full_generated_text = f"{random.choice(first_parts_list)}, " \
+        f"например: {random.choice(food_examples_list)}"
+    if request.has_screen:
+        tts = "Попробуйте сказать иначе"
+    else:
+        tts = full_generated_text
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=full_generated_text,
+            tts=tts,
+            buttons=[],
+            end_session=False,
+    )
+
+
+def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
+    greeting_text = 'Какую еду записать?'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=greeting_text,
+            tts=greeting_text,
+            end_session=False,
+            buttons=[],
+    )

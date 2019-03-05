@@ -2,6 +2,7 @@ import typing
 from russian_language import choose_case
 from yandex_types import YandexRequest, YandexResponse
 from decorators import timeit
+import standard_responses as sr
 
 
 def construct_response_text_from_nutrition_dict(
@@ -77,3 +78,38 @@ def respond_request(
         request: YandexRequest,
         responding_function: typing.Callable) -> YandexResponse:
     return responding_function(request)
+
+
+def construct_food_yandex_response_from_food_dict(
+        *,
+        yandex_request: YandexRequest,
+        cached_dict: dict) -> YandexResponse:
+    if 'error' in cached_dict:
+        return sr.respond_i_dont_know(request=yandex_request)
+
+    respond_text, total_calories_float = \
+        construct_response_text_from_nutrition_dict(nutrition_dict=cached_dict)
+
+    respond_text += '\nСкажите "да" или "сохранить", если ' \
+                    'хотите записать этот прием пищи.'
+
+    if yandex_request.has_screen:
+        tts = choose_case(
+                amount=total_calories_float,
+                tts_mode=True,
+                round_to_int=True) + '. Сохранить?'
+    else:
+        tts = respond_text
+
+    return YandexResponse(
+            client_device_id=yandex_request.client_device_id,
+            has_screen=yandex_request.has_screen,
+            end_session=False,
+            message_id=yandex_request.message_id,
+            session_id=yandex_request.session_id,
+            user_guid=yandex_request.user_guid,
+            version=yandex_request.version,
+            response_text=respond_text,
+            response_tts=tts,
+            buttons=[],
+    )
