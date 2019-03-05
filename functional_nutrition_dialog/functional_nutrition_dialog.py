@@ -375,6 +375,6 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(functional_nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='шлейка',
+                    phrase='запусти',
                     has_screen=True),
             context={}))

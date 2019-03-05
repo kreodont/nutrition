@@ -264,6 +264,116 @@ def respond_what_is_your_name(request: YandexRequest) -> YandexResponse:
     )
 
 
+def is_smart_calories_counter_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('умный счетчик калорий', ):
+        return True
+    return False
+
+
+def respond_smart_calories_countere(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Да, я слушаю'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_where_is_saved_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('а где сохраняются', 'где сохраняются',
+                       'где сохранить', 'а зачем сохранять', 'зачем сохранять'):
+        return True
+    return False
+
+
+def respond_where_is_saved(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Приемы пищи сохраняются в моей базе данных. ' \
+                     'Ваши приемы пищи будут доступны только Вам. ' \
+                     'Я могу быть Вашим личным дневником калорий'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_angry_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
+                       'идиотка', 'тупорылая', 'тупая', 'ты дура'):
+        return True
+    return False
+
+
+def respond_angry(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Все мы можем ошибаться. Напишите моему разработчику, ' \
+                     'а он меня накажет и научит больше не ошибаться.'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_not_implemented_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    tokens = request.tokens
+    if full_phrase in ('норма калорий',
+                       'сколько я набрала калорий',
+                       'сколько я набрал калорий',
+                       'сколько в день нужно калорий',
+                       'норма потребления',
+                       'сколько нужно съесть калорий в день',
+                       'дневная норма калорий',
+                       ) or 'норма' in tokens:
+        return True
+    return False
+
+
+def respond_not_implemented(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Этого я пока не умею, но планирую скоро научиться. ' \
+                     'Следите за обновлениями'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_launch_another_skill_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if 'запусти' in full_phrase or 'поиграем' in full_phrase:
+        return True
+    return False
+
+
+def respond_launch_another_skill(request: YandexRequest) -> YandexResponse:
+    respond_string = 'Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису ' \
+                     'и запустить другой навык, скажите Выход'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
 def check_if_help_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -347,6 +457,31 @@ def respond_one_of_predefined_phrases(
         return respond_request(
                 request=request,
                 responding_function=respond_what_is_your_name)
+
+    if is_smart_calories_counter_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_smart_calories_countere)
+
+    if is_where_is_saved_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_where_is_saved)
+
+    if is_angry_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_angry)
+
+    if is_not_implemented_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_not_implemented)
+
+    if is_launch_another_skill_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_launch_another_skill)
 
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
