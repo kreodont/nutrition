@@ -1,10 +1,8 @@
 import datetime
-from dataclasses import replace
 import typing
 from functools import partial
 import boto3
 import botocore.client
-from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
 import json
 from botocore.vendored import requests
 from standard_responses import respond_i_dont_know, \
@@ -21,7 +19,7 @@ from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database
 from russian_language import russian_replacements_in_original_utterance
-
+from translation_functions import translate_request
 import dateutil
 
 # This cache is useful because AWS lambda can keep it's state, so no
@@ -170,47 +168,19 @@ def respond_with_context(
     if check_if_no_in_request(request=request):
         return response_with_context_when_no_in_request(
                 request=request,
-                database_client=database_client)
+                database_client=database_client,
+        )
 
     if check_if_yes_in_request(request=request):
         return response_with_context_when_yes_in_request(
                 request=request,
                 context=context,
-                database_client=database_client)
+                database_client=database_client,
+        )
 
     # We checked all possible context reaction, nothing fits,
     # so act as we don't have context at all
     return respond_without_context(request=request)
-
-
-def string_is_only_latin_and_numbers(s):
-    try:
-        s.encode(encoding='utf-8').decode('ascii')
-    except UnicodeDecodeError:
-        return False
-    else:
-        return True
-
-
-@timeit
-def translate_request(*, yandex_request: YandexRequest):
-    if string_is_only_latin_and_numbers(yandex_request.original_utterance):
-        return yandex_request
-
-    translated_yandex_request = replace(
-            yandex_request,
-            original_utterance=translate_text_into_english(
-                    russian_text=yandex_request.original_utterance,
-                    aws_lambda_mode=yandex_request.aws_lambda_mode,
-            ),
-    )  # type: YandexRequest
-
-    if translated_yandex_request.original_utterance == 'Error: timeout':
-        translated_yandex_request = replace(
-                translated_yandex_request,
-                error='timeout')
-
-    return translated_yandex_request
 
 
 @timeit
@@ -269,6 +239,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
             request_text=request.original_utterance,
             database_client=database_client)
 
+    # if failed to get data from dynamodb
     if 'error' in keys_dict:
         return respond_i_dont_know(request=request)
 
@@ -280,8 +251,15 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     request_with_replacements = russian_replacements_in_original_utterance(
             yandex_request=request)
 
+    translation_client = get_boto3_client(
+            aws_lambda_mode=request.aws_lambda_mode,
+            service_name='translate',
+    )
+
     translated_request = translate_request(
-            yandex_request=request_with_replacements)
+            yandex_request=request_with_replacements,
+            translate_client=translation_client,
+    )
 
     if translated_request.error:
         return respond_i_dont_know(request=translated_request)
@@ -319,11 +297,6 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     )
 
 
-@timeit
-def check_if_new_session(yandex_request: YandexRequest):
-    return yandex_request.is_new_session
-
-
 def respond_existing_session(yandex_request: YandexRequest):
     database_client = get_boto3_client(
             aws_lambda_mode=yandex_request.aws_lambda_mode,
@@ -341,27 +314,6 @@ def respond_existing_session(yandex_request: YandexRequest):
                 database_client=database_client)(request=yandex_request)
     else:
         return respond_without_context(request=yandex_request)
-
-
-@timeit
-def translate_text_into_english(
-        *,
-        russian_text: str, aws_lambda_mode: bool):
-    translation_client = get_boto3_client(
-            aws_lambda_mode=aws_lambda_mode,
-            service_name='translate')
-
-    try:
-        full_phrase_translated = translation_client.translate_text(
-                Text=russian_text,
-                SourceLanguageCode='ru',
-                TargetLanguageCode='en'
-        ).get('TranslatedText')  # type:str
-
-    except (ConnectTimeout, ReadTimeout):
-        return 'Error: timeout'
-
-    return full_phrase_translated
 
 
 @timeit
@@ -421,11 +373,8 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    # print(translate_text_into_english(
-    #         russian_text='Ну прям очень длинный текст, ',
-    #         aws_lambda_mode=True))
     print(functional_nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='гренландия',
+                    phrase='шлейка',
                     has_screen=True),
             context={}))
