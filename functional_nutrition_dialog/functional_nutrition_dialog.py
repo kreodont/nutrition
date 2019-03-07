@@ -14,7 +14,7 @@ from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
-from mockers import mock_incoming_event
+# from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database
@@ -145,6 +145,93 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
 
 
 @timeit
+def check_if_date_in_request(*, request: YandexRequest) -> bool:
+    if any([entity for entity in request.entities if
+            entity['type'] == "YANDEX.DATETIME"]):
+        return True
+
+    return False
+
+
+def adjust_relative_dates(
+        *,
+        initial_date: datetime.datetime,
+        yandex_dict: dict) -> datetime.datetime:
+    relative_year = yandex_dict['year_is_relative'] \
+        if ('year_is_relative' in yandex_dict and
+            yandex_dict['year'] is True) else 0
+
+    relative_month = yandex_dict['month_is_relative'] \
+        if ('month_is_relative' in yandex_dict and
+            yandex_dict['month'] is True) else 0
+
+    relative_day = yandex_dict['day_is_relative'] \
+        if ('day_is_relative' in yandex_dict and
+            yandex_dict['day'] is True) else 0
+
+    relative_hour = yandex_dict['hour_is_relative'] \
+        if ('hour_is_relative' in yandex_dict and
+            yandex_dict['hour'] is True) else 0
+
+    relative_minute = yandex_dict['minute_is_relative'] \
+        if ('minute_is_relative' in yandex_dict and
+            yandex_dict['minute'] is True) else 0
+
+    relative_second = yandex_dict['second_is_relative'] \
+        if ('second_is_relative' in yandex_dict and
+            yandex_dict['second'] is True) else 0
+    return initial_date + dateutil.relativedelta.relativedelta(
+            years=relative_year,
+            months=relative_month,
+            days=relative_day,
+            hours=relative_hour,
+            minutes=relative_minute,
+            seconds=relative_second)
+
+
+def adjust_absolute_dates(
+        *,
+        initial_date: datetime.datetime,
+        yandex_dict: dict) -> datetime.datetime:
+    adjusted_date = initial_date
+    if ('year_is_relative' in yandex_dict and
+            yandex_dict['year_is_relative'] is False):
+        adjusted_date = adjusted_date.replace(year=yandex_dict['year'])
+
+    if ('month_is_relative' in yandex_dict and
+            yandex_dict['month_is_relative'] is False):
+        adjusted_date = adjusted_date.replace(month=yandex_dict['month'])
+
+    if ('day_is_relative' in yandex_dict and
+            yandex_dict['day_is_relative'] is False):
+        adjusted_date = adjusted_date.replace(day=yandex_dict['day'])
+
+    if ('hour_is_relative' in yandex_dict and
+            yandex_dict['hour_is_relative'] is False):
+        adjusted_date = adjusted_date.replace(hour=yandex_dict['hour'])
+
+    if ('minute_is_relative' in yandex_dict and
+            yandex_dict['minute_is_relative'] is False):
+        adjusted_date = adjusted_date.replace(minute=yandex_dict['minute'])
+
+    if ('second_is_relative' in yandex_dict and
+            yandex_dict['second_is_relative'] is False):
+        adjusted_date = adjusted_date.replace(second=yandex_dict['second'])
+
+    return adjusted_date
+
+
+def transform_yandex_datetime_value_to_datetime(
+        *,
+        yandex_datetime_value_dict) -> datetime.datetime:
+    return adjust_absolute_dates(
+            initial_date=adjust_relative_dates(
+                    initial_date=datetime.datetime.now(),
+                    yandex_dict=yandex_datetime_value_dict),
+            yandex_dict=yandex_datetime_value_dict)
+
+
+@timeit
 def check_if_no_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
     if (
@@ -165,6 +252,7 @@ def respond_with_context(
         context: dict,
         database_client
 ) -> YandexResponse:
+
     if check_if_no_in_request(request=request):
         return response_with_context_when_no_in_request(
                 request=request,
@@ -177,6 +265,19 @@ def respond_with_context(
                 context=context,
                 database_client=database_client,
         )
+
+    if check_if_date_in_request(request=request):
+        last_datetime_entity = [entity for entity in request.entities if
+                                entity['type'] == "YANDEX.DATETIME"][-1]
+        absolute_date = transform_yandex_datetime_value_to_datetime(
+                yandex_datetime_value_dict=last_datetime_entity)
+        print(absolute_date)
+        pass
+        # return response_with_context_when_date_in_request(
+        #         request=request,
+        #         context=context,
+        #         database_client=database_client,
+        # )
 
     # We checked all possible context reaction, nothing fits,
     # so act as we don't have context at all
@@ -373,8 +474,64 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
+    # print(functional_nutrition_dialog(
+    #         event=mock_incoming_event(
+    #                 phrase='да',
+    #                 has_screen=True),
+    #         context={}))
     print(functional_nutrition_dialog(
-            event=mock_incoming_event(
-                    phrase='запусти',
-                    has_screen=True),
-            context={}))
+            event={
+                "meta": {
+                    "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+                                 "android 4.4.2)",
+                    "interfaces": {
+                        "screen": {}
+                    },
+                    "locale": "ru-RU",
+                    "timezone": "UTC"
+                },
+                "request": {
+                    "command": "вчера в 4",
+                    "nlu": {
+                        "entities": [
+                            {
+                                "tokens": {
+                                    "end": 1,
+                                    "start": 0
+                                },
+                                "type": "YANDEX.DATETIME",
+                                "value": {
+                                    "day": -1,
+                                    "day_is_relative": True
+                                }
+                            },
+                            {
+                                "tokens": {
+                                    "end": 3,
+                                    "start": 2
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 4
+                            }
+                        ],
+                        "tokens": [
+                            "вчера",
+                            "в",
+                            "4"
+                        ]
+                    },
+                    "original_utterance": "вчера в 4",
+                    "type": "SimpleUtterance"
+                },
+                "session": {
+                    "message_id": 1,
+                    "new": False,
+                    "session_id": "965aba7d-2629a2aa-80dff681-537653cc",
+                    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+                    "user_id": "E401738E621D9AAC04AB162E44F39B3ABD"
+                               "A23A5CB2FF19E394C1915ED45CF467"
+                },
+                "version": "1.0"
+            },
+            context={},
+    ))

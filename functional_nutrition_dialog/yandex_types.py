@@ -163,18 +163,16 @@ def transform_event_dict_to_yandex_request_object(
     tokens = fetch_one_value_from_event_dict(
             path='request -> nlu -> tokens',
             event_dict=event_dict)
-    tokens = [] if \
-        tokens is None \
-        else tokens
+    tokens = [] if tokens is None else tokens
+
     partial_constructor = partial(partial_constructor,
                                   tokens=tokens)
 
     entities = fetch_one_value_from_event_dict(
             path='request -> nlu -> entities',
             event_dict=event_dict)
-    entities = [] if \
-        entities is None \
-        else entities
+    entities = [] if entities is None else entities
+
     full_yandex_request_constructor = partial(partial_constructor,
                                               entities=entities)
 
