@@ -14,7 +14,7 @@ from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
-# from mockers import mock_incoming_event
+from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database
@@ -507,65 +507,65 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    # print(functional_nutrition_dialog(
-    #         event=mock_incoming_event(
-    #                 phrase='да',
-    #                 has_screen=True),
-    #         context={}))
     print(functional_nutrition_dialog(
-            event={
-                "meta": {
-                    "client_id": "ru.yandex.searchplugin/7.16 (none none; "
-                                 "android 4.4.2)",
-                    "interfaces": {
-                        "screen": {}
-                    },
-                    "locale": "ru-RU",
-                    "timezone": "UTC"
-                },
-                "request": {
-                    "command": "27 января",
-                    "nlu": {
-                        "entities": [
-                            {
-                                "tokens": {
-                                    "end": 1,
-                                    "start": 0
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 27
-                            },
-                            {
-                                "tokens": {
-                                    "end": 2,
-                                    "start": 0
-                                },
-                                "type": "YANDEX.DATETIME",
-                                "value": {
-                                    "day": 27,
-                                    "day_is_relative": False,
-                                    "month": 1,
-                                    "month_is_relative": False
-                                }
-                            }
-                        ],
-                        "tokens": [
-                            "27",
-                            "января"
-                        ]
-                    },
-                    "original_utterance": "28 января",
-                    "type": "SimpleUtterance"
-                },
-                "session": {
-                    "message_id": 4,
-                    "new": False,
-                    "session_id": "3d50813-7c9d4cc1-e207e333-b7738e69",
-                    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39B3"
-                               "ABDA23A5CB2FF19E394C1915ED45CF467"
-                },
-                "version": "1.0"
-            },
-            context={},
-    ))
+            event=mock_incoming_event(
+                    phrase='удалить',
+                    has_screen=True),
+            context={}))
+    # print(functional_nutrition_dialog(
+    #         event={
+    #             "meta": {
+    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+    #                              "android 4.4.2)",
+    #                 "interfaces": {
+    #                     "screen": {}
+    #                 },
+    #                 "locale": "ru-RU",
+    #                 "timezone": "UTC"
+    #             },
+    #             "request": {
+    #                 "command": "27 января",
+    #                 "nlu": {
+    #                     "entities": [
+    #                         {
+    #                             "tokens": {
+    #                                 "end": 1,
+    #                                 "start": 0
+    #                             },
+    #                             "type": "YANDEX.NUMBER",
+    #                             "value": 27
+    #                         },
+    #                         {
+    #                             "tokens": {
+    #                                 "end": 2,
+    #                                 "start": 0
+    #                             },
+    #                             "type": "YANDEX.DATETIME",
+    #                             "value": {
+    #                                 "day": 27,
+    #                                 "day_is_relative": False,
+    #                                 "month": 1,
+    #                                 "month_is_relative": False
+    #                             }
+    #                         }
+    #                     ],
+    #                     "tokens": [
+    #                         "27",
+    #                         "января"
+    #                     ]
+    #                 },
+    #                 "original_utterance": "28 января",
+    #                 "type": "SimpleUtterance"
+    #             },
+    #             "session": {
+    #                 "message_id": 4,
+    #                 "new": False,
+    #                 "session_id": "3d50813-7c9d4cc1-e207e333-b7738e69",
+    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+    #                 "user_id": "E401738E621D9AAC04AB162E44F39B3"
+    #                            "ABDA23A5CB2FF19E394C1915ED45CF467"
+    #             },
+    #             "version": "1.0"
+    #         },
+    #         context={},
+    # ))

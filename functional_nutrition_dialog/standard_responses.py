@@ -3,6 +3,7 @@ import typing
 from yandex_types import YandexRequest, YandexResponse
 from responses_constructors import \
     construct_yandex_response_from_yandex_request, respond_request
+from delete_response import respond_delete
 
 
 def is_help_request(request: YandexRequest):
@@ -20,6 +21,17 @@ def is_help_request(request: YandexRequest):
             ('как' in tokens and [t for t in tokens if 'польз' in t]) or
             'скучно' in tokens or
             'help' in tokens):
+        return True
+    return False
+
+
+def is_delete_request(request: YandexRequest):
+    tokens = request.tokens
+    if (
+            'удалить' in tokens or
+            'удали' in tokens or
+            'убери' in tokens or
+            'убрать' in tokens):
         return True
     return False
 
@@ -397,6 +409,11 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
 def respond_one_of_predefined_phrases(
         request: YandexRequest) -> typing.Optional[YandexResponse]:
     # Respond long phrases
+    if is_delete_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_delete)
+
     if len(request.original_utterance) >= 100:
         return respond_request(
                 request=request,
