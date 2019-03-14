@@ -105,6 +105,39 @@ def response_with_context_when_yes_in_request(
 
 
 @timeit
+def response_with_context_when_date_in_request(
+        *,
+        request: YandexRequest,
+        context: dict,
+        date: datetime,
+        database_client
+):
+    # Save to database for specified time
+    # Clear context
+    # Say Сохранено
+    update_user_table(
+            database_client=database_client,
+            event_time=date.replace(
+                    tzinfo=dateutil.tz.gettz(request.timezone)
+            ).astimezone(dateutil.tz.gettz('UTC')),
+            foods_dict=context['foods'],
+            user_id=request.user_guid,
+            utterance=context['utterance'])
+
+    clear_session(database_client=database_client,
+                  session_id=request.session_id)
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=f'Сохранено за {date.date()}. Чтобы посмотреть список '
+            f'сохраненной еды, спросите меня что Вы ели',
+            tts='Сохранено',
+            end_session=False,
+            buttons=[],
+    )
+
+
+@timeit
 def response_with_context_when_no_in_request(
         *,
         request: YandexRequest,
@@ -252,7 +285,6 @@ def respond_with_context(
         context: dict,
         database_client
 ) -> YandexResponse:
-
     if check_if_no_in_request(request=request):
         return response_with_context_when_no_in_request(
                 request=request,
@@ -271,13 +303,14 @@ def respond_with_context(
                                 entity['type'] == "YANDEX.DATETIME"][-1]
         absolute_date = transform_yandex_datetime_value_to_datetime(
                 yandex_datetime_value_dict=last_datetime_entity['value'])
-        print(absolute_date)
-        pass
-        # return response_with_context_when_date_in_request(
-        #         request=request,
-        #         context=context,
-        #         database_client=database_client,
-        # )
+
+        return response_with_context_when_date_in_request(
+                request=request,
+                context=context,
+                database_client=database_client,
+                date=absolute_date,
+
+        )
 
     # We checked all possible context reaction, nothing fits,
     # so act as we don't have context at all
@@ -491,7 +524,7 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "вчера в 4",
+                    "command": "27 января",
                     "nlu": {
                         "entities": [
                             {
@@ -499,37 +532,38 @@ if __name__ == '__main__':
                                     "end": 1,
                                     "start": 0
                                 },
-                                "type": "YANDEX.DATETIME",
-                                "value": {
-                                    "day": -1,
-                                    "day_is_relative": True
-                                }
+                                "type": "YANDEX.NUMBER",
+                                "value": 27
                             },
                             {
                                 "tokens": {
-                                    "end": 3,
-                                    "start": 2
+                                    "end": 2,
+                                    "start": 0
                                 },
-                                "type": "YANDEX.NUMBER",
-                                "value": 4
+                                "type": "YANDEX.DATETIME",
+                                "value": {
+                                    "day": 27,
+                                    "day_is_relative": False,
+                                    "month": 1,
+                                    "month_is_relative": False
+                                }
                             }
                         ],
                         "tokens": [
-                            "вчера",
-                            "в",
-                            "4"
+                            "27",
+                            "января"
                         ]
                     },
-                    "original_utterance": "вчера в 4",
+                    "original_utterance": "28 января",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 1,
+                    "message_id": 4,
                     "new": False,
-                    "session_id": "965aba7d-2629a2aa-80dff681-537653cc",
+                    "session_id": "3d50813-7c9d4cc1-e207e333-b7738e69",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39B3ABD"
-                               "A23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E44F39B3"
+                               "ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },
