@@ -1,9 +1,24 @@
 from yandex_types import YandexRequest, YandexResponse
-from responses_constructors import construct_yandex_response_from_yandex_request
+from responses_constructors import \
+    construct_yandex_response_from_yandex_request, respond_request
 import datetime
 from dates_transformations import transform_yandex_datetime_value_to_datetime
 import typing
 import functools
+from dynamodb_functions import delete_food, find_food_by_name_and_day, \
+    get_boto3_client
+
+
+def respond_nothing_to_delete(request: YandexRequest, date) -> YandexResponse:
+    respond_string = f'Никакой еды не найдено за {date}. Чтобы еда появилась ' \
+        f'в моей базе, необходимо не забывать говорить "сохранить"'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
 
 
 def if_token_number_in_interval(yandex_entity_dict: dict, *, token_number: int):
@@ -50,6 +65,10 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
                 yandex_datetime_value_dict=all_datetime_entries[-1],
         )
 
+    respond_nothing_to_delete_with_date = functools.partial(
+            respond_nothing_to_delete,
+            date=target_date.date())
+
     tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
             tokens_list=request.tokens,
             intervals_dicts_list=all_datetime_entries)
@@ -63,10 +82,51 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
                                        'убери',
                                        'убрать')]
 
+    if len(tokens_without_delete_words) == 0:
+        return respond_request(
+                request=request,
+                responding_function=respond_nothing_to_delete_with_date)
+
+    food_to_delete = ' '.join(tokens_without_delete_words)
+
+    matching_food = find_food_by_name_and_day(
+            database_client=get_boto3_client(
+                    aws_lambda_mode=request.aws_lambda_mode,
+                    service_name='dynamodb'),
+            date=target_date.date(),
+            food_name=food_to_delete,
+            user_id=request.user_guid,
+    )
+
+    if len(matching_food) == 0:
+        return respond_request(
+                request=request,
+                responding_function=respond_nothing_to_delete_with_date,
+        )
+
+    if len(matching_food) > 1:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=f'Несколько значений '
+                f'подходят: {[i["utterance"] for i in matching_food]}. '
+                f'Уточните, какое удалить?',
+                tts='Несколько значений подходят.',
+                end_session=False,
+                buttons=[],
+        )
+
+    delete_food(database_client=get_boto3_client(
+            aws_lambda_mode=request.aws_lambda_mode,
+            service_name='dynamodb'),
+            date=target_date,
+            list_of_food_dicts=matching_food,
+            user_id=request.user_guid,
+    )
+
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
-            text='Deleted',
-            tts='Deleted',
+            text=f'"{food_to_delete}" удалено',
+            tts='Удалено',
             end_session=False,
             buttons=[],
     )

@@ -2,8 +2,61 @@ import datetime
 import json
 from decorators import timeit
 from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
+import botocore.client
 import boto3
 import typing
+
+# This cache is useful because AWS lambda can keep it's state, so no
+# need to restantiate connections again. It is used in get_boto3_client
+# function, I know it is mess, but 100 ms are 100 ms
+global_cached_boto3_clients = {}
+
+
+@timeit
+def get_boto3_client(
+        *,
+        aws_lambda_mode: bool,
+        service_name: str,
+        profile_name: str = 'kreodont',
+        connect_timeout: float = 0.2,
+        read_timeout: float = 0.4,
+) -> typing.Optional[boto3.client]:
+    """
+    Dirty function to fetch s3_clients
+    :param connect_timeout:
+    :param read_timeout:
+    :param aws_lambda_mode:
+    :param service_name:
+    :param profile_name:
+    :return:
+    """
+    known_services = ['translate', 'dynamodb', 's3']
+    if service_name in global_cached_boto3_clients:
+        print(f'{service_name} client taken from cache!')
+        return global_cached_boto3_clients[service_name]
+
+    if service_name not in known_services:
+        raise Exception(
+                f'Not known service '
+                f'name {service_name}. The following '
+                f'service names known: {", ".join(known_services)}')
+
+    if aws_lambda_mode:
+        client = boto3.client(
+                service_name,
+                config=botocore.client.Config(
+                        connect_timeout=connect_timeout,
+                        read_timeout=read_timeout,
+                        parameter_validation=False,
+                        retries={'max_attempts': 0},
+                ),
+        )
+    else:
+        client = boto3.Session(profile_name=profile_name).client(service_name)
+
+    # saving to cache to to spend time to create it next time
+    global_cached_boto3_clients[service_name] = client
+    return client
 
 
 @timeit
@@ -58,7 +111,6 @@ def save_session(
         foods_dict: dict,
         utterance: str,
         database_client) -> None:
-
     database_client.put_item(
             TableName='nutrition_sessions',
             Item={
@@ -152,3 +204,49 @@ def fetch_context_from_dynamo_database(
             return json.loads(result['Item']['value']['S'])
         except json.decoder.JSONDecodeError:
             return {}
+
+
+@timeit
+def delete_food(*,
+                database_client: boto3.client,
+                date: datetime.date,
+                list_of_food_dicts: typing.List[dict],
+                user_id: str,
+                ) -> str:
+    return database_client.put_item(TableName='nutrition_users',
+                                    Item={
+                                        'id': {
+                                            'S': user_id,
+                                        },
+                                        'date': {'S': str(date)},
+                                        'value': {
+                                            'S': json.dumps(list_of_food_dicts),
+                                        }})
+
+
+def find_food_by_name_and_day(
+        *,
+        database_client: boto3.client,
+        date: datetime.date,
+        food_name: str,
+        user_id: str,
+) -> typing.List[dict]:
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={
+                'id': {'S': user_id},
+                'date': {'S': str(date)},
+            })
+
+    if 'Item' not in result:
+        return []
+
+    items: typing.List[dict] = json.loads(result['Item']['value']['S'])
+    found_items = []
+
+    for item in items:
+        if (item['utterance'] and food_name.strip() ==
+                item['utterance'].replace(',', '').strip()):
+            found_items.append(item)
+
+    return found_items

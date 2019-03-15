@@ -133,18 +133,6 @@ def respond_hello(request: YandexRequest) -> YandexResponse:
     )
 
 
-def respond_nothing_to_delete(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Здравствуйте. А теперь расскажите что вы съели, а я ' \
-                     'скажу сколько там было калорий и питательных веществ.'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
 def is_goodbye_request(request: YandexRequest):
     tokens = request.tokens
     full_phrase = request.original_utterance
@@ -419,7 +407,8 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
 
 
 def respond_one_of_predefined_phrases(
-        request: YandexRequest) -> typing.Optional[YandexResponse]:
+        request: YandexRequest,
+) -> typing.Optional[YandexResponse]:
     # Respond long phrases
     if is_delete_request(request=request):
         return respond_request(
