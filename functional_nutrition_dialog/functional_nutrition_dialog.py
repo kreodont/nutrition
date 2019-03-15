@@ -14,13 +14,14 @@ from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
-from mockers import mock_incoming_event
+# from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database
 from russian_language import russian_replacements_in_original_utterance
 from translation_functions import translate_request
 import dateutil
+from dates_transformations import transform_yandex_datetime_value_to_datetime
 
 # This cache is useful because AWS lambda can keep it's state, so no
 # need to restantiate connections again. It is used in get_boto3_client
@@ -184,84 +185,6 @@ def check_if_date_in_request(*, request: YandexRequest) -> bool:
         return True
 
     return False
-
-
-def adjust_relative_dates(
-        *,
-        initial_date: datetime.datetime,
-        yandex_dict: dict) -> datetime.datetime:
-    relative_year = yandex_dict['year'] \
-        if ('year_is_relative' in yandex_dict and
-            yandex_dict['year_is_relative'] is True) else 0
-
-    relative_month = yandex_dict['month'] \
-        if ('month_is_relative' in yandex_dict and
-            yandex_dict['month_is_relative'] is True) else 0
-
-    relative_day = yandex_dict['day'] \
-        if ('day_is_relative' in yandex_dict and
-            yandex_dict['day_is_relative'] is True) else 0
-
-    relative_hour = yandex_dict['hour'] \
-        if ('hour_is_relative' in yandex_dict and
-            yandex_dict['hour_is_relative'] is True) else 0
-
-    relative_minute = yandex_dict['minute'] \
-        if ('minute_is_relative' in yandex_dict and
-            yandex_dict['minute_is_relative'] is True) else 0
-
-    relative_second = yandex_dict['second'] \
-        if ('second_is_relative' in yandex_dict and
-            yandex_dict['second_is_relative'] is True) else 0
-    return initial_date + dateutil.relativedelta.relativedelta(
-            years=relative_year,
-            months=relative_month,
-            days=relative_day,
-            hours=relative_hour,
-            minutes=relative_minute,
-            seconds=relative_second)
-
-
-def adjust_absolute_dates(
-        *,
-        initial_date: datetime.datetime,
-        yandex_dict: dict) -> datetime.datetime:
-    adjusted_date = initial_date
-    if ('year_is_relative' in yandex_dict and
-            yandex_dict['year_is_relative'] is False):
-        adjusted_date = adjusted_date.replace(year=yandex_dict['year'])
-
-    if ('month_is_relative' in yandex_dict and
-            yandex_dict['month_is_relative'] is False):
-        adjusted_date = adjusted_date.replace(month=yandex_dict['month'])
-
-    if ('day_is_relative' in yandex_dict and
-            yandex_dict['day_is_relative'] is False):
-        adjusted_date = adjusted_date.replace(day=yandex_dict['day'])
-
-    if ('hour_is_relative' in yandex_dict and
-            yandex_dict['hour_is_relative'] is False):
-        adjusted_date = adjusted_date.replace(hour=yandex_dict['hour'])
-
-    if ('minute_is_relative' in yandex_dict and
-            yandex_dict['minute_is_relative'] is False):
-        adjusted_date = adjusted_date.replace(minute=yandex_dict['minute'])
-
-    if ('second_is_relative' in yandex_dict and
-            yandex_dict['second_is_relative'] is False):
-        adjusted_date = adjusted_date.replace(second=yandex_dict['second'])
-
-    return adjusted_date
-
-
-def transform_yandex_datetime_value_to_datetime(
-        *,
-        yandex_datetime_value_dict) -> datetime.datetime:
-    return adjust_absolute_dates(
-            initial_date=adjust_relative_dates(
-                    initial_date=datetime.datetime.now(),
-                    yandex_dict=yandex_datetime_value_dict),
-            yandex_dict=yandex_datetime_value_dict)
 
 
 @timeit
@@ -507,65 +430,101 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    print(functional_nutrition_dialog(
-            event=mock_incoming_event(
-                    phrase='удалить',
-                    has_screen=True),
-            context={}))
     # print(functional_nutrition_dialog(
-    #         event={
-    #             "meta": {
-    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
-    #                              "android 4.4.2)",
-    #                 "interfaces": {
-    #                     "screen": {}
-    #                 },
-    #                 "locale": "ru-RU",
-    #                 "timezone": "UTC"
-    #             },
-    #             "request": {
-    #                 "command": "27 января",
-    #                 "nlu": {
-    #                     "entities": [
-    #                         {
-    #                             "tokens": {
-    #                                 "end": 1,
-    #                                 "start": 0
-    #                             },
-    #                             "type": "YANDEX.NUMBER",
-    #                             "value": 27
-    #                         },
-    #                         {
-    #                             "tokens": {
-    #                                 "end": 2,
-    #                                 "start": 0
-    #                             },
-    #                             "type": "YANDEX.DATETIME",
-    #                             "value": {
-    #                                 "day": 27,
-    #                                 "day_is_relative": False,
-    #                                 "month": 1,
-    #                                 "month_is_relative": False
-    #                             }
-    #                         }
-    #                     ],
-    #                     "tokens": [
-    #                         "27",
-    #                         "января"
-    #                     ]
-    #                 },
-    #                 "original_utterance": "28 января",
-    #                 "type": "SimpleUtterance"
-    #             },
-    #             "session": {
-    #                 "message_id": 4,
-    #                 "new": False,
-    #                 "session_id": "3d50813-7c9d4cc1-e207e333-b7738e69",
-    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-    #                 "user_id": "E401738E621D9AAC04AB162E44F39B3"
-    #                            "ABDA23A5CB2FF19E394C1915ED45CF467"
-    #             },
-    #             "version": "1.0"
-    #         },
-    #         context={},
-    # ))
+    #         event=mock_incoming_event(
+    #                 phrase='удалить',
+    #                 has_screen=True),
+    #         context={}))
+    print(functional_nutrition_dialog(
+            event={
+                "meta": {
+                    "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+                                 "android 4.4.2)",
+                    "interfaces": {
+                        "account_linking": {},
+                        "payments": {},
+                        "screen": {}
+                    },
+                    "locale": "ru-RU",
+                    "timezone": "UTC"
+                },
+                "request": {
+                    "command": "удалить 4 января и 5 января в 13:00 банан",
+                    "nlu": {
+                        "entities": [
+                            {
+                                "tokens": {
+                                    "end": 2,
+                                    "start": 1
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 4
+                            },
+                            {
+                                "tokens": {
+                                    "end": 3,
+                                    "start": 1
+                                },
+                                "type": "YANDEX.DATETIME",
+                                "value": {
+                                    "day": 4,
+                                    "day_is_relative": False,
+                                    "month": 1,
+                                    "month_is_relative": False
+                                }
+                            },
+                            {
+                                "tokens": {
+                                    "end": 5,
+                                    "start": 4
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 5
+                            },
+                            {
+                                "tokens": {
+                                    "end": 9,
+                                    "start": 4
+                                },
+                                "type": "YANDEX.DATETIME",
+                                "value": {
+                                    "day": 5,
+                                    "day_is_relative": False,
+                                    "hour": 13,
+                                    "hour_is_relative": False,
+                                    "minute": 0,
+                                    "minute_is_relative": False,
+                                    "month": 1,
+                                    "month_is_relative": False
+                                }
+                            }
+                        ],
+                        "tokens": [
+                            "удалить",
+                            "4",
+                            "января",
+                            "и",
+                            "5",
+                            "января",
+                            "в",
+                            "13",
+                            "00",
+                            "банан"
+                        ]
+                    },
+                    "original_utterance": "удалить 4 января и 5 "
+                                          "января в 13:00 банан",
+                    "type": "SimpleUtterance"
+                },
+                "session": {
+                    "message_id": 1,
+                    "new": False,
+                    "session_id": "18418e00-26deac36-8386cc00-680a52be",
+                    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+                    "user_id": "E401738E621D9AAC04AB162E44F39"
+                               "B3ABDA23A5CB2FF19E394C1915ED45CF467"
+                },
+                "version": "1.0"
+            },
+            context={},
+    ))
