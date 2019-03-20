@@ -344,7 +344,7 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
                 ))
 
     # there can be many hardcoded responses, need to check all of them before
-    # querying any databases
+    # querying any databases. This includes DELETE request
     any_predifined_response = respond_one_of_predefined_phrases(
             request=yandex_request)
 
@@ -394,51 +394,26 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "удалить 4 января и 5 января в 13:00 банан",
+                    "command": "удалить банан 5 января",
                     "nlu": {
                         "entities": [
                             {
                                 "tokens": {
-                                    "end": 2,
-                                    "start": 1
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 4
-                            },
-                            {
-                                "tokens": {
                                     "end": 3,
-                                    "start": 1
-                                },
-                                "type": "YANDEX.DATETIME",
-                                "value": {
-                                    "day": 4,
-                                    "day_is_relative": False,
-                                    "month": 1,
-                                    "month_is_relative": False
-                                }
-                            },
-                            {
-                                "tokens": {
-                                    "end": 5,
-                                    "start": 4
+                                    "start": 2
                                 },
                                 "type": "YANDEX.NUMBER",
                                 "value": 5
                             },
                             {
                                 "tokens": {
-                                    "end": 9,
-                                    "start": 4
+                                    "end": 4,
+                                    "start": 2
                                 },
                                 "type": "YANDEX.DATETIME",
                                 "value": {
                                     "day": 5,
                                     "day_is_relative": False,
-                                    "hour": 13,
-                                    "hour_is_relative": False,
-                                    "minute": 0,
-                                    "minute_is_relative": False,
                                     "month": 1,
                                     "month_is_relative": False
                                 }
@@ -446,28 +421,21 @@ if __name__ == '__main__':
                         ],
                         "tokens": [
                             "удалить",
-                            "4",
-                            "января",
-                            "и",
+                            "банан",
                             "5",
-                            "января",
-                            "в",
-                            "13",
-                            "00",
-                            "банан"
+                            "января"
                         ]
                     },
-                    "original_utterance": "удалить 4 января и 5 "
-                                          "января в 13:00 банан",
+                    "original_utterance": "удалить банан 5 января",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 1,
+                    "message_id": 5,
                     "new": False,
-                    "session_id": "18418e00-26deac36-8386cc00-680a52be",
+                    "session_id": "1ffd09bc-13f284e7-4f097a35-46d367ae",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39"
-                               "B3ABDA23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E44F39B3"
+                               "ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },

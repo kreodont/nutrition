@@ -5,13 +5,33 @@ import datetime
 from dates_transformations import transform_yandex_datetime_value_to_datetime
 import typing
 import functools
-from dynamodb_functions import delete_food, find_food_by_name_and_day, \
+from dynamodb_functions import delete_food, find_all_food_names_for_day, \
     get_boto3_client
 
 
 def respond_nothing_to_delete(request: YandexRequest, date) -> YandexResponse:
     respond_string = f'Никакой еды не найдено за {date}. Чтобы еда появилась ' \
         f'в моей базе, необходимо не забывать говорить "сохранить"'
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def respond_food_to_delete_not_found(
+        request: YandexRequest,
+        date: datetime,
+        food_to_delete_name: str,
+        found_foods: typing.List[str],
+) -> YandexResponse:
+    respond_string = f'"{food_to_delete_name}" не найдено за {date}. ' \
+        f'Найдено: {[food for food in found_foods]}. Чтобы ' \
+        f'удалить еду, нужно произнести Удалить "еда" ' \
+        f'именно в том виде, как она записана. ' \
+        f'Например, удалить {found_foods[0]}'
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=respond_string,
@@ -57,12 +77,14 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
     all_datetime_entries = [entity for entity in request.entities if
                             entity['type'] == "YANDEX.DATETIME"]
 
+    # if no dates found in request, assuming deletion for today was requested
     if len(all_datetime_entries) == 0:
         target_date = datetime.date.today()
     else:
         # last detected date
+        last_detected_date = all_datetime_entries[-1]
         target_date = transform_yandex_datetime_value_to_datetime(
-                yandex_datetime_value_dict=all_datetime_entries[-1],
+                yandex_datetime_value_dict=last_detected_date,
         )
 
     respond_nothing_to_delete_with_date = functools.partial(
@@ -89,14 +111,18 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
 
     food_to_delete = ' '.join(tokens_without_delete_words)
 
-    matching_food = find_food_by_name_and_day(
+    all_food_for_date = find_all_food_names_for_day(
             database_client=get_boto3_client(
                     aws_lambda_mode=request.aws_lambda_mode,
                     service_name='dynamodb'),
             date=target_date.date(),
-            food_name=food_to_delete,
-            user_id=request.user_guid,
-    )
+            user_id=request.user_guid,)
+
+    matching_food = []
+    for food in all_food_for_date:
+        if (food['utterance'] and food_to_delete.strip() ==
+                food['utterance'].replace(',', '').strip()):
+            matching_food.append(food)
 
     if len(matching_food) == 0:
         return respond_request(
@@ -119,7 +145,8 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
             aws_lambda_mode=request.aws_lambda_mode,
             service_name='dynamodb'),
             date=target_date,
-            list_of_food_dicts=matching_food,
+            list_of_food_to_delete_dicts=matching_food,
+            list_of_all_food_dicts=all_food_for_date,
             user_id=request.user_guid,
     )
 

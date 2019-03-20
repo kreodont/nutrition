@@ -6,6 +6,7 @@ def adjust_relative_dates(
         *,
         initial_date: datetime.datetime,
         yandex_dict: dict) -> datetime.datetime:
+    yandex_dict = yandex_dict['value']
     relative_year = yandex_dict['year'] \
         if ('year_is_relative' in yandex_dict and
             yandex_dict['year_is_relative'] is True) else 0
@@ -42,6 +43,7 @@ def adjust_absolute_dates(
         *,
         initial_date: datetime.datetime,
         yandex_dict: dict) -> datetime.datetime:
+    yandex_dict = yandex_dict['value']
     adjusted_date = initial_date
     if ('year_is_relative' in yandex_dict and
             yandex_dict['year_is_relative'] is False):
@@ -72,7 +74,8 @@ def adjust_absolute_dates(
 
 def transform_yandex_datetime_value_to_datetime(
         *,
-        yandex_datetime_value_dict) -> datetime.datetime:
+        yandex_datetime_value_dict,
+) -> datetime.datetime:
     return adjust_absolute_dates(
             initial_date=adjust_relative_dates(
                     initial_date=datetime.datetime.now(),

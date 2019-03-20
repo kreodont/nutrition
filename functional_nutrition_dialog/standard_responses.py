@@ -409,12 +409,13 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
 def respond_one_of_predefined_phrases(
         request: YandexRequest,
 ) -> typing.Optional[YandexResponse]:
-    # Respond long phrases
+    # Delete request must be checked first since it can be longer and that is OK
     if is_delete_request(request=request):
         return respond_request(
                 request=request,
                 responding_function=respond_delete)
 
+    # Respond long phrases
     if len(request.original_utterance) >= 100:
         return respond_request(
                 request=request,

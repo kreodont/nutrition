@@ -209,26 +209,31 @@ def fetch_context_from_dynamo_database(
 @timeit
 def delete_food(*,
                 database_client: boto3.client,
-                date: datetime.date,
-                list_of_food_dicts: typing.List[dict],
+                date: datetime.datetime,
+                list_of_food_to_delete_dicts: typing.List[dict],
+                list_of_all_food_dicts: typing.List[dict],
                 user_id: str,
                 ) -> str:
-    return database_client.put_item(TableName='nutrition_users',
-                                    Item={
-                                        'id': {
-                                            'S': user_id,
-                                        },
-                                        'date': {'S': str(date)},
-                                        'value': {
-                                            'S': json.dumps(list_of_food_dicts),
-                                        }})
+    result_list = [d for d in list_of_all_food_dicts if
+                   d not in list_of_food_to_delete_dicts]
+
+    result = database_client.put_item(TableName='nutrition_users',
+                                      Item={
+                                          'id': {
+                                              'S': user_id,
+                                          },
+                                          'date': {'S': str(date.date())},
+                                          'value': {
+                                              'S': json.dumps(result_list),
+                                          }})
+    return result
 
 
 def find_food_by_name_and_day(
         *,
         database_client: boto3.client,
         date: datetime.date,
-        food_name: str,
+        food_name_to_find: str,
         user_id: str,
 ) -> typing.List[dict]:
     result = database_client.get_item(
@@ -245,8 +250,36 @@ def find_food_by_name_and_day(
     found_items = []
 
     for item in items:
-        if (item['utterance'] and food_name.strip() ==
+        if (item['utterance'] and food_name_to_find.strip() ==
                 item['utterance'].replace(',', '').strip()):
             found_items.append(item)
 
     return found_items
+
+
+def find_all_food_names_for_day(
+        *,
+        database_client: boto3.client,
+        date: datetime.date,
+        user_id: str,
+) -> typing.List[dict]:
+    result = database_client.get_item(
+            TableName='nutrition_users',
+            Key={
+                'id': {'S': user_id},
+                'date': {'S': str(date)},
+            })
+
+    if 'Item' not in result:
+        return []
+
+    items: typing.List[dict] = json.loads(result['Item']['value']['S'])
+    return items
+    # found_items = []
+    #
+    # for item in items:
+    #     if (item['utterance'] and food_name.strip() ==
+    #             item['utterance'].replace(',', '').strip()):
+    #         found_items.append(item)
+    #
+    # return found_items
