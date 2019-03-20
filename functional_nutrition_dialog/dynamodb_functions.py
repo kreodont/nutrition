@@ -209,7 +209,7 @@ def fetch_context_from_dynamo_database(
 @timeit
 def delete_food(*,
                 database_client: boto3.client,
-                date: datetime.datetime,
+                date: datetime.date,
                 list_of_food_to_delete_dicts: typing.List[dict],
                 list_of_all_food_dicts: typing.List[dict],
                 user_id: str,
@@ -222,7 +222,7 @@ def delete_food(*,
                                           'id': {
                                               'S': user_id,
                                           },
-                                          'date': {'S': str(date.date())},
+                                          'date': {'S': str(date)},
                                           'value': {
                                               'S': json.dumps(result_list),
                                           }})

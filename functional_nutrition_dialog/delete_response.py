@@ -7,6 +7,7 @@ import typing
 import functools
 from dynamodb_functions import delete_food, find_all_food_names_for_day, \
     get_boto3_client
+import re
 
 
 def respond_nothing_to_delete(request: YandexRequest, date) -> YandexResponse:
@@ -85,11 +86,11 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
         last_detected_date = all_datetime_entries[-1]
         target_date = transform_yandex_datetime_value_to_datetime(
                 yandex_datetime_value_dict=last_detected_date,
-        )
+        ).date()
 
     respond_nothing_to_delete_with_date = functools.partial(
             respond_nothing_to_delete,
-            date=target_date.date())
+            date=target_date)
 
     tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
             tokens_list=request.tokens,
@@ -115,7 +116,7 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
             database_client=get_boto3_client(
                     aws_lambda_mode=request.aws_lambda_mode,
                     service_name='dynamodb'),
-            date=target_date.date(),
+            date=target_date,
             user_id=request.user_guid,
     )
 
@@ -131,7 +132,47 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
 
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
-                text=f'Вся еда удалена за {target_date.date()}',
+                text=f'Вся еда удалена за {target_date}',
+                tts='Удалено',
+                end_session=False,
+                buttons=[],
+        )
+
+    # Delete food by number
+    if re.match(r'номер \d+', food_to_delete):
+        food_number = int(float(food_to_delete.replace('номер ', '')))
+        if food_number <= 0:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Неправильный номер {food_number}',
+                    tts=f'Неправильный номер {food_number}',
+                    end_session=False,
+                    buttons=[],
+            )
+
+        if food_number > len(all_food_for_date):
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'За дату {target_date} найдено '
+                    f'только {len(all_food_for_date)} приемов пищи, '
+                    f'не могу удалить {food_number}',
+                    tts=f'Неправильный номер {food_number}',
+                    end_session=False,
+                    buttons=[],
+            )
+        food_to_delete = [all_food_for_date[food_number - 1], ]
+        delete_food(database_client=get_boto3_client(
+                aws_lambda_mode=request.aws_lambda_mode,
+                service_name='dynamodb'),
+                date=target_date,
+                list_of_food_to_delete_dicts=food_to_delete,
+                list_of_all_food_dicts=all_food_for_date,
+                user_id=request.user_guid,
+        )
+
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=f'Еда номер {food_number} удалена',
                 tts='Удалено',
                 end_session=False,
                 buttons=[],
@@ -158,7 +199,8 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
                 yandex_request=request,
                 text=f'Несколько значений '
                 f'подходят: {[i["utterance"] for i in matching_food]}. '
-                f'Уточните, какое удалить?',
+                f'Уточните, какое удалить? Можно удалить по номеру, сказав '
+                f'"Удали номер 1", например',
                 tts='Несколько значений подходят.',
                 end_session=False,
                 buttons=[],
