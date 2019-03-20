@@ -11,7 +11,7 @@ from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
-# from mockers import mock_incoming_event
+from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database, get_boto3_client
@@ -246,6 +246,13 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
         return respond_i_dont_know(request=request)
 
     if cached_dict:
+        save_session(
+                session_id=request.session_id,
+                database_client=database_client,
+                event_time=datetime.datetime.now(),
+                foods_dict=cached_dict,
+                utterance=request.original_utterance)
+
         return construct_food_yandex_response_from_food_dict(
                 yandex_request=request,
                 cached_dict=cached_dict)
@@ -286,6 +293,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     if 'error' in nutrition_dict:
         return respond_i_dont_know(request=translated_request)
 
+    # Saving context
     save_session(
             session_id=translated_request.session_id,
             database_client=database_client,
@@ -363,57 +371,59 @@ def functional_nutrition_dialog(event: dict, context: dict) -> dict:
                 yandex_response=any_predifined_response)
 
     if yandex_request.is_new_session:
-        responding_function = respond_greeting_phrase
-    else:
-        responding_function = respond_existing_session
+        return transform_yandex_response_to_output_result_dict(
+                yandex_response=respond_request(
+                        request=yandex_request,
+                        responding_function=respond_greeting_phrase,
+                ))
 
     return transform_yandex_response_to_output_result_dict(
             yandex_response=respond_request(
                     request=yandex_request,
-                    responding_function=responding_function,
+                    responding_function=respond_existing_session,
             )
     )
 
 
 if __name__ == '__main__':
-    # print(functional_nutrition_dialog(
-    #         event=mock_incoming_event(
-    #                 phrase='удалить',
-    #                 has_screen=True),
-    #         context={}))
     print(functional_nutrition_dialog(
-            event={
-                "meta": {
-                    "client_id": "ru.yandex.searchplugin/7.16 (none none; "
-                                 "android 4.4.2)",
-                    "interfaces": {
-                        "account_linking": {},
-                        "payments": {},
-                        "screen": {}
-                    },
-                    "locale": "ru-RU",
-                    "timezone": "UTC"
-                },
-                "request": {
-                    "command": "да",
-                    "nlu": {
-                        "entities": [],
-                        "tokens": [
-                            "да"
-                        ]
-                    },
-                    "original_utterance": "да",
-                    "type": "SimpleUtterance"
-                },
-                "session": {
-                    "message_id": 69,
-                    "new": False,
-                    "session_id": "1ffd09bc-13f284e7-4f097a35-46d367ae",
-                    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39"
-                               "B3ABDA23A5CB2FF19E394C1915ED45CF467"
-                },
-                "version": "1.0"
-            },
-            context={},
-    ))
+            event=mock_incoming_event(
+                    phrase='что ел',
+                    has_screen=True),
+            context={}))
+    # print(functional_nutrition_dialog(
+    #         event={
+    #             "meta": {
+    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+    #                              "android 4.4.2)",
+    #                 "interfaces": {
+    #                     "account_linking": {},
+    #                     "payments": {},
+    #                     "screen": {}
+    #                 },
+    #                 "locale": "ru-RU",
+    #                 "timezone": "UTC"
+    #             },
+    #             "request": {
+    #                 "command": "да",
+    #                 "nlu": {
+    #                     "entities": [],
+    #                     "tokens": [
+    #                         "да"
+    #                     ]
+    #                 },
+    #                 "original_utterance": "да",
+    #                 "type": "SimpleUtterance"
+    #             },
+    #             "session": {
+    #                 "message_id": 69,
+    #                 "new": False,
+    #                 "session_id": "1ffd09bc-13f284e7-4f097a35-46d367ae",
+    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+    #                 "user_id": "E401738E621D9AAC04AB162E44F39"
+    #                            "B3ABDA23A5CB2FF19E394C1915ED45CF467"
+    #             },
+    #             "version": "1.0"
+    #         },
+    #         context={},
+    # ))

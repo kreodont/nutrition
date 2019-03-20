@@ -513,8 +513,6 @@ def respond_one_of_predefined_phrases(
                 responding_function=respond_what_is_your_name)
 
 
-
-
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
