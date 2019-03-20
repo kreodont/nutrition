@@ -122,8 +122,8 @@ def respond_human_meat(request: YandexRequest) -> YandexResponse:
 
 
 def respond_hello(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Скажите название еды, которую надо удалить. ' \
-                     'Например: "Удалить пюре с котлетой"'
+    respond_string = 'Здравствуйте. А теперь расскажите что вы съели, ' \
+                     'а я скажу сколько там было калорий и питательных веществ.'
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=respond_string,

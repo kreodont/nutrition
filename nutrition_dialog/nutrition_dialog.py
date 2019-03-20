@@ -394,57 +394,23 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "удалить номер 5 5 января",
+                    "command": "привет",
                     "nlu": {
-                        "entities": [
-                            {
-                                "tokens": {
-                                    "end": 3,
-                                    "start": 2
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 5
-                            },
-                            {
-                                "tokens": {
-                                    "end": 4,
-                                    "start": 3
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 5
-                            },
-                            {
-                                "tokens": {
-                                    "end": 5,
-                                    "start": 3
-                                },
-                                "type": "YANDEX.DATETIME",
-                                "value": {
-                                    "day": 5,
-                                    "day_is_relative": False,
-                                    "month": 1,
-                                    "month_is_relative": False
-                                }
-                            }
-                        ],
+                        "entities": [],
                         "tokens": [
-                            "удалить",
-                            "номер",
-                            "2",
-                            "5",
-                            "января"
+                            "привет"
                         ]
                     },
-                    "original_utterance": "удалить номер 5 5 января",
+                    "original_utterance": "привет",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 37,
+                    "message_id": 39,
                     "new": False,
                     "session_id": "1ffd09bc-13f284e7-4f097a35-46d367ae",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39"
-                               "B3ABDA23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E44"
+                               "F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },
