@@ -394,7 +394,7 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "удалить банан 5 января",
+                    "command": "удалить все 5 января",
                     "nlu": {
                         "entities": [
                             {
@@ -421,21 +421,21 @@ if __name__ == '__main__':
                         ],
                         "tokens": [
                             "удалить",
-                            "банан",
+                            "все",
                             "5",
                             "января"
                         ]
                     },
-                    "original_utterance": "удалить банан 5 января",
+                    "original_utterance": "удалить все 5 января",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 5,
+                    "message_id": 21,
                     "new": False,
                     "session_id": "1ffd09bc-13f284e7-4f097a35-46d367ae",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39B3"
-                               "ABDA23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E44F39B"
+                               "3ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },

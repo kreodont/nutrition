@@ -25,13 +25,13 @@ def respond_food_to_delete_not_found(
         request: YandexRequest,
         date: datetime,
         food_to_delete_name: str,
-        found_foods: typing.List[str],
+        found_foods: typing.List[dict],
 ) -> YandexResponse:
     respond_string = f'"{food_to_delete_name}" не найдено за {date}. ' \
-        f'Найдено: {[food for food in found_foods]}. Чтобы ' \
+        f'Найдено: {[food["utterance"] for food in found_foods]}. Чтобы ' \
         f'удалить еду, нужно произнести Удалить "еда" ' \
         f'именно в том виде, как она записана. ' \
-        f'Например, удалить {found_foods[0]}'
+        f'Например, удалить {found_foods[0]["utterance"]}'
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=respond_string,
@@ -116,7 +116,26 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
                     aws_lambda_mode=request.aws_lambda_mode,
                     service_name='dynamodb'),
             date=target_date.date(),
-            user_id=request.user_guid,)
+            user_id=request.user_guid,
+    )
+
+    if food_to_delete in ('все', 'всё'):
+        delete_food(database_client=get_boto3_client(
+                aws_lambda_mode=request.aws_lambda_mode,
+                service_name='dynamodb'),
+                date=target_date,
+                list_of_food_to_delete_dicts=all_food_for_date,
+                list_of_all_food_dicts=all_food_for_date,
+                user_id=request.user_guid,
+        )
+
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=f'Вся еда удалена за {target_date.date()}',
+                tts='Удалено',
+                end_session=False,
+                buttons=[],
+        )
 
     matching_food = []
     for food in all_food_for_date:
@@ -127,7 +146,11 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
     if len(matching_food) == 0:
         return respond_request(
                 request=request,
-                responding_function=respond_nothing_to_delete_with_date,
+                responding_function=functools.partial(
+                        respond_food_to_delete_not_found,
+                        date=target_date,
+                        food_to_delete_name=food_to_delete,
+                        found_foods=all_food_for_date)
         )
 
     if len(matching_food) > 1:
