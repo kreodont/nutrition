@@ -4,6 +4,123 @@ from yandex_types import YandexRequest, YandexResponse
 from responses_constructors import \
     construct_yandex_response_from_yandex_request, respond_request
 from delete_response import respond_delete
+import datetime
+from dates_transformations import transform_yandex_datetime_value_to_datetime
+from dynamodb_functions import get_boto3_client, find_all_food_names_for_day
+import dateutil
+from russian_language import choose_case
+
+
+def respond_one_of_predefined_phrases(
+        request: YandexRequest,
+) -> typing.Optional[YandexResponse]:
+    # Delete request must be checked first since it can be longer and that is OK
+    if is_delete_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_delete)
+
+    # Respond long phrases
+    if len(request.original_utterance) >= 100:
+        return respond_request(
+                request=request,
+                responding_function=respond_text_too_long)
+
+    # Respond help requests
+    if check_if_help_in_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_help)
+
+    if is_thanks_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_thanks)
+
+    if is_hello_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_hello)
+
+    if is_goodbye_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_goodbye)
+
+    if is_human_meat_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_human_meat)
+
+    if is_eat_cat_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_eat_cat)
+
+    if is_eat_poop_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_eat_poop)
+
+    if is_i_think_too_much_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_i_think_too_much)
+
+    if is_dick_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_dick)
+
+    if is_nothing_to_add_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_nothing_to_add)
+
+    if is_what_is_your_name_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_what_is_your_name)
+
+    if is_smart_calories_counter_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_smart_calories_countere)
+
+    if is_where_is_saved_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_where_is_saved)
+
+    if is_angry_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_angry)
+
+    if is_not_implemented_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_not_implemented)
+
+    if is_launch_another_skill_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_launch_another_skill)
+
+    if is_what_i_have_eaten_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_what_i_have_eaten)
+
+    if is_what_is_your_name_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_what_is_your_name)
+
+    if is_shut_up_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_shut_up_request)
 
 
 def is_help_request(request: YandexRequest):
@@ -406,113 +523,6 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
-def respond_one_of_predefined_phrases(
-        request: YandexRequest,
-) -> typing.Optional[YandexResponse]:
-    # Delete request must be checked first since it can be longer and that is OK
-    if is_delete_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_delete)
-
-    # Respond long phrases
-    if len(request.original_utterance) >= 100:
-        return respond_request(
-                request=request,
-                responding_function=respond_text_too_long)
-
-    # Respond help requests
-    if check_if_help_in_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_help)
-
-    if is_thanks_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_thanks)
-
-    if is_hello_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_hello)
-
-    if is_goodbye_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_goodbye)
-
-    if is_human_meat_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_human_meat)
-
-    if is_eat_cat_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_eat_cat)
-
-    if is_eat_poop_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_eat_poop)
-
-    if is_i_think_too_much_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_i_think_too_much)
-
-    if is_dick_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_dick)
-
-    if is_nothing_to_add_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_nothing_to_add)
-
-    if is_what_is_your_name_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_what_is_your_name)
-
-    if is_smart_calories_counter_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_smart_calories_countere)
-
-    if is_where_is_saved_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_where_is_saved)
-
-    if is_angry_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_angry)
-
-    if is_not_implemented_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_not_implemented)
-
-    if is_launch_another_skill_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_launch_another_skill)
-
-    if is_what_i_have_eaten_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_what_i_have_eaten)
-
-    if is_what_is_your_name_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_what_is_your_name)
-
-
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
@@ -618,10 +628,114 @@ def is_what_i_have_eaten_request(request: YandexRequest):
 
 
 def respond_what_i_have_eaten(request: YandexRequest) -> YandexResponse:
+    all_datetime_entries = [entity for entity in request.entities if
+                            entity['type'] == "YANDEX.DATETIME"]
+
+    if len(all_datetime_entries) == 0:
+        target_date = datetime.date.today()
+    else:
+        # last detected date
+        last_detected_date = all_datetime_entries[-1]
+        target_date = transform_yandex_datetime_value_to_datetime(
+                yandex_datetime_value_dict=last_detected_date,
+        ).date()
+
+    all_food_for_date = find_all_food_names_for_day(
+            database_client=get_boto3_client(
+                    aws_lambda_mode=request.aws_lambda_mode,
+                    service_name='dynamodb'),
+            date=target_date,
+            user_id=request.user_guid,
+    )
+    if len(all_food_for_date) == 0:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=f'Не могу ничего найти за {target_date}. '
+                f'Чтобы еда сохранялась в мою базу, не забывайте '
+                f'говорить "Сохранить", после того, как я посчитаю калории.',
+                tts='Ничего не найдено',
+                end_session=False,
+                buttons=[],
+        )
+
+    food_total_text, food_total_tts = total_calories_text(
+                    food_dicts_list=all_food_for_date,
+                    target_date=target_date,
+                    timezone=request.timezone)
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
-            text='Ведутся ремонтные работы, пожалуйста, подождите',
-            tts='Ведутся ремонтные работы, пожалуйста, подождите',
+            text=food_total_text,
+            tts=food_total_tts,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def total_calories_text(
+        *,
+        food_dicts_list: typing.List[dict],
+        target_date: datetime.date,
+        timezone: str) -> typing.Tuple[str, str]:
+    total_calories = 0
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
+
+    full_text = ''
+
+    for food_number, food in enumerate(food_dicts_list, 1):
+        nutrition_dict = food['foods']
+        this_food_calories = 0
+        food_time = dateutil.parser.parse(food['time'])
+        food_time = food_time.astimezone(dateutil.tz.gettz(timezone))
+
+        for f in nutrition_dict['foods']:
+            calories = f.get("nf_calories", 0) or 0
+            this_food_calories += calories
+            total_calories += calories
+            protein = f.get("nf_protein", 0) or 0
+            total_protein += protein
+            fat = f.get("nf_total_fat", 0) or 0
+            total_fat += fat
+            carbohydrates = f.get("nf_total_carbohydrate", 0) or 0
+            total_carbohydrates += carbohydrates
+            sugar = f.get("nf_sugars", 0) or 0
+            total_sugar += sugar
+        full_text += f'[{food_time.strftime("%H:%M")}] ' \
+            f'{food["utterance"]} ({round(this_food_calories, 2)})\n'
+
+    all_total = total_protein + total_fat + total_carbohydrates
+    if all_total == 0:
+        return f'Не могу ничего найти за {target_date}. Я сохраняю еду в ' \
+                   f'свою базу, только если вы скажете Сохранить после ' \
+                   f'того, как я спрошу.', 'Ничего не найдено'
+    percent_protein = round((total_protein / all_total) * 100)
+    percent_fat = round((total_fat / all_total) * 100)
+    percent_carbohydrates = round((total_carbohydrates / all_total) * 100)
+    full_text += f'\n' \
+        f'Всего: \n{round(total_protein)} ({percent_protein}%) ' \
+        f'бел. {round(total_fat)} ({percent_fat}%) ' \
+        f'жир. {round(total_carbohydrates)} ({percent_carbohydrates}%) ' \
+        f'угл. {round(total_sugar)} ' \
+        f'сах.\n_\n{choose_case(amount=round(total_calories, 2))}'
+
+    tts = choose_case(amount=total_calories, tts_mode=True, round_to_int=True)
+    return full_text, tts
+
+
+def is_shut_up_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
+        return True
+    return False
+
+
+def respond_shut_up_request(request: YandexRequest) -> YandexResponse:
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Молчу',
+            tts='Молчу',
             end_session=False,
             buttons=[],
     )
