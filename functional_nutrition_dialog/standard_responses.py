@@ -502,6 +502,18 @@ def respond_one_of_predefined_phrases(
                 request=request,
                 responding_function=respond_launch_another_skill)
 
+    if is_what_i_have_eaten_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_what_i_have_eaten)
+
+    if is_what_is_your_name_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_what_is_your_name)
+
+
+
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
     return construct_yandex_response_from_yandex_request(
@@ -554,6 +566,64 @@ def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
             yandex_request=request,
             text=greeting_text,
             tts=greeting_text,
+            end_session=False,
+            buttons=[],
+    )
+
+
+def is_what_i_have_eaten_request(request: YandexRequest):
+    tokens = request.tokens
+    full_phrase = request.original_utterance
+
+    if (('что' in tokens or 'сколько' in tokens) and (
+            'ел' in full_phrase or 'хран' in full_phrase)) or \
+            full_phrase in ('покажи результат',
+                            'открыть список сохранения',
+                            'скажи результат',
+                            'общий результат',
+                            'общий итог',
+                            'какой итог',
+                            'сколько всего',
+                            'сколько калорий',
+                            'какой результат',
+                            'сколько в общем калорий',
+                            'сколько всего калорий',
+                            'сколько калорий в общей сумме',
+                            'сколько я съел калорий',
+                            'сколько я съела калорий',
+                            'покажи сохраненную',
+                            'покажи сколько калорий',
+                            'сколько я съел',
+                            'сколько всего калорий было',
+                            'сколько всего калорий было в день',
+                            'список сохраненные еды',
+                            'список сохраненной еды',
+                            'общая сумма калорий за день',
+                            'посчитай все калории за сегодня',
+                            'сколько все вместе за весь день',
+                            'ну посчитай сколько всего калорий',
+                            'посчитай сколько всего калорий',
+                            'подсчитать калории',
+                            'сколько калорий у меня сегодня',
+                            'подсчитать все',
+                            'сколько всего получилось',
+                            'сколько за день',
+                            'сколько калорий за день',
+                            'сколько сегодня калорий',
+                            'сколько было сегодня калорий',
+                            'сколько сегодня калорий было',
+                            'общее количество',
+                            'посчитай калории',
+                            ):
+        return True
+    return False
+
+
+def respond_what_i_have_eaten(request: YandexRequest) -> YandexResponse:
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Ведутся ремонтные работы, пожалуйста, подождите',
+            tts='Ведутся ремонтные работы, пожалуйста, подождите',
             end_session=False,
             buttons=[],
     )
