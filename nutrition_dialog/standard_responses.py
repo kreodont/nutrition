@@ -112,11 +112,6 @@ def respond_one_of_predefined_phrases(
                 request=request,
                 responding_function=respond_what_i_have_eaten)
 
-    if is_what_is_your_name_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_what_is_your_name)
-
     if is_shut_up_request(request=request):
         return respond_request(
                 request=request,
@@ -373,9 +368,8 @@ def respond_nothing_to_add(request: YandexRequest) -> YandexResponse:
 
 
 def is_what_is_your_name_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('как тебя зовут', 'как вас зовут',
-                       'а как тебя зовут', 'а как твое имя'):
+    tokens = request.tokens
+    if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
         return True
     return False
 
