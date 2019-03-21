@@ -171,19 +171,6 @@ def respond_with_context(
         context: dict,
         database_client
 ) -> YandexResponse:
-    if check_if_no_in_request(request=request):
-        return response_with_context_when_no_in_request(
-                request=request,
-                database_client=database_client,
-        )
-
-    if check_if_yes_in_request(request=request):
-        return response_with_context_when_yes_in_request(
-                request=request,
-                context=context,
-                database_client=database_client,
-        )
-
     if check_if_date_in_request(request=request):
         last_datetime_entity = [entity for entity in request.entities if
                                 entity['type'] == "YANDEX.DATETIME"][-1]
@@ -199,6 +186,19 @@ def respond_with_context(
                     date=absolute_date,
 
             )
+
+    if check_if_no_in_request(request=request):
+        return response_with_context_when_no_in_request(
+                request=request,
+                database_client=database_client,
+        )
+
+    if check_if_yes_in_request(request=request):
+        return response_with_context_when_yes_in_request(
+                request=request,
+                context=context,
+                database_client=database_client,
+        )
 
     # We checked all possible context reaction, nothing fits,
     # so act as we don't have context at all
@@ -266,12 +266,13 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
         return respond_i_dont_know(request=request)
 
     if cached_dict:
-        save_session(
-                session_id=request.session_id,
-                database_client=database_client,
-                event_time=datetime.datetime.now(),
-                foods_dict=cached_dict,
-                utterance=request.original_utterance)
+        if 'foods' in cached_dict and 'error' not in cached_dict['foods']:
+            save_session(
+                    session_id=request.session_id,
+                    database_client=database_client,
+                    event_time=datetime.datetime.now(),
+                    foods_dict=cached_dict,
+                    utterance=request.original_utterance)
 
         return construct_food_yandex_response_from_food_dict(
                 yandex_request=request,
@@ -413,6 +414,58 @@ if __name__ == '__main__':
     #                 phrase='что я ела',
     #                 has_screen=True),
     #         context={}))
+    # print(nutrition_dialog(
+    #         event={
+    #             "meta": {
+    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+    #                              "android 4.4.2)",
+    #                 "interfaces": {
+    #                     "account_linking": {},
+    #                     "payments": {},
+    #                     "screen": {}
+    #                 },
+    #                 "locale": "ru-RU",
+    #                 "timezone": "UTC"
+    #             },
+    #             "request": {
+    #                 "command": "да сохрани за завтра",
+    #                 "nlu": {
+    #                     "entities": [
+    #                         {
+    #                             "tokens": {
+    #                                 "end": 4,
+    #                                 "start": 2
+    #                             },
+    #                             "type": "YANDEX.DATETIME",
+    #                             "value": {
+    #                                 "day": 1,
+    #                                 "day_is_relative": True
+    #                             }
+    #                         }
+    #                     ],
+    #                     "tokens": [
+    #                         "да",
+    #                         "сохрани",
+    #                         "за",
+    #                         "завтра"
+    #                     ]
+    #                 },
+    #                 "original_utterance": "да сохрани за завтра",
+    #                 "type": "SimpleUtterance"
+    #             },
+    #             "session": {
+    #                 "message_id": 17,
+    #                 "new": False,
+    #                 "session_id": "2683c900-ce225f48-b915927d-c12f26a8",
+    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+    #                 "user_id": "E401738E621D9AAC04AB162E44F3"
+    #                            "9B3ABDA23A5CB2FF19E394C1915ED45CF467"
+    #             },
+    #             "version": "1.0"
+    #         },
+    #         context={},
+    # ))
+
     print(nutrition_dialog(
             event={
                 "meta": {
@@ -427,86 +480,23 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "алиса я сегодня пила кофе одна ложка "
-                               "кофе три ложки сахара и грамм пятьдесят молока",
+                    "command": "да",
                     "nlu": {
-                        "entities": [
-                            {
-                                "tokens": {
-                                    "end": 1,
-                                    "start": 0
-                                },
-                                "type": "YANDEX.FIO",
-                                "value": {
-                                    "first_name": "алиса"
-                                }
-                            },
-                            {
-                                "tokens": {
-                                    "end": 3,
-                                    "start": 2
-                                },
-                                "type": "YANDEX.DATETIME",
-                                "value": {
-                                    "day": 0,
-                                    "day_is_relative": True
-                                }
-                            },
-                            {
-                                "tokens": {
-                                    "end": 6,
-                                    "start": 5
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 1
-                            },
-                            {
-                                "tokens": {
-                                    "end": 9,
-                                    "start": 8
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 3
-                            },
-                            {
-                                "tokens": {
-                                    "end": 14,
-                                    "start": 13
-                                },
-                                "type": "YANDEX.NUMBER",
-                                "value": 50
-                            }
-                        ],
+                        "entities": [],
                         "tokens": [
-                            "алиса",
-                            "я",
-                            "сегодня",
-                            "пила",
-                            "кофе",
-                            "1",
-                            "ложка",
-                            "кофе",
-                            "3",
-                            "ложки",
-                            "сахара",
-                            "и",
-                            "грамм",
-                            "50",
-                            "молока"
+                            "да"
                         ]
                     },
-                    "original_utterance": "алиса я сегодня пила кофе одна "
-                                          "ложка кофе три ложки сахара и "
-                                          "грамм пятьдесят молока",
+                    "original_utterance": "да",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 23,
+                    "message_id": 31,
                     "new": False,
-                    "session_id": "a7648893-1b6c126a-24c16051-39edd293",
+                    "session_id": "2683c900-ce225f48-b915927d-c12f26a8",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44"
-                               "F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E4"
+                               "4F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },
