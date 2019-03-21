@@ -116,7 +116,6 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
             'хранить' in tokens or
             'сохраняй' in tokens or
             'давай' in tokens or
-            'можно' in tokens or
             'сохрани' in tokens or
             'храни' in tokens or
             'сохранить' in tokens
@@ -175,11 +174,13 @@ def respond_with_context(
         absolute_date = transform_yandex_datetime_value_to_datetime(
                 yandex_datetime_value_dict=last_datetime_entity['value'])
 
-        return response_with_context_when_date_in_request(
-                request=request,
-                context=context,
-                database_client=database_client,
-                date=absolute_date,
+        # sometimes yandex sets YANDEX.DATETIME object where it shouldn't be
+        if absolute_date.year > 2000:
+            return response_with_context_when_date_in_request(
+                    request=request,
+                    context=context,
+                    database_client=database_client,
+                    date=absolute_date,
 
         )
 
@@ -393,7 +394,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='сохранить',
+                    phrase='тыква',
                     has_screen=True),
             context={}))
     # print(nutrition_dialog(

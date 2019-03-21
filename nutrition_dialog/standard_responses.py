@@ -492,6 +492,7 @@ def is_not_implemented_request(request: YandexRequest):
                        'норма потребления',
                        'сколько нужно съесть калорий в день',
                        'дневная норма калорий',
+                       'сколько калорий можно употреблять в сутки',
                        ) or 'норма' in tokens:
         return True
     return False
