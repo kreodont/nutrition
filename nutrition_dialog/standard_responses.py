@@ -32,6 +32,11 @@ def respond_one_of_predefined_phrases(
                 request=request,
                 responding_function=respond_help)
 
+    if is_ping_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_ping)
+
     if is_thanks_request(request=request):
         return respond_request(
                 request=request,
@@ -504,8 +509,6 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
             'справка' in tokens or
             'хелп' in tokens or
             'информация' in tokens or
-            'ping' in tokens or
-            'пинг' in tokens or
             'умеешь' in tokens or
             ('что' in tokens and [t for t in tokens if 'делать' in t]) or
             ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
@@ -515,6 +518,25 @@ def check_if_help_in_request(*, request: YandexRequest) -> bool:
         return True
 
     return False
+
+
+def is_ping_request(request: YandexRequest):
+    full_phrase = request.original_utterance
+    if full_phrase in ('ping', 'пинг'):
+        return True
+    return False
+
+
+def respond_ping(request: YandexRequest) -> YandexResponse:
+    respond_string = 'pong'
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=respond_string,
+            tts=respond_string,
+            end_session=False,
+            buttons=[],
+    )
 
 
 def respond_text_too_long(request: YandexRequest) -> YandexResponse:
