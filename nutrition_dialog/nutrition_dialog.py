@@ -11,7 +11,7 @@ from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
-from mockers import mock_incoming_event
+# from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database, get_boto3_client
@@ -19,6 +19,7 @@ from russian_language import russian_replacements_in_original_utterance
 from translation_functions import translate_request
 import dateutil
 from dates_transformations import transform_yandex_datetime_value_to_datetime
+from delete_response import remove_tokens_from_specific_intervals
 
 
 @timeit
@@ -108,17 +109,19 @@ def response_with_context_when_no_in_request(
 @timeit
 def check_if_yes_in_request(*, request: YandexRequest) -> bool:
     tokens = request.tokens
-    if (
-            'да' in tokens or
-            'ага' in tokens or
-            'конечно' in tokens or
-            'хорошо' in tokens or
-            'хранить' in tokens or
+    full_phrase = request.original_utterance.lower().strip()
+    if ('хранить' in tokens or
+            'сохранить' in tokens or
             'сохраняй' in tokens or
-            'давай' in tokens or
             'сохрани' in tokens or
             'храни' in tokens or
-            'сохранить' in tokens
+            'сохранить' in tokens or
+            'да' in tokens):
+        return True
+    if full_phrase in (
+            'ну давай',
+            'давай',
+            'давай сохраняй',
     ):
         return True
 
@@ -127,8 +130,21 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
 
 @timeit
 def check_if_date_in_request(*, request: YandexRequest) -> bool:
-    if any([entity for entity in request.entities if
-            entity['type'] == "YANDEX.DATETIME"]):
+    all_datetime_entries = [entity for entity in request.entities if
+                            entity['type'] == "YANDEX.DATETIME"]
+
+    if len(all_datetime_entries) == 0:
+        return False
+
+    tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
+            tokens_list=request.original_utterance.lower().split(),
+            intervals_dicts_list=all_datetime_entries)
+
+    tokens_without_common_words = [t for t in tokens_without_dates_tokens if
+                                   t not in ('да', 'за',
+                                             'сохрани', 'сохранить')]
+
+    if len(tokens_without_common_words) == 0:
         return True
 
     return False
@@ -392,56 +408,107 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    print(nutrition_dialog(
-            event=mock_incoming_event(
-                    phrase='что я ела',
-                    has_screen=True),
-            context={}))
     # print(nutrition_dialog(
-    #         event={
-    #             "meta": {
-    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
-    #                              "android 4.4.2)",
-    #                 "interfaces": {
-    #                     "account_linking": {},
-    #                     "payments": {},
-    #                     "screen": {}
-    #                 },
-    #                 "locale": "ru-RU",
-    #                 "timezone": "UTC"
-    #             },
-    #             "request": {
-    #                 "command": "завтра",
-    #                 "nlu": {
-    #                     "entities": [
-    #                         {
-    #                             "tokens": {
-    #                                 "end": 1,
-    #                                 "start": 0
-    #                             },
-    #                             "type": "YANDEX.DATETIME",
-    #                             "value": {
-    #                                 "day": 1,
-    #                                 "day_is_relative": True
-    #                             }
-    #                         }
-    #                     ],
-    #                     "tokens": [
-    #                         "завтра"
-    #                     ]
-    #                 },
-    #                 "original_utterance": "завтра",
-    #                 "type": "SimpleUtterance"
-    #             },
-    #             "session": {
-    #                 "message_id": 5,
-    #                 "new": False,
-    #                 "session_id": "e40cab95-bfa899ae-2beb2e7a-edef8536",
-    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-    #                 "user_id": "E401738E621D9AAC04AB162E44F"
-    #                            "39B3ABDA23A5CB2FF19E394C1915ED45CF467"
-    #             },
-    #             "version": "1.0"
-    #         },
-    #         context={},
-    # ))
+    #         event=mock_incoming_event(
+    #                 phrase='что я ела',
+    #                 has_screen=True),
+    #         context={}))
+    print(nutrition_dialog(
+            event={
+                "meta": {
+                    "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+                                 "android 4.4.2)",
+                    "interfaces": {
+                        "account_linking": {},
+                        "payments": {},
+                        "screen": {}
+                    },
+                    "locale": "ru-RU",
+                    "timezone": "UTC"
+                },
+                "request": {
+                    "command": "алиса я сегодня пила кофе одна ложка "
+                               "кофе три ложки сахара и грамм пятьдесят молока",
+                    "nlu": {
+                        "entities": [
+                            {
+                                "tokens": {
+                                    "end": 1,
+                                    "start": 0
+                                },
+                                "type": "YANDEX.FIO",
+                                "value": {
+                                    "first_name": "алиса"
+                                }
+                            },
+                            {
+                                "tokens": {
+                                    "end": 3,
+                                    "start": 2
+                                },
+                                "type": "YANDEX.DATETIME",
+                                "value": {
+                                    "day": 0,
+                                    "day_is_relative": True
+                                }
+                            },
+                            {
+                                "tokens": {
+                                    "end": 6,
+                                    "start": 5
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 1
+                            },
+                            {
+                                "tokens": {
+                                    "end": 9,
+                                    "start": 8
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 3
+                            },
+                            {
+                                "tokens": {
+                                    "end": 14,
+                                    "start": 13
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 50
+                            }
+                        ],
+                        "tokens": [
+                            "алиса",
+                            "я",
+                            "сегодня",
+                            "пила",
+                            "кофе",
+                            "1",
+                            "ложка",
+                            "кофе",
+                            "3",
+                            "ложки",
+                            "сахара",
+                            "и",
+                            "грамм",
+                            "50",
+                            "молока"
+                        ]
+                    },
+                    "original_utterance": "алиса я сегодня пила кофе одна "
+                                          "ложка кофе три ложки сахара и "
+                                          "грамм пятьдесят молока",
+                    "type": "SimpleUtterance"
+                },
+                "session": {
+                    "message_id": 23,
+                    "new": False,
+                    "session_id": "a7648893-1b6c126a-24c16051-39edd293",
+                    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+                    "user_id": "E401738E621D9AAC04AB162E44"
+                               "F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
+                },
+                "version": "1.0"
+            },
+            context={},
+    ))

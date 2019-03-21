@@ -404,6 +404,7 @@ def is_what_is_your_name_request(request: YandexRequest):
     tokens = request.tokens
     if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
         return True
+
     return False
 
 
@@ -442,7 +443,8 @@ def respond_smart_calories_countere(request: YandexRequest) -> YandexResponse:
 def is_where_is_saved_request(request: YandexRequest):
     full_phrase = request.original_utterance
     if full_phrase in ('а где сохраняются', 'где сохраняются',
-                       'где сохранить', 'а зачем сохранять', 'зачем сохранять'):
+                       'где сохранить', 'а зачем сохранять',
+                       'зачем сохранять', 'куда'):
         return True
     return False
 
