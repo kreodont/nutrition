@@ -118,7 +118,9 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
             'давай' in tokens or
             'можно' in tokens or
             'сохрани' in tokens or
-            'храни' in tokens):
+            'храни' in tokens or
+            'сохранить' in tokens
+    ):
         return True
 
     return False
@@ -391,7 +393,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='не удалить мне',
+                    phrase='сохранить',
                     has_screen=True),
             context={}))
     # print(nutrition_dialog(
