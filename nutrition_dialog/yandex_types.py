@@ -213,4 +213,5 @@ def transform_yandex_response_to_output_result_dict(
         },
         "version": yandex_response.version
     }
+    print(f'ОТВЕТ: {yandex_response.response_text}')
     return response

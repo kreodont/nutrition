@@ -43,7 +43,8 @@ def response_with_context_when_yes_in_request(
 
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
-            text='Сохранено',
+            text='Сохранено. Чтобы посмотреть список сохраненной '
+                 'еды, спросите "Что я ел сегодня?',
             tts='Сохранено',
             end_session=False,
             buttons=[],
@@ -339,6 +340,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             event_dict=event,
             aws_lambda_mode=bool(context),
     )
+    print(f'ВОПРОС: {yandex_request.original_utterance}')
 
     if yandex_request.error:
         # Exit immediatelly in case of mailformed request
