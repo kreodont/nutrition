@@ -32,7 +32,8 @@ def respond_food_to_delete_not_found(
         f'Найдено: {[food["utterance"] for food in found_foods]}. Чтобы ' \
         f'удалить еду, нужно произнести Удалить "еда" ' \
         f'именно в том виде, как она записана. ' \
-        f'Например, удалить {found_foods[0]["utterance"]}'
+        f'Например, удалить {found_foods[0]["utterance"]}. Также можно ' \
+        f'удалить еду по номеру, например: удалить номер 2'
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=respond_string,
@@ -93,7 +94,7 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
             date=target_date)
 
     tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
-            tokens_list=request.tokens,
+            tokens_list=request.original_utterance.split(),
             intervals_dicts_list=all_datetime_entries)
 
     tokens_without_delete_words = [t for t in tokens_without_dates_tokens if
