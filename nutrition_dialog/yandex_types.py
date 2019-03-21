@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import typing
 from decorators import timeit
 from functools import partial, reduce
+import hashlib
 
 
 @dataclass(frozen=True)
@@ -213,5 +214,13 @@ def transform_yandex_response_to_output_result_dict(
         },
         "version": yandex_response.version
     }
-    print(f'ОТВЕТ: {yandex_response.response_text}')
+    print(f'НАВЫК_{log_hash(yandex_response)}: {yandex_response.response_text}')
     return response
+
+def log_hash(
+        request_or_response,
+) -> str:
+    session_id = request_or_response.session_id
+    message_id = str(request_or_response.message_id)
+    return str(int(hashlib.sha1(session_id.encode()).hexdigest(),
+                   16) % (10 ** 3)) + '_' + message_id

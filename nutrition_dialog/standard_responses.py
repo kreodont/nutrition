@@ -133,6 +133,7 @@ def is_launch_again_request(request: YandexRequest):
     if full_phrase.lower().strip() in (
             'запусти навык умный счетчик калорий',
             'алиса запусти умный счетчик калорий',
+            'запустить умный счетчик калорий',
     ):
         return True
     return False

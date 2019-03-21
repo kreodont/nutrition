@@ -6,7 +6,7 @@ from standard_responses import respond_i_dont_know, \
     respond_one_of_predefined_phrases, respond_greeting_phrase
 from yandex_types import YandexResponse, YandexRequest, \
     transform_event_dict_to_yandex_request_object, \
-    transform_yandex_response_to_output_result_dict
+    transform_yandex_response_to_output_result_dict, log_hash
 from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
@@ -340,7 +340,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             event_dict=event,
             aws_lambda_mode=bool(context),
     )
-    print(f'ВОПРОС: {yandex_request.original_utterance}')
+    print(f'ЮЗЕР_{log_hash(yandex_request)}: '
+          f'{yandex_request.original_utterance}')
 
     if yandex_request.error:
         # Exit immediatelly in case of mailformed request
