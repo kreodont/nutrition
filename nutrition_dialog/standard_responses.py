@@ -37,6 +37,11 @@ def respond_one_of_predefined_phrases(
                 request=request,
                 responding_function=respond_ping)
 
+    if is_launch_again_request(request=request):
+        return respond_request(
+                request=request,
+                responding_function=respond_launch_again)
+
     if is_thanks_request(request=request):
         return respond_request(
                 request=request,
@@ -122,21 +127,16 @@ def respond_one_of_predefined_phrases(
                 request=request,
                 responding_function=respond_shut_up_request)
 
-    if is_launch_again_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_launch_again)
-
 
 def is_launch_again_request(request: YandexRequest):
     full_phrase = request.original_utterance
-    if full_phrase.lower() == 'запусти навык умный счетчик калорий':
+    if full_phrase.lower().strip() == 'запусти навык умный счетчик калорий':
         return True
     return False
 
 
 def respond_launch_again(request: YandexRequest) -> YandexResponse:
-    help_text = 'Я уже и так запущен.'
+    help_text = 'Какую еду записать?'
 
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
