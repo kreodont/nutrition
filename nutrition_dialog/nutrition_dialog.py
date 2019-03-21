@@ -182,7 +182,7 @@ def respond_with_context(
                     database_client=database_client,
                     date=absolute_date,
 
-        )
+            )
 
     # We checked all possible context reaction, nothing fits,
     # so act as we don't have context at all
@@ -394,7 +394,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='тыква',
+                    phrase='что я ела',
                     has_screen=True),
             context={}))
     # print(nutrition_dialog(

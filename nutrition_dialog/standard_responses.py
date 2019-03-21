@@ -736,6 +736,8 @@ def total_calories_text(
         this_food_calories = 0
         food_time = dateutil.parser.parse(food['time'])
         food_time = food_time.astimezone(dateutil.tz.gettz(timezone))
+        if 'foods' not in nutrition_dict:
+            continue
 
         for f in nutrition_dict['foods']:
             calories = f.get("nf_calories", 0) or 0
