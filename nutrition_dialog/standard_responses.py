@@ -130,7 +130,10 @@ def respond_one_of_predefined_phrases(
 
 def is_launch_again_request(request: YandexRequest):
     full_phrase = request.original_utterance
-    if full_phrase.lower().strip() == 'запусти навык умный счетчик калорий':
+    if full_phrase.lower().strip() in (
+            'запусти навык умный счетчик калорий',
+            'алиса запусти умный счетчик калорий',
+    ):
         return True
     return False
 
@@ -203,10 +206,10 @@ def respond_help(request: YandexRequest) -> YandexResponse:
 
 def is_thanks_request(request: YandexRequest):
     full_phrase = request.original_utterance
-    if full_phrase in (
+    if full_phrase.lower().strip() in (
             'спасибо', 'молодец', 'отлично', 'ты классная', 'классная штука',
             'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
-            'клево', 'ништяк'):
+            'клево', 'ништяк', 'класс'):
         return True
     return False
 
@@ -343,7 +346,7 @@ def respond_eat_poop(request: YandexRequest) -> YandexResponse:
 def is_i_think_too_much_request(request: YandexRequest):
     full_phrase = request.original_utterance
     if full_phrase in ('это много', 'это мало', 'что-то много',
-                       'что-то мало', 'так много'):
+                       'что-то мало', 'так много', 'а почему так много'):
         return True
     return False
 
@@ -593,7 +596,9 @@ def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
                           ]
 
     full_generated_text = f"{random.choice(first_parts_list)}, " \
-        f"например: {random.choice(food_examples_list)}"
+        f"например: {random.choice(food_examples_list)}. " \
+        f"Чтобы выйти, скажите Выход"
+
     if request.has_screen:
         tts = "Попробуйте сказать иначе"
     else:
