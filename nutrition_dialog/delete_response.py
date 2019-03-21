@@ -120,6 +120,14 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
             user_id=request.user_guid,
     )
 
+    if len(all_food_for_date) == 0:
+        return respond_request(
+                request=request,
+                responding_function=functools.partial(
+                        respond_nothing_to_delete_with_date,
+                )
+        )
+
     if food_to_delete in ('все', 'всё'):
         delete_food(database_client=get_boto3_client(
                 aws_lambda_mode=request.aws_lambda_mode,

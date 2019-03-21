@@ -391,7 +391,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='запусти навык Умный счетчик калорий ',
+                    phrase='не удалить мне',
                     has_screen=True),
             context={}))
     # print(nutrition_dialog(

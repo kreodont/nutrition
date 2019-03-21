@@ -217,6 +217,7 @@ def transform_yandex_response_to_output_result_dict(
     print(f'НАВЫК_{log_hash(yandex_response)}: {yandex_response.response_text}')
     return response
 
+
 def log_hash(
         request_or_response,
 ) -> str:
