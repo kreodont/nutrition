@@ -274,7 +274,7 @@ def find_all_food_names_for_day(
         return []
 
     items: typing.List[dict] = json.loads(result['Item']['value']['S'])
-    return items
+    return [i for i in items if 'foods' in i and 'error' not in i['foods']]
     # found_items = []
     #
     # for item in items:

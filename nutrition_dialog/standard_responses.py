@@ -671,6 +671,8 @@ def is_what_i_have_eaten_request(request: YandexRequest):
                             'сколько сегодня калорий было',
                             'общее количество',
                             'посчитай калории',
+                            'итог',
+                            'наели калорий за сегодня'
                             ):
         return True
     return False

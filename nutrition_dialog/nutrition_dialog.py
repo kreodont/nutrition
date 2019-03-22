@@ -480,23 +480,34 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "да",
+                    "command": "удалить номер два",
                     "nlu": {
-                        "entities": [],
+                        "entities": [
+                            {
+                                "tokens": {
+                                    "end": 3,
+                                    "start": 2
+                                },
+                                "type": "YANDEX.NUMBER",
+                                "value": 2
+                            }
+                        ],
                         "tokens": [
-                            "да"
+                            "удалить",
+                            "номер",
+                            "2"
                         ]
                     },
-                    "original_utterance": "да",
+                    "original_utterance": "удалить номер два",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 31,
+                    "message_id": 22,
                     "new": False,
-                    "session_id": "2683c900-ce225f48-b915927d-c12f26a8",
+                    "session_id": "a34a1050-764ec46f-58b1be34-712df3c0",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E4"
-                               "4F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E44F39B"
+                               "3ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },

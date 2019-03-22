@@ -148,8 +148,10 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
         )
 
     # Delete food by number
-    if re.match(r'номер \d+', food_to_delete):
-        food_number = int(float(food_to_delete.replace('номер ', '')))
+    string_from_tokens = ' '.join(request.tokens)
+    search = re.search(r'номер (\d+)', string_from_tokens)
+    if search:
+        food_number = int(float(search.groups()[0]))
         if food_number <= 0:
             return construct_yandex_response_from_yandex_request(
                     yandex_request=request,
