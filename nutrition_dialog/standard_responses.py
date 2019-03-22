@@ -468,7 +468,7 @@ def respond_where_is_saved(request: YandexRequest) -> YandexResponse:
 def is_angry_request(request: YandexRequest):
     full_phrase = request.original_utterance
     if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
-                       'идиотка', 'тупорылая', 'тупая', 'ты дура'):
+                       'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо'):
         return True
     return False
 
@@ -497,6 +497,7 @@ def is_not_implemented_request(request: YandexRequest):
                        'сколько нужно съесть калорий в день',
                        'дневная норма калорий',
                        'сколько калорий можно употреблять в сутки',
+                       'сколько калорий в день можно'
                        ) or 'норма' in tokens:
         return True
     return False
