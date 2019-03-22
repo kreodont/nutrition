@@ -137,7 +137,7 @@ def check_if_date_in_request(*, request: YandexRequest) -> bool:
         return False
 
     tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
-            tokens_list=request.original_utterance.lower().split(),
+            tokens_list=request.tokens,
             intervals_dicts_list=all_datetime_entries)
 
     tokens_without_common_words = [t for t in tokens_without_dates_tokens if
@@ -414,57 +414,6 @@ if __name__ == '__main__':
     #                 phrase='что я ела',
     #                 has_screen=True),
     #         context={}))
-    # print(nutrition_dialog(
-    #         event={
-    #             "meta": {
-    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
-    #                              "android 4.4.2)",
-    #                 "interfaces": {
-    #                     "account_linking": {},
-    #                     "payments": {},
-    #                     "screen": {}
-    #                 },
-    #                 "locale": "ru-RU",
-    #                 "timezone": "UTC"
-    #             },
-    #             "request": {
-    #                 "command": "да сохрани за завтра",
-    #                 "nlu": {
-    #                     "entities": [
-    #                         {
-    #                             "tokens": {
-    #                                 "end": 4,
-    #                                 "start": 2
-    #                             },
-    #                             "type": "YANDEX.DATETIME",
-    #                             "value": {
-    #                                 "day": 1,
-    #                                 "day_is_relative": True
-    #                             }
-    #                         }
-    #                     ],
-    #                     "tokens": [
-    #                         "да",
-    #                         "сохрани",
-    #                         "за",
-    #                         "завтра"
-    #                     ]
-    #                 },
-    #                 "original_utterance": "да сохрани за завтра",
-    #                 "type": "SimpleUtterance"
-    #             },
-    #             "session": {
-    #                 "message_id": 17,
-    #                 "new": False,
-    #                 "session_id": "2683c900-ce225f48-b915927d-c12f26a8",
-    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-    #                 "user_id": "E401738E621D9AAC04AB162E44F3"
-    #                            "9B3ABDA23A5CB2FF19E394C1915ED45CF467"
-    #             },
-    #             "version": "1.0"
-    #         },
-    #         context={},
-    # ))
 
     print(nutrition_dialog(
             event={
@@ -480,34 +429,38 @@ if __name__ == '__main__':
                     "timezone": "UTC"
                 },
                 "request": {
-                    "command": "удалить номер два",
+                    "command": "шесть часов сорок пять минут",
                     "nlu": {
                         "entities": [
                             {
                                 "tokens": {
-                                    "end": 3,
-                                    "start": 2
+                                    "end": 2,
+                                    "start": 0
                                 },
-                                "type": "YANDEX.NUMBER",
-                                "value": 2
+                                "type": "YANDEX.DATETIME",
+                                "value": {
+                                    "hour": 6,
+                                    "hour_is_relative": False,
+                                    "minute": 45,
+                                    "minute_is_relative": False
+                                }
                             }
                         ],
                         "tokens": [
-                            "удалить",
-                            "номер",
-                            "2"
+                            "6",
+                            "45"
                         ]
                     },
-                    "original_utterance": "удалить номер два",
+                    "original_utterance": "шесть часов сорок пять минут",
                     "type": "SimpleUtterance"
                 },
                 "session": {
-                    "message_id": 22,
+                    "message_id": 33,
                     "new": False,
                     "session_id": "a34a1050-764ec46f-58b1be34-712df3c0",
                     "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39B"
-                               "3ABDA23A5CB2FF19E394C1915ED45CF467"
+                    "user_id": "E401738E621D9AAC04AB162E44F39"
+                               "B3ABDA23A5CB2FF19E394C1915ED45CF467"
                 },
                 "version": "1.0"
             },

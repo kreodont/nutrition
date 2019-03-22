@@ -134,6 +134,7 @@ def is_launch_again_request(request: YandexRequest):
             'запусти навык умный счетчик калорий',
             'алиса запусти умный счетчик калорий',
             'запустить умный счетчик калорий',
+            'запусти умный счетчик калорий',
     ):
         return True
     return False
@@ -347,7 +348,8 @@ def respond_eat_poop(request: YandexRequest) -> YandexResponse:
 def is_i_think_too_much_request(request: YandexRequest):
     full_phrase = request.original_utterance
     if full_phrase in ('это много', 'это мало', 'что-то много',
-                       'что-то мало', 'так много', 'а почему так много'):
+                       'что-то мало', 'так много', 'а почему так много',
+                       'неправильно', ):
         return True
     return False
 
@@ -444,7 +446,7 @@ def is_where_is_saved_request(request: YandexRequest):
     full_phrase = request.original_utterance
     if full_phrase in ('а где сохраняются', 'где сохраняются',
                        'где сохранить', 'а зачем сохранять',
-                       'зачем сохранять', 'куда'):
+                       'зачем сохранять', 'куда', 'а куда сохранила'):
         return True
     return False
 
@@ -672,7 +674,8 @@ def is_what_i_have_eaten_request(request: YandexRequest):
                             'общее количество',
                             'посчитай калории',
                             'итог',
-                            'наели калорий за сегодня'
+                            'наели калорий за сегодня',
+                            'итого'
                             ):
         return True
     return False
