@@ -374,6 +374,23 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                         end_session=True,
                 ))
 
+    # Check if boto3 clients are cached, return if not
+    database_client = get_boto3_client(
+                        aws_lambda_mode=yandex_request.aws_lambda_mode,
+                        service_name='dynamodb',
+                )
+    if not database_client:
+        error_text = 'Ой, я кажется не расслышала. ' \
+                     'Повторите, пожалуйста еще раз?'
+        return transform_yandex_response_to_output_result_dict(
+                yandex_response=construct_yandex_response_from_yandex_request(
+                        yandex_request=yandex_request,
+                        text=error_text,
+                        tts=error_text,
+                        buttons=[],
+                        end_session=True,
+                ))
+
     # there can be many hardcoded responses, need to check all of them before
     # querying any databases. This includes DELETE request and "What I
     # have eaten request"

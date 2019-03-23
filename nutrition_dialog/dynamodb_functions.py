@@ -53,10 +53,11 @@ def get_boto3_client(
         )
     else:
         client = boto3.Session(profile_name=profile_name).client(service_name)
+        return client
 
     # saving to cache to to spend time to create it next time
     global_cached_boto3_clients[service_name] = client
-    return client
+    return None
 
 
 @timeit
