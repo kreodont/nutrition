@@ -116,7 +116,7 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
     all_food_for_date = find_all_food_names_for_day(
             database_client=get_boto3_client(
                     aws_lambda_mode=request.aws_lambda_mode,
-                    service_name='dynamodb'),
+                    service_name='dynamodb')[0],
             date=target_date,
             user_id=request.user_guid,
     )
@@ -132,7 +132,7 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
     if food_to_delete in ('все', 'всё'):
         delete_food(database_client=get_boto3_client(
                 aws_lambda_mode=request.aws_lambda_mode,
-                service_name='dynamodb'),
+                service_name='dynamodb')[0],
                 date=target_date,
                 list_of_food_to_delete_dicts=all_food_for_date,
                 list_of_all_food_dicts=all_food_for_date,
@@ -174,7 +174,7 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
         food_to_delete = [all_food_for_date[food_number - 1], ]
         delete_food(database_client=get_boto3_client(
                 aws_lambda_mode=request.aws_lambda_mode,
-                service_name='dynamodb'),
+                service_name='dynamodb')[0],
                 date=target_date,
                 list_of_food_to_delete_dicts=food_to_delete,
                 list_of_all_food_dicts=all_food_for_date,
@@ -219,7 +219,7 @@ def respond_delete(request: YandexRequest) -> YandexResponse:
 
     delete_food(database_client=get_boto3_client(
             aws_lambda_mode=request.aws_lambda_mode,
-            service_name='dynamodb'),
+            service_name='dynamodb')[0],
             date=target_date,
             list_of_food_to_delete_dicts=matching_food,
             list_of_all_food_dicts=all_food_for_date,

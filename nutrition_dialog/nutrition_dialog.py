@@ -255,7 +255,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     database_client = get_boto3_client(
             aws_lambda_mode=request.aws_lambda_mode,
             service_name='dynamodb',
-    )
+    )[0]
 
     keys_dict, cached_dict = get_from_cache_table(
             request_text=request.original_utterance,
@@ -284,7 +284,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     translation_client = get_boto3_client(
             aws_lambda_mode=request.aws_lambda_mode,
             service_name='translate',
-    )
+    )[0]
 
     translated_request = translate_request(
             yandex_request=request_with_replacements,
@@ -331,7 +331,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
 def respond_existing_session(yandex_request: YandexRequest):
     database_client = get_boto3_client(
             aws_lambda_mode=yandex_request.aws_lambda_mode,
-            service_name='dynamodb')
+            service_name='dynamodb')[0]
 
     context = fetch_context_from_dynamo_database(
             database_client=database_client,
@@ -375,11 +375,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 ))
 
     # Check if boto3 clients are cached, return if not
-    database_client = get_boto3_client(
+    database_client, is_cached = get_boto3_client(
                         aws_lambda_mode=yandex_request.aws_lambda_mode,
                         service_name='dynamodb',
                 )
-    if not database_client:
+    if not is_cached:
         error_text = 'Ой, я кажется не расслышала. ' \
                      'Повторите, пожалуйста еще раз?'
         return transform_yandex_response_to_output_result_dict(
@@ -405,7 +405,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                 database_client=get_boto3_client(
                         aws_lambda_mode=yandex_request.aws_lambda_mode,
                         service_name='dynamodb',
-                )
+                )[0]
         )
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=any_predifined_response)

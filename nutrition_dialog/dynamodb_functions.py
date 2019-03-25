@@ -20,7 +20,7 @@ def get_boto3_client(
         profile_name: str = 'kreodont',
         connect_timeout: float = 0.2,
         read_timeout: float = 0.4,
-) -> typing.Optional[boto3.client]:
+) -> typing.Tuple[typing.Optional[boto3.client], bool]:
     """
     Dirty function to fetch s3_clients
     :param connect_timeout:
@@ -33,7 +33,7 @@ def get_boto3_client(
     known_services = ['translate', 'dynamodb', 's3']
     if service_name in global_cached_boto3_clients:
         print(f'{service_name} client taken from cache!')
-        return global_cached_boto3_clients[service_name]
+        return global_cached_boto3_clients[service_name], True
 
     if service_name not in known_services:
         raise Exception(
@@ -53,11 +53,11 @@ def get_boto3_client(
         )
     else:
         client = boto3.Session(profile_name=profile_name).client(service_name)
-        return client
+        return client, False
 
     # saving to cache to to spend time to create it next time
     global_cached_boto3_clients[service_name] = client
-    return None
+    return client, False
 
 
 @timeit
