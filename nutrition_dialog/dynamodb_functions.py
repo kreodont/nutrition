@@ -78,15 +78,19 @@ def update_user_table(
         'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
         'foods': foods_dict,
         'utterance': utterance})
-    database_client.put_item(TableName='nutrition_users',
-                             Item={
-                                 'id': {
-                                     'S': user_id,
-                                 },
-                                 'date': {'S': str(event_time.date())},
-                                 'value': {
-                                     'S': json.dumps(item_to_save),
-                                 }})
+    try:
+        database_client.put_item(TableName='nutrition_users',
+                                 Item={
+                                     'id': {
+                                         'S': user_id,
+                                     },
+                                     'date': {'S': str(event_time.date())},
+                                     'value': {
+                                         'S': json.dumps(item_to_save),
+                                     }})
+
+    except (ReadTimeout, ConnectTimeout):
+        pass
 
 
 @timeit
@@ -100,7 +104,7 @@ def clear_session(
                                         'id': {
                                             'S': session_id,
                                         }, })
-    except ReadTimeout:
+    except (ReadTimeout, ConnectTimeout):
         pass
 
 

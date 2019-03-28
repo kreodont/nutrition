@@ -206,7 +206,9 @@ def respond_with_context(
 
 
 @timeit
-def query_endpoint(*, link, login, password, phrase) -> dict:
+def query_endpoint(*, link, login, password, phrase, debug=False) -> dict:
+    if debug:
+        print(f'Login: {login} Password: {password} Phrase: {phrase}')
     try:
         response = requests.post(link,
                                  data=json.dumps({'query': phrase}),
@@ -299,7 +301,9 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
             link=keys_dict['link'],
             login=login,
             password=password,
-            phrase=translated_request.original_utterance)
+            phrase=translated_request.original_utterance,
+            debug=True
+    )
 
     # if we recevied negative response,
     if 'fatal' in nutrition_dict:
