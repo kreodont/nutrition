@@ -11,7 +11,7 @@ from decorators import timeit
 from responses_constructors import respond_request, \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
-# from mockers import mock_incoming_event
+from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
     write_to_cache_table, get_from_cache_table, \
     fetch_context_from_dynamo_database, get_boto3_client
@@ -383,7 +383,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                         aws_lambda_mode=yandex_request.aws_lambda_mode,
                         service_name='dynamodb',
                 )
-    if not is_cached:
+    if not is_cached and context:
         error_text = 'Ой, я кажется не расслышала. ' \
                      'Повторите, пожалуйста еще раз?'
         return transform_yandex_response_to_output_result_dict(
@@ -430,60 +430,60 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 
 
 if __name__ == '__main__':
-    # print(nutrition_dialog(
-    #         event=mock_incoming_event(
-    #                 phrase='что я ела',
-    #                 has_screen=True),
-    #         context={}))
-
     print(nutrition_dialog(
-            event={
-                "meta": {
-                    "client_id": "ru.yandex.searchplugin/7.16 (none none; "
-                                 "android 4.4.2)",
-                    "interfaces": {
-                        "account_linking": {},
-                        "payments": {},
-                        "screen": {}
-                    },
-                    "locale": "ru-RU",
-                    "timezone": "UTC"
-                },
-                "request": {
-                    "command": "шесть часов сорок пять минут",
-                    "nlu": {
-                        "entities": [
-                            {
-                                "tokens": {
-                                    "end": 2,
-                                    "start": 0
-                                },
-                                "type": "YANDEX.DATETIME",
-                                "value": {
-                                    "hour": 6,
-                                    "hour_is_relative": False,
-                                    "minute": 45,
-                                    "minute_is_relative": False
-                                }
-                            }
-                        ],
-                        "tokens": [
-                            "6",
-                            "45"
-                        ]
-                    },
-                    "original_utterance": "шесть часов сорок пять минут",
-                    "type": "SimpleUtterance"
-                },
-                "session": {
-                    "message_id": 33,
-                    "new": False,
-                    "session_id": "a34a1050-764ec46f-58b1be34-712df3c0",
-                    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-                    "user_id": "E401738E621D9AAC04AB162E44F39"
-                               "B3ABDA23A5CB2FF19E394C1915ED45CF467"
-                },
-                "version": "1.0"
-            },
-            context={},
-    ))
+            event=mock_incoming_event(
+                    phrase='150 г банана',
+                    has_screen=True),
+            context={}))
+
+    # print(nutrition_dialog(
+    #         event={
+    #             "meta": {
+    #                 "client_id": "ru.yandex.searchplugin/7.16 (none none; "
+    #                              "android 4.4.2)",
+    #                 "interfaces": {
+    #                     "account_linking": {},
+    #                     "payments": {},
+    #                     "screen": {}
+    #                 },
+    #                 "locale": "ru-RU",
+    #                 "timezone": "UTC"
+    #             },
+    #             "request": {
+    #                 "command": "шесть часов сорок пять минут",
+    #                 "nlu": {
+    #                     "entities": [
+    #                         {
+    #                             "tokens": {
+    #                                 "end": 2,
+    #                                 "start": 0
+    #                             },
+    #                             "type": "YANDEX.DATETIME",
+    #                             "value": {
+    #                                 "hour": 6,
+    #                                 "hour_is_relative": False,
+    #                                 "minute": 45,
+    #                                 "minute_is_relative": False
+    #                             }
+    #                         }
+    #                     ],
+    #                     "tokens": [
+    #                         "6",
+    #                         "45"
+    #                     ]
+    #                 },
+    #                 "original_utterance": "шесть часов сорок пять минут",
+    #                 "type": "SimpleUtterance"
+    #             },
+    #             "session": {
+    #                 "message_id": 33,
+    #                 "new": False,
+    #                 "session_id": "a34a1050-764ec46f-58b1be34-712df3c0",
+    #                 "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+    #                 "user_id": "E401738E621D9AAC04AB162E44F39"
+    #                            "B3ABDA23A5CB2FF19E394C1915ED45CF467"
+    #             },
+    #             "version": "1.0"
+    #         },
+    #         context={},
+    # ))
