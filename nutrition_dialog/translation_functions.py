@@ -45,7 +45,7 @@ def translate_request(
     translated_yandex_request = replace(
             yandex_request,
             original_utterance=translate_text_into_english(
-                    russian_text=yandex_request.original_utterance,
+                    russian_text=yandex_request.command,
                     translation_client=translate_client,
             ),
     )  # type: YandexRequest

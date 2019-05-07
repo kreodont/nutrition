@@ -11,6 +11,7 @@ class YandexRequest:
     has_screen: bool
     timezone: str
     original_utterance: str
+    command: str
     is_new_session: bool
     user_guid: str
     message_id: str
@@ -35,6 +36,7 @@ class YandexRequest:
                 message_id='',
                 session_id='',
                 version='',
+                command='',
                 aws_lambda_mode=aws_lambda_mode,
                 error=error
         )
@@ -118,6 +120,7 @@ def transform_event_dict_to_yandex_request_object(
     user_guid = fetch_one_value_from_event_dict(
             path='session -> user_id',
             event_dict=event_dict)
+
     if user_guid is None:
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
@@ -161,9 +164,18 @@ def transform_event_dict_to_yandex_request_object(
     partial_constructor = partial(partial_constructor,
                                   original_utterance=original_utterance)
 
+    command = fetch_one_value_from_event_dict(
+            path='request -> command',
+            event_dict=event_dict)
+
+    partial_constructor = partial(
+            partial_constructor,
+            command=command)
+
     tokens = fetch_one_value_from_event_dict(
             path='request -> nlu -> tokens',
             event_dict=event_dict)
+
     tokens = [] if tokens is None else tokens
 
     partial_constructor = partial(partial_constructor,
@@ -173,7 +185,6 @@ def transform_event_dict_to_yandex_request_object(
             path='request -> nlu -> entities',
             event_dict=event_dict)
     entities = [] if entities is None else entities
-
     full_yandex_request_constructor = partial(partial_constructor,
                                               entities=entities)
 
