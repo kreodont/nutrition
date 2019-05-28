@@ -1,7 +1,3 @@
-from decorators import timeit
-
-
-@timeit
 def mock_incoming_event(*, phrase: str, has_screen: bool = True) -> dict:
     if has_screen:
         interfaces = {"screen": {}}

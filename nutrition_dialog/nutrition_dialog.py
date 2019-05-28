@@ -2,13 +2,12 @@ import datetime
 from functools import partial
 import json
 from botocore.vendored import requests
-from standard_responses import respond_i_dont_know, \
-    respond_one_of_predefined_phrases, respond_greeting_phrase
+import standard_responses
 from yandex_types import YandexResponse, YandexRequest, \
     transform_event_dict_to_yandex_request_object, \
     transform_yandex_response_to_output_result_dict, log_hash
 from decorators import timeit
-from responses_constructors import respond_request, \
+from responses_constructors import \
     construct_yandex_response_from_yandex_request, \
     construct_food_yandex_response_from_food_dict
 from mockers import mock_incoming_event
@@ -20,6 +19,7 @@ from translation_functions import translate_request
 import dateutil
 from dates_transformations import transform_yandex_datetime_value_to_datetime
 from delete_response import remove_tokens_from_specific_intervals
+import typing
 
 
 @timeit
@@ -265,7 +265,7 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
 
     # if failed to get data from dynamodb
     if 'error' in keys_dict:
-        return respond_i_dont_know(request=request)
+        return standard_responses.respond_i_dont_know(request=request)
 
     if cached_dict:
         if 'foods' in cached_dict and 'error' not in cached_dict['foods']:
@@ -294,7 +294,8 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     )
 
     if translated_request.error:
-        return respond_i_dont_know(request=translated_request)
+        return standard_responses.respond_i_dont_know(
+                request=translated_request)
 
     login, password, keys_dict = choose_key(keys_dict)
     nutrition_dict = query_endpoint(
@@ -307,7 +308,8 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
 
     # if we recevied negative response,
     if 'fatal' in nutrition_dict:
-        return respond_i_dont_know(request=translated_request)
+        return standard_responses.respond_i_dont_know(
+                request=translated_request)
 
     write_to_cache_table(
             initial_phrase=request.original_utterance,
@@ -316,7 +318,8 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
             keys_dict=keys_dict)
 
     if 'error' in nutrition_dict:
-        return respond_i_dont_know(request=translated_request)
+        return standard_responses.respond_i_dont_know(
+                request=translated_request)
 
     # Saving context
     save_session(
@@ -351,6 +354,23 @@ def respond_existing_session(yandex_request: YandexRequest):
         return respond_without_context(request=yandex_request)
 
 
+def respond_request_contains_error(
+        *,
+        request: typing.Optional[YandexRequest],
+) -> typing.Optional[YandexResponse]:
+    if not requests:
+        return None
+    if request.error:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=request.error,
+                tts=request.error,
+                buttons=[],
+                end_session=True,
+        )
+    return None
+
+
 @timeit
 def nutrition_dialog(event: dict, context: dict) -> dict:
     """
@@ -367,72 +387,151 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     print(f'ЮЗЕР_{log_hash(yandex_request)}: '
           f'{yandex_request.original_utterance}')
 
-    if yandex_request.error:
-        # Exit immediatelly in case of mailformed request
-        return transform_yandex_response_to_output_result_dict(
-                yandex_response=construct_yandex_response_from_yandex_request(
-                        yandex_request=yandex_request,
-                        text=yandex_request.error,
-                        tts=yandex_request.error,
-                        buttons=[],
-                        end_session=True,
-                ))
+    # Requests that don't require anything
+    for function_without_clearing_context in (
+            respond_request_contains_error,
+            standard_responses.respond_ping,
+            standard_responses.respond_greeting_phrase,
+            standard_responses.respond_text_too_long):
 
-    # Check if boto3 clients are cached, return if not
-    database_client, is_cached = get_boto3_client(
-                        aws_lambda_mode=yandex_request.aws_lambda_mode,
-                        service_name='dynamodb',
-                )
-    if not is_cached and context:
-        error_text = 'Ой, я кажется не расслышала. ' \
-                     'Повторите, пожалуйста еще раз?'
-        return transform_yandex_response_to_output_result_dict(
-                yandex_response=construct_yandex_response_from_yandex_request(
-                        yandex_request=yandex_request,
-                        text=error_text,
-                        tts=error_text,
-                        buttons=[],
-                        end_session=True,
-                ))
+        response = function_without_clearing_context(request=yandex_request)
+        if response:
+            return transform_yandex_response_to_output_result_dict(
+                    yandex_response=response)
 
-    # there can be many hardcoded responses, need to check all of them before
-    # querying any databases. This includes DELETE request and "What I
-    # have eaten request"
-    any_predifined_response = respond_one_of_predefined_phrases(
-            request=yandex_request)
+    # Requests that require clearing session after finish
+    for function_clearing_session in (
+            standard_responses.respond_help,
+            standard_responses.respond_thanks,
+            standard_responses.respond_hello,
+            standard_responses.respond_human_meat,
+            standard_responses.respond_goodbye,
+            standard_responses.respond_eat_cat,
+            standard_responses.respond_launch_again,
+            standard_responses.respond_eat_poop,
+            standard_responses.respond_think_too_much,
+            standard_responses.respond_dick,
+            standard_responses.respond_nothing_to_add,
+            standard_responses.respond_what_your_name,
+            standard_responses.respond_smart_ccr,
+            standard_responses.respond_where_is_saved,
+            standard_responses.respond_angry,
+            standard_responses.respond_not_implemented,
+            standard_responses.respond_launch_another,
+            standard_responses.respond_shut_up,
+    ):
+        response = function_clearing_session(request=yandex_request)
+        if response:
+            database_client, is_cached = get_boto3_client(
+                                aws_lambda_mode=bool(context),
+                                service_name='dynamodb',
+                        )
+            clear_session(
+                        session_id=yandex_request.session_id,
+                        database_client=database_client)
+            return transform_yandex_response_to_output_result_dict(
+                    yandex_response=response)
 
-    if any_predifined_response:
-        # If predefined answer given, forget all previous food, since
-        # conversation topic has been already changed
-        clear_session(
-                session_id=yandex_request.session_id,
-                database_client=get_boto3_client(
-                        aws_lambda_mode=yandex_request.aws_lambda_mode,
-                        service_name='dynamodb',
-                )[0]
-        )
-        return transform_yandex_response_to_output_result_dict(
-                yandex_response=any_predifined_response)
-
-    if yandex_request.is_new_session:
-        return transform_yandex_response_to_output_result_dict(
-                yandex_response=respond_request(
-                        request=yandex_request,
-                        responding_function=respond_greeting_phrase,
-                ))
-
-    return transform_yandex_response_to_output_result_dict(
-            yandex_response=respond_request(
-                    request=yandex_request,
-                    responding_function=respond_existing_session,
+    for function_needed_context in ():
+        chosen_function = function_needed_context()
+        if chosen_function:
+            database_client, is_cached = get_boto3_client(
+                    aws_lambda_mode=bool(context),
+                    service_name='dynamodb',
             )
-    )
+            context = fetch_context_from_dynamo_database(
+                    database_client=database_client,
+                    session_id=yandex_request.session_id,
+            )
+            if not context:
+                return transform_yandex_response_to_output_result_dict(
+                        yandex_response=standard_responses.respond_i_dont_know(
+                                request=yandex_request))
+            clear_session(
+                    session_id=yandex_request.session_id,
+                    database_client=database_client)
+
+            return transform_yandex_response_to_output_result_dict(
+                    yandex_response=chosen_function(context))
+
+    # Cannot go further without database client
+    # database_client, was_cached = get_boto3_client(
+    #                     aws_lambda_mode=yandex_request.aws_lambda_mode,
+    #                     service_name='dynamodb',
+    #             )
+
+    # if no suitable function is added, respond "I don't know"
+    print('DEFAULT RESPONSE')
+    return transform_yandex_response_to_output_result_dict(
+            yandex_response=standard_responses.respond_i_dont_know(
+                    request=yandex_request))
+
+    # if yandex_request.error:
+    #     # Exit immediatelly in case of mailformed request
+    #     return transform_yandex_response_to_output_result_dict(
+    #             yandex_response=construct_yandex_response_from_yandex_request(
+    #                     yandex_request=yandex_request,
+    #                     text=yandex_request.error,
+    #                     tts=yandex_request.error,
+    #                     buttons=[],
+    #                     end_session=True,
+    #             ))
+    #
+    # # Check if boto3 clients are cached, return if not
+    # database_client, is_cached = get_boto3_client(
+    #                     aws_lambda_mode=yandex_request.aws_lambda_mode,
+    #                     service_name='dynamodb',
+    #             )
+    # if not is_cached and context:
+    #     error_text = 'Ой, я кажется не расслышала. ' \
+    #                  'Повторите, пожалуйста еще раз?'
+    #     return transform_yandex_response_to_output_result_dict(
+    #             yandex_response=construct_yandex_response_from_yandex_request(
+    #                     yandex_request=yandex_request,
+    #                     text=error_text,
+    #                     tts=error_text,
+    #                     buttons=[],
+    #                     end_session=True,
+    #             ))
+    #
+    # # there can be many hardcoded responses, need to check all of them before
+    # # querying any databases. This includes DELETE request and "What I
+    # # have eaten request"
+    # any_predifined_response = respond_one_of_predefined_phrases(
+    #         request=yandex_request)
+    #
+    # if any_predifined_response:
+    #     # If predefined answer given, forget all previous food, since
+    #     # conversation topic has been already changed
+    #     clear_session(
+    #             session_id=yandex_request.session_id,
+    #             database_client=get_boto3_client(
+    #                     aws_lambda_mode=yandex_request.aws_lambda_mode,
+    #                     service_name='dynamodb',
+    #             )[0]
+    #     )
+    #     return transform_yandex_response_to_output_result_dict(
+    #             yandex_response=any_predifined_response)
+    #
+    # if yandex_request.is_new_session:
+    #     return transform_yandex_response_to_output_result_dict(
+    #             yandex_response=respond_request(
+    #                     request=yandex_request,
+    #                     responding_function=respond_greeting_phrase,
+    #             ))
+    #
+    # return transform_yandex_response_to_output_result_dict(
+    #         yandex_response=respond_request(
+    #                 request=yandex_request,
+    #                 responding_function=respond_existing_session,
+    #         )
+    # )
 
 
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='150 г банана',
+                    phrase='хуй моржовый',
                     has_screen=True),
             context={}))
 

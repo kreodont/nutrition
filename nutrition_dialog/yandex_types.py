@@ -66,7 +66,6 @@ class YandexResponse:
                  key in sorted(self.__dict__.keys())])
 
 
-@timeit
 def transform_event_dict_to_yandex_request_object(
         *,
         event_dict: dict,
@@ -208,7 +207,6 @@ def fetch_one_value_from_event_dict(
     return value
 
 
-@timeit
 def transform_yandex_response_to_output_result_dict(
         *,
         yandex_response: YandexResponse) -> dict:

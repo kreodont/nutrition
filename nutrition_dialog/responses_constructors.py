@@ -51,7 +51,6 @@ def construct_response_text_from_nutrition_dict(
     return response_text, total_calories
 
 
-@timeit
 def construct_yandex_response_from_yandex_request(
         *,
         yandex_request: YandexRequest,

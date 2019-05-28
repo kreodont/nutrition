@@ -1,9 +1,9 @@
 import random
-import typing
+from typing import Optional, List, Tuple
 from yandex_types import YandexRequest, YandexResponse
 from responses_constructors import \
-    construct_yandex_response_from_yandex_request, respond_request
-from delete_response import respond_delete
+    construct_yandex_response_from_yandex_request
+# from delete_response import respond_delete
 import datetime
 from dates_transformations import transform_yandex_datetime_value_to_datetime
 from dynamodb_functions import get_boto3_client, find_all_food_names_for_day
@@ -11,164 +11,26 @@ import dateutil
 from russian_language import choose_case
 
 
-def respond_one_of_predefined_phrases(
-        request: YandexRequest,
-) -> typing.Optional[YandexResponse]:
-    # Delete request must be checked first since it can be longer and that is OK
-    if is_delete_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_delete)
+def respond_launch_again(request: YandexRequest) -> Optional[YandexResponse]:
 
-    # Respond long phrases
-    if len(request.original_utterance) >= 100:
-        return respond_request(
-                request=request,
-                responding_function=respond_text_too_long)
-
-    # Respond help requests
-    if check_if_help_in_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_help)
-
-    if is_ping_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_ping)
-
-    if is_launch_again_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_launch_again)
-
-    if is_thanks_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_thanks)
-
-    if is_hello_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_hello)
-
-    if is_goodbye_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_goodbye)
-
-    if is_human_meat_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_human_meat)
-
-    if is_eat_cat_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_eat_cat)
-
-    if is_eat_poop_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_eat_poop)
-
-    if is_i_think_too_much_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_i_think_too_much)
-
-    if is_dick_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_dick)
-
-    if is_nothing_to_add_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_nothing_to_add)
-
-    if is_what_is_your_name_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_what_is_your_name)
-
-    if is_smart_calories_counter_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_smart_calories_countere)
-
-    if is_where_is_saved_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_where_is_saved)
-
-    if is_angry_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_angry)
-
-    if is_not_implemented_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_not_implemented)
-
-    if is_launch_another_skill_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_launch_another_skill)
-
-    if is_what_i_have_eaten_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_what_i_have_eaten)
-
-    if is_shut_up_request(request=request):
-        return respond_request(
-                request=request,
-                responding_function=respond_shut_up_request)
-
-
-def is_launch_again_request(request: YandexRequest):
+    help_text = 'Какую еду записать?'
     full_phrase = request.original_utterance
     if full_phrase.lower().strip() in (
             'запусти навык умный счетчик калорий',
+            'запустить навык умный счетчик калорий',
             'алиса запусти умный счетчик калорий',
             'запустить умный счетчик калорий',
             'запусти умный счетчик калорий',
     ):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=help_text,
+                tts=help_text,
+                end_session=False,
+                buttons=[],
+        )
 
-
-def respond_launch_again(request: YandexRequest) -> YandexResponse:
-    help_text = 'Какую еду записать?'
-
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=help_text,
-            tts=help_text,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_help_request(request: YandexRequest):
-    tokens = request.tokens
-    if (
-            'помощь' in tokens or
-            'справка' in tokens or
-            'хелп' in tokens or
-            'информация' in tokens or
-            'ping' in tokens or
-            'пинг' in tokens or
-            'умеешь' in tokens or
-            ('что' in tokens and [t for t in tokens if 'делать' in t]) or
-            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
-            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
-        return True
-    return False
+    return None
 
 
 def is_delete_request(request: YandexRequest):
@@ -182,7 +44,7 @@ def is_delete_request(request: YandexRequest):
     return False
 
 
-def respond_help(request: YandexRequest) -> YandexResponse:
+def respond_help(request: YandexRequest) -> Optional[YandexResponse]:
     help_text = 'Я считаю калории. Просто скажите что вы съели, а я скажу ' \
                 'сколько в этом было калорий. Например: соевое молоко с ' \
                 'хлебом. Потом я спрошу надо ли сохранить этот прием пищи, и ' \
@@ -197,296 +59,268 @@ def respond_help(request: YandexRequest) -> YandexResponse:
                 'молоко с хлебом".  Прием пищи "Соевое молоко с хлебом" ' \
                 'будет удален'
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=help_text,
-            tts=help_text,
-            end_session=False,
-            buttons=[],
-    )
+    tokens = request.tokens
+    if (
+            'помощь' in tokens or
+            'справка' in tokens or
+            'хелп' in tokens or
+            'информация' in tokens or
+            'ping' in tokens or
+            'пинг' in tokens or
+            'умеешь' in tokens or
+            ('что' in tokens and [t for t in tokens if 'делать' in t]) or
+            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
+            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+            'скучно' in tokens or
+            'help' in tokens):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=help_text,
+                tts=help_text,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def is_thanks_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase.lower().strip() in (
-            'спасибо', 'молодец', 'отлично', 'ты классная', 'классная штука',
-            'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
-            'клево', 'ништяк', 'класс'):
-        return True
-    return False
-
-
-def respond_thanks(request: YandexRequest) -> YandexResponse:
+def respond_thanks(request: YandexRequest) -> Optional[YandexResponse]:
     welcome_phrases = [
         'Спасибо, я стараюсь',
         'Спасибо за комплимент',
         'Приятно быть полезной',
         'Доброе слово и боту приятно']
     chosen_welcome_phrase = random.choice(welcome_phrases)
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=chosen_welcome_phrase,
-            tts=chosen_welcome_phrase,
-            end_session=False,
-            buttons=[],
-    )
+    full_phrase = request.original_utterance
+    if full_phrase.lower().strip() in (
+            'спасибо', 'молодец', 'отлично', 'ты классная', 'классная штука',
+            'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
+            'клево', 'ништяк', 'класс'):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=chosen_welcome_phrase,
+                tts=chosen_welcome_phrase,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def is_hello_request(request: YandexRequest):
-    tokens = request.tokens
-    if (
-            'привет' in tokens or
-            'здравствуй' in tokens or
-            'здравствуйте' in tokens or
-            'хелло' in tokens or
-            'hello' in tokens or
-            'приветик' in tokens
-    ):
-        return True
-    return False
+def respond_human_meat(request: YandexRequest) -> Optional[YandexResponse]:
 
-
-def is_human_meat_request(request: YandexRequest):
+    respond_string = 'Доктор Лектер, это вы?'
     tokens = request.tokens
     full_phrase = request.original_utterance
     if [t for t in tokens if 'человеч' in t] or \
             tokens == ['мясо', 'человека'] or \
             full_phrase in ('человек',):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+    return None
 
 
-def respond_human_meat(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Доктор Лектер, это вы?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def respond_hello(request: YandexRequest) -> YandexResponse:
+def respond_hello(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'Здравствуйте. А теперь расскажите что вы съели, ' \
                      'а я скажу сколько там было калорий и питательных веществ.'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+
+    tokens = request.tokens
+    if tokens in ('привет', 'здравствуй', 'здравствуйте', 'хелло',
+                  'приветик', 'hello',):
+
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def is_goodbye_request(request: YandexRequest):
+def respond_goodbye(request: YandexRequest) -> Optional[YandexResponse]:
+    respond_string = 'До свидания'
     tokens = request.tokens
     full_phrase = request.original_utterance
     if (
             'выход' in tokens or
             'выйти' in tokens or
-            'пока' in tokens or
             'выйди' in tokens or
             'до свидания' in full_phrase.lower() or
             'всего доброго' in full_phrase.lower() or
-            tokens == ['алиса', ] or
-            full_phrase in ('иди на хуй', 'стоп')
+            full_phrase in ('иди на хуй', 'стоп', 'пока', 'алиса')
 
     ):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=True,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_goodbye(request: YandexRequest) -> YandexResponse:
-    respond_string = 'До свидания'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=True,
-            buttons=[],
-    )
-
-
-def is_eat_cat_request(request: YandexRequest):
+def respond_eat_cat(request: YandexRequest) -> Optional[YandexResponse]:
+    respond_string = 'Нееш, падумой'
     full_phrase = request.original_utterance
     if full_phrase in ('кошка', 'кошку', 'кот', 'кота', 'котенок', 'котенка'):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_eat_cat(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Нееш, падумой'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_eat_poop_request(request: YandexRequest):
+def respond_eat_poop(request: YandexRequest) -> Optional[YandexResponse]:
+    respond_string = 'Вы имели в виду "Сладкий хлеб"?'
     full_phrase = request.original_utterance
     if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
                        'фекалии', 'какахе', 'какахи'):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_eat_poop(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Вы имели в виду "Сладкий хлеб"?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+def respond_think_too_much(request: YandexRequest) -> Optional[YandexResponse]:
 
-
-def is_i_think_too_much_request(request: YandexRequest):
+    respond_string = 'Если вы нашли ошибку, напишите моему разработчику, ' \
+                     'и он объяснит мне, как правильно'
     full_phrase = request.original_utterance
     if full_phrase in ('это много', 'это мало', 'что-то много',
                        'что-то мало', 'так много', 'а почему так много',
-                       'неправильно', ):
-        return True
-    return False
+                       'неправильно',):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_i_think_too_much(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Если вы нашли ошибку, напишите моему разработчику, ' \
-                     'и он объяснит мне, как правильно'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_dick_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('хуй', 'моржовый хуй', 'хер'):
-        return True
-    return False
-
-
-def respond_dick(request: YandexRequest) -> YandexResponse:
+def respond_dick(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'С солью или без соли?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+    full_phrase = request.original_utterance
+    if full_phrase in ('хуй', 'моржовый хуй', 'хер', 'хуй моржовый'):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def is_nothing_to_add_request(request: YandexRequest):
+def respond_nothing_to_add(request: YandexRequest) -> Optional[YandexResponse]:
+    respond_string = 'Хорошо, дайте знать, когда что-то появится'
     full_phrase = request.original_utterance
     if full_phrase in ('никакую', 'ничего', 'никакой'):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_nothing_to_add(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Хорошо, дайте знать, когда что-то появится'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_what_is_your_name_request(request: YandexRequest):
-    tokens = request.tokens
-    if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
-        return True
-
-    return False
-
-
-def respond_what_is_your_name(request: YandexRequest) -> YandexResponse:
+def respond_what_your_name(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'Я умный счетчик калорий, а имя мне пока не придумали. ' \
                      'Может, Вы придумаете?'
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+    tokens = request.tokens
+    if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def is_smart_calories_counter_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if full_phrase in ('умный счетчик калорий', ):
-        return True
-    return False
-
-
-def respond_smart_calories_countere(request: YandexRequest) -> YandexResponse:
+def respond_smart_ccr(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'Да, я слушаю'
-
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_where_is_saved_request(request: YandexRequest):
     full_phrase = request.original_utterance
-    if full_phrase in ('а где сохраняются', 'где сохраняются',
-                       'где сохранить', 'а зачем сохранять',
-                       'зачем сохранять', 'куда', 'а куда сохранила'):
-        return True
-    return False
+    if full_phrase in ('умный счетчик калорий',):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_where_is_saved(request: YandexRequest) -> YandexResponse:
+def respond_where_is_saved(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'Приемы пищи сохраняются в моей базе данных. ' \
                      'Ваши приемы пищи будут доступны только Вам. ' \
                      'Я могу быть Вашим личным дневником калорий'
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+    full_phrase = request.original_utterance
+    if full_phrase in ('а где сохраняются', 'где сохраняются',
+                       'где сохранить', 'а зачем сохранять',
+                       'зачем сохранять', 'куда', 'а куда сохранила'):
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def is_angry_request(request: YandexRequest):
+def respond_angry(request: YandexRequest) -> Optional[YandexResponse]:
+    respond_string = 'Все мы можем ошибаться. Напишите моему разработчику, ' \
+                     'а он меня накажет и научит больше не ошибаться.'
     full_phrase = request.original_utterance
     if full_phrase in ('дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
                        'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо'):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_angry(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Все мы можем ошибаться. Напишите моему разработчику, ' \
-                     'а он меня накажет и научит больше не ошибаться.'
+def respond_not_implemented(request: YandexRequest) -> Optional[YandexResponse]:
+    respond_string = 'Этого я пока не умею, но планирую скоро научиться. ' \
+                     'Следите за обновлениями'
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_not_implemented_request(request: YandexRequest):
     full_phrase = request.original_utterance
     tokens = request.tokens
     if full_phrase in ('норма калорий',
@@ -499,88 +333,60 @@ def is_not_implemented_request(request: YandexRequest):
                        'сколько калорий можно употреблять в сутки',
                        'сколько калорий в день можно'
                        ) or 'норма' in tokens:
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def respond_not_implemented(request: YandexRequest) -> YandexResponse:
-    respond_string = 'Этого я пока не умею, но планирую скоро научиться. ' \
-                     'Следите за обновлениями'
-
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
-
-
-def is_launch_another_skill_request(request: YandexRequest):
-    full_phrase = request.original_utterance
-    if 'запусти' in full_phrase or 'поиграем' in full_phrase:
-        return True
-    return False
-
-
-def respond_launch_another_skill(request: YandexRequest) -> YandexResponse:
+def respond_launch_another(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису ' \
                      'и запустить другой навык, скажите Выход'
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+    full_phrase = request.original_utterance
+    if 'запусти' in full_phrase or 'поиграем' in full_phrase:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=respond_string,
+                tts=respond_string,
+                end_session=False,
+                buttons=[],
+        )
+
+    return None
 
 
-def check_if_help_in_request(*, request: YandexRequest) -> bool:
-    tokens = request.tokens
-    if (
-            'помощь' in tokens or
-            'справка' in tokens or
-            'хелп' in tokens or
-            'информация' in tokens or
-            'умеешь' in tokens or
-            ('что' in tokens and [t for t in tokens if 'делать' in t]) or
-            ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
-            ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
-        return True
-
-    return False
-
-
-def is_ping_request(request: YandexRequest):
+def respond_ping(request: YandexRequest) -> Optional[YandexResponse]:
     full_phrase = request.original_utterance
     if full_phrase in ('ping', 'пинг'):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='pong',
+                tts='pong',
+                end_session=False,
+                buttons=[],
+        )
+    return None
 
 
-def respond_ping(request: YandexRequest) -> YandexResponse:
-    respond_string = 'pong'
+def respond_text_too_long(request: YandexRequest) -> Optional[YandexResponse]:
+    if (len(request.original_utterance) >= 100 and
+            'удали' not in request.original_utterance):
 
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=respond_string,
-            tts=respond_string,
-            end_session=False,
-            buttons=[],
-    )
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Ой, текст слишком длинный. Давайте попробуем частями?',
+                tts='Ой, текст слишком длинный. Давайте попробуем частями?',
+                end_session=False,
+                buttons=[],
+        )
 
-
-def respond_text_too_long(request: YandexRequest) -> YandexResponse:
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='Ой, текст слишком длинный. Давайте попробуем частями?',
-            tts='Ой, текст слишком длинный. Давайте попробуем частями?',
-            end_session=False,
-            buttons=[],
-    )
+    return None
 
 
 def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
@@ -620,15 +426,17 @@ def respond_i_dont_know(request: YandexRequest) -> YandexResponse:
     )
 
 
-def respond_greeting_phrase(request: YandexRequest) -> YandexResponse:
+def respond_greeting_phrase(request: YandexRequest) -> Optional[YandexResponse]:
     greeting_text = 'Какую еду записать?'
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=greeting_text,
-            tts=greeting_text,
-            end_session=False,
-            buttons=[],
-    )
+    if request.is_new_session:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=greeting_text,
+                tts=greeting_text,
+                end_session=False,
+                buttons=[],
+        )
+    return None
 
 
 def is_what_i_have_eaten_request(request: YandexRequest):
@@ -728,9 +536,9 @@ def respond_what_i_have_eaten(request: YandexRequest) -> YandexResponse:
 
 def total_calories_text(
         *,
-        food_dicts_list: typing.List[dict],
+        food_dicts_list: List[dict],
         target_date: datetime.date,
-        timezone: str) -> typing.Tuple[str, str]:
+        timezone: str) -> Tuple[str, str]:
     total_calories = 0
     total_fat = 0.0
     total_carbohydrates = 0.0
@@ -781,18 +589,15 @@ def total_calories_text(
     return full_text, tts
 
 
-def is_shut_up_request(request: YandexRequest):
+def respond_shut_up(request: YandexRequest) -> Optional[YandexResponse]:
     full_phrase = request.original_utterance
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
-        return True
-    return False
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Молчу',
+                tts='Молчу',
+                end_session=False,
+                buttons=[],
+        )
 
-
-def respond_shut_up_request(request: YandexRequest) -> YandexResponse:
-    return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='Молчу',
-            tts='Молчу',
-            end_session=False,
-            buttons=[],
-    )
+    return None
