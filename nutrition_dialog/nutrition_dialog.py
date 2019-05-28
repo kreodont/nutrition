@@ -23,7 +23,7 @@ import typing
 
 
 @timeit
-def response_with_context_when_yes_in_request(
+def response_yes_in_request(
         *,
         request: YandexRequest,
         context: dict,
@@ -53,7 +53,7 @@ def response_with_context_when_yes_in_request(
 
 
 @timeit
-def response_with_context_when_date_in_request(
+def response_date_in_request(
         *,
         request: YandexRequest,
         context: dict,
@@ -86,7 +86,7 @@ def response_with_context_when_date_in_request(
 
 
 @timeit
-def response_with_context_when_no_in_request(
+def response_no_in_request(
         *,
         request: YandexRequest,
         database_client
@@ -432,7 +432,11 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             return transform_yandex_response_to_output_result_dict(
                     yandex_response=response)
 
-    for function_needed_context in ():
+    for function_needed_context in (
+            response_date_in_request,
+            response_yes_in_request,
+            response_no_in_request,
+    ):
         chosen_function = function_needed_context()
         if chosen_function:
             database_client, is_cached = get_boto3_client(
@@ -452,7 +456,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     database_client=database_client)
 
             return transform_yandex_response_to_output_result_dict(
-                    yandex_response=chosen_function(context))
+                    yandex_response=chosen_function(context, database_client))
 
     # Cannot go further without database client
     # database_client, was_cached = get_boto3_client(
