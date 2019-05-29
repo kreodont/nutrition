@@ -128,13 +128,13 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
     return False
 
 
-@timeit
-def check_if_date_in_request(*, request: YandexRequest) -> bool:
+def check_if_date_in_request(
+        *, request: YandexRequest) -> typing.Optional[typing.Callable]:
     all_datetime_entries = [entity for entity in request.entities if
                             entity['type'] == "YANDEX.DATETIME"]
 
     if len(all_datetime_entries) == 0:
-        return False
+        return None
 
     tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
             tokens_list=request.tokens,
@@ -145,9 +145,9 @@ def check_if_date_in_request(*, request: YandexRequest) -> bool:
                                              'сохрани', 'сохранить')]
 
     if len(tokens_without_common_words) == 0:
-        return True
+        return response_date_in_request
 
-    return False
+    return None
 
 
 @timeit
@@ -392,8 +392,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             respond_request_contains_error,
             standard_responses.respond_ping,
             standard_responses.respond_greeting_phrase,
-            standard_responses.respond_text_too_long):
-
+            standard_responses.respond_text_too_long,
+    ):
         response = function_without_clearing_context(request=yandex_request)
         if response:
             return transform_yandex_response_to_output_result_dict(
@@ -428,35 +428,37 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                         )
             clear_session(
                         session_id=yandex_request.session_id,
-                        database_client=database_client)
+                        database_client=database_client,
+            )
             return transform_yandex_response_to_output_result_dict(
                     yandex_response=response)
 
     for function_needed_context in (
-            response_date_in_request,
-            response_yes_in_request,
-            response_no_in_request,
+            check_if_date_in_request,
+            check_if_yes_in_request,
+            check_if_no_in_request,
     ):
-        chosen_function = function_needed_context()
-        if chosen_function:
-            database_client, is_cached = get_boto3_client(
-                    aws_lambda_mode=bool(context),
-                    service_name='dynamodb',
-            )
-            context = fetch_context_from_dynamo_database(
-                    database_client=database_client,
-                    session_id=yandex_request.session_id,
-            )
-            if not context:
-                return transform_yandex_response_to_output_result_dict(
-                        yandex_response=standard_responses.respond_i_dont_know(
-                                request=yandex_request))
-            clear_session(
-                    session_id=yandex_request.session_id,
-                    database_client=database_client)
-
-            return transform_yandex_response_to_output_result_dict(
-                    yandex_response=chosen_function(context, database_client))
+        chosen_function = function_needed_context(request=yandex_request)
+        print(chosen_function)
+        # if chosen_function:
+        #     database_client, is_cached = get_boto3_client(
+        #             aws_lambda_mode=bool(context),
+        #             service_name='dynamodb',
+        #     )
+        #     context = fetch_context_from_dynamo_database(
+        #             database_client=database_client,
+        #             session_id=yandex_request.session_id,
+        #     )
+        #     if not context:
+        #         return transform_yandex_response_to_output_result_dict(
+        #                 yandex_response=standard_responses.respond_i_dont_know(
+        #                         request=yandex_request))
+        #     clear_session(
+        #             session_id=yandex_request.session_id,
+        #             database_client=database_client)
+        #
+        #     return transform_yandex_response_to_output_result_dict(
+        #             yandex_response=chosen_function(context, database_client))
 
     # Cannot go further without database client
     # database_client, was_cached = get_boto3_client(
@@ -535,7 +537,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='хуй моржовый',
+                    phrase='вчера',
                     has_screen=True),
             context={}))
 
