@@ -12,8 +12,8 @@ from responses_constructors import \
     construct_food_yandex_response_from_food_dict
 from mockers import mock_incoming_event
 from dynamodb_functions import update_user_table, clear_session, save_session, \
-    write_to_cache_table, get_from_cache_table, \
-    fetch_context_from_dynamo_database, get_boto3_client
+    write_to_cache_table, get_from_cache_table, get_boto3_client, \
+    fetch_context_from_dynamo_database
 from russian_language import russian_replacements_in_original_utterance
 from translation_functions import translate_request
 import dateutil
@@ -23,7 +23,7 @@ import typing
 
 
 @timeit
-def response_yes_in_request(
+def respond_yes_in_request(
         *,
         request: YandexRequest,
         context: dict,
@@ -32,15 +32,13 @@ def response_yes_in_request(
     # Save to database
     # Clear context
     # Say Сохранено
+
     update_user_table(
             database_client=database_client,
             event_time=dateutil.parser.parse(context['time']),
             foods_dict=context['foods'],
             user_id=request.user_guid,
             utterance=context['utterance'])
-
-    clear_session(database_client=database_client,
-                  session_id=request.session_id)
 
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
@@ -53,7 +51,7 @@ def response_yes_in_request(
 
 
 @timeit
-def response_date_in_request(
+def respond_date_in_request(
         *,
         request: YandexRequest,
         context: dict,
@@ -63,6 +61,7 @@ def response_date_in_request(
     # Save to database for specified time
     # Clear context
     # Say Сохранено
+
     update_user_table(
             database_client=database_client,
             event_time=date.replace(
@@ -71,9 +70,6 @@ def response_date_in_request(
             foods_dict=context['foods'],
             user_id=request.user_guid,
             utterance=context['utterance'])
-
-    clear_session(database_client=database_client,
-                  session_id=request.session_id)
 
     return construct_yandex_response_from_yandex_request(
             yandex_request=request,
@@ -86,13 +82,16 @@ def response_date_in_request(
 
 
 @timeit
-def response_no_in_request(
+def respond_no_in_request(
         *,
         request: YandexRequest,
-        database_client
+        database_client,
+        context: dict,
 ):
     # Clear context
     # Say Забыли
+    if not context:
+        return standard_responses.respond_i_dont_know(request=request)
 
     clear_session(database_client=database_client,
                   session_id=request.session_id)
@@ -107,7 +106,8 @@ def response_no_in_request(
 
 
 @timeit
-def check_if_yes_in_request(*, request: YandexRequest) -> bool:
+def check_if_yes_in_request(*, request: YandexRequest) \
+        -> typing.Optional[typing.Callable]:
     tokens = request.tokens
     full_phrase = request.original_utterance.lower().strip()
     if ('хранить' in tokens or
@@ -116,16 +116,14 @@ def check_if_yes_in_request(*, request: YandexRequest) -> bool:
             'сохрани' in tokens or
             'храни' in tokens or
             'сохранить' in tokens or
-            'да' in tokens):
-        return True
-    if full_phrase in (
-            'ну давай',
-            'давай',
-            'давай сохраняй',
-    ):
-        return True
+            'да' in tokens or full_phrase in (
+                    'ну давай',
+                    'давай',
+                    'давай сохраняй',
+            )):
+        return respond_yes_in_request
 
-    return False
+    return None
 
 
 def check_if_date_in_request(
@@ -144,14 +142,19 @@ def check_if_date_in_request(
                                    t not in ('да', 'за',
                                              'сохрани', 'сохранить')]
 
+    # all other words were removed, so only date left in request
     if len(tokens_without_common_words) == 0:
-        return response_date_in_request
+        last_date_mentioned_dict = all_datetime_entries[-1]
+        last_date_mentioned = transform_yandex_datetime_value_to_datetime(
+                yandex_datetime_value_dict=last_date_mentioned_dict)
+        return partial(respond_date_in_request, date=last_date_mentioned)
 
     return None
 
 
 @timeit
-def check_if_no_in_request(*, request: YandexRequest) -> bool:
+def check_if_no_in_request(*, request: YandexRequest) \
+        -> typing.Optional[typing.Callable]:
     tokens = request.tokens
     if (
             'не' in tokens or
@@ -159,50 +162,50 @@ def check_if_no_in_request(*, request: YandexRequest) -> bool:
             'забудь' in tokens or
             'забыть' in tokens or
             'удалить' in tokens):
-        return True
+        return respond_no_in_request
 
-    return False
+    return None
 
 
-@timeit
-def respond_with_context(
-        *,
-        request: YandexRequest,
-        context: dict,
-        database_client
-) -> YandexResponse:
-    if check_if_date_in_request(request=request):
-        last_datetime_entity = [entity for entity in request.entities if
-                                entity['type'] == "YANDEX.DATETIME"][-1]
-        absolute_date = transform_yandex_datetime_value_to_datetime(
-                yandex_datetime_value_dict=last_datetime_entity['value'])
-
-        # sometimes yandex sets YANDEX.DATETIME object where it shouldn't be
-        if absolute_date.year > 2000:
-            return response_with_context_when_date_in_request(
-                    request=request,
-                    context=context,
-                    database_client=database_client,
-                    date=absolute_date,
-
-            )
-
-    if check_if_no_in_request(request=request):
-        return response_with_context_when_no_in_request(
-                request=request,
-                database_client=database_client,
-        )
-
-    if check_if_yes_in_request(request=request):
-        return response_with_context_when_yes_in_request(
-                request=request,
-                context=context,
-                database_client=database_client,
-        )
-
-    # We checked all possible context reaction, nothing fits,
-    # so act as we don't have context at all
-    return respond_without_context(request=request)
+# @timeit
+# def respond_with_context(
+#         *,
+#         request: YandexRequest,
+#         context: dict,
+#         database_client
+# ) -> YandexResponse:
+#     if check_if_date_in_request(request=request):
+#         last_datetime_entity = [entity for entity in request.entities if
+#                                 entity['type'] == "YANDEX.DATETIME"][-1]
+#         absolute_date = transform_yandex_datetime_value_to_datetime(
+#                 yandex_datetime_value_dict=last_datetime_entity['value'])
+#
+#         # sometimes yandex sets YANDEX.DATETIME object where it shouldn't be
+#         if absolute_date.year > 2000:
+#             return response_with_context_when_date_in_request(
+#                     request=request,
+#                     context=context,
+#                     database_client=database_client,
+#                     date=absolute_date,
+#
+#             )
+#
+#     if check_if_no_in_request(request=request):
+#         return response_with_context_when_no_in_request(
+#                 request=request,
+#                 database_client=database_client,
+#         )
+#
+#     if check_if_yes_in_request(request=request):
+#         return response_with_context_when_yes_in_request(
+#                 request=request,
+#                 context=context,
+#                 database_client=database_client,
+#         )
+#
+#     # We checked all possible context reaction, nothing fits,
+#     # so act as we don't have context at all
+#     return respond_without_context(request=request)
 
 
 @timeit
@@ -335,23 +338,23 @@ def respond_without_context(request: YandexRequest) -> YandexResponse:
     )
 
 
-def respond_existing_session(yandex_request: YandexRequest):
-    database_client = get_boto3_client(
-            aws_lambda_mode=yandex_request.aws_lambda_mode,
-            service_name='dynamodb')[0]
-
-    context = fetch_context_from_dynamo_database(
-            database_client=database_client,
-            session_id=yandex_request.session_id,
-    )
-
-    if context:
-        return partial(
-                respond_with_context,
-                context=context,
-                database_client=database_client)(request=yandex_request)
-    else:
-        return respond_without_context(request=yandex_request)
+# def respond_existing_session(yandex_request: YandexRequest):
+#     database_client = get_boto3_client(
+#             aws_lambda_mode=yandex_request.aws_lambda_mode,
+#             service_name='dynamodb')[0]
+#
+#     context = fetch_context_from_dynamo_database(
+#             database_client=database_client,
+#             session_id=yandex_request.session_id,
+#     )
+#
+#     if context:
+#         return partial(
+#                 respond_with_context,
+#                 context=context,
+#                 database_client=database_client)(request=yandex_request)
+#     else:
+#         return respond_without_context(request=yandex_request)
 
 
 def respond_request_contains_error(
@@ -423,12 +426,12 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         response = function_clearing_session(request=yandex_request)
         if response:
             database_client, is_cached = get_boto3_client(
-                                aws_lambda_mode=bool(context),
-                                service_name='dynamodb',
-                        )
+                    aws_lambda_mode=bool(context),
+                    service_name='dynamodb',
+            )
             clear_session(
-                        session_id=yandex_request.session_id,
-                        database_client=database_client,
+                    session_id=yandex_request.session_id,
+                    database_client=database_client,
             )
             return transform_yandex_response_to_output_result_dict(
                     yandex_response=response)
@@ -439,7 +442,24 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
             check_if_no_in_request,
     ):
         chosen_function = function_needed_context(request=yandex_request)
-        print(chosen_function)
+        if chosen_function:
+            database_client = get_boto3_client(
+                    aws_lambda_mode=bool(context),
+                    service_name='dynamodb',
+            )[0]
+            context = fetch_context_from_dynamo_database(
+                    database_client=database_client,
+                    session_id=yandex_request.session_id,
+            )
+            if not context:
+                return transform_yandex_response_to_output_result_dict(
+                        yandex_response=standard_responses.respond_i_dont_know(
+                                request=yandex_request))
+            return chosen_function(
+                    request=yandex_request,
+                    context=context,
+                    database_client=database_client)
+
         # if chosen_function:
         #     database_client, is_cached = get_boto3_client(
         #             aws_lambda_mode=bool(context),
@@ -537,7 +557,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mock_incoming_event(
-                    phrase='вчера',
+                    phrase='да',
                     has_screen=True),
             context={}))
 
