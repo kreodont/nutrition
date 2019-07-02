@@ -18,7 +18,8 @@ from russian_language import russian_replacements_in_original_utterance
 from translation_functions import translate_request
 import dateutil
 from dates_transformations import transform_yandex_datetime_value_to_datetime
-from delete_response import remove_tokens_from_specific_intervals
+from delete_response import remove_tokens_from_specific_intervals, \
+    respond_delete
 import typing
 
 
@@ -256,6 +257,15 @@ def choose_key(keys_dict):
 
 
 @timeit
+def respond_food_in_request(
+        *,
+        request: YandexRequest,
+        use_cache_result: bool,
+) -> typing.Optional[YandexResponse]:
+
+
+
+@timeit
 def respond_without_context(request: YandexRequest) -> YandexResponse:
     database_client = get_boto3_client(
             aws_lambda_mode=request.aws_lambda_mode,
@@ -460,31 +470,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                     context=context,
                     database_client=database_client)
 
-        # if chosen_function:
-        #     database_client, is_cached = get_boto3_client(
-        #             aws_lambda_mode=bool(context),
-        #             service_name='dynamodb',
-        #     )
-        #     context = fetch_context_from_dynamo_database(
-        #             database_client=database_client,
-        #             session_id=yandex_request.session_id,
-        #     )
-        #     if not context:
-        #         return transform_yandex_response_to_output_result_dict(
-        #                 yandex_response=standard_responses.respond_i_dont_know(
-        #                         request=yandex_request))
-        #     clear_session(
-        #             session_id=yandex_request.session_id,
-        #             database_client=database_client)
-        #
-        #     return transform_yandex_response_to_output_result_dict(
-        #             yandex_response=chosen_function(context, database_client))
+    for functions_that_require_access_to_food_database in (respond_delete, ):
+        response = functions_that_require_access_to_food_database(
+                request=yandex_request)
 
-    # Cannot go further without database client
-    # database_client, was_cached = get_boto3_client(
-    #                     aws_lambda_mode=yandex_request.aws_lambda_mode,
-    #                     service_name='dynamodb',
-    #             )
+        if response:
+            return transform_yandex_response_to_output_result_dict(
+                    yandex_response=response)
+
+    # Here all other variants are checked, now need to try food in request
 
     # if no suitable function is added, respond "I don't know"
     print('DEFAULT RESPONSE')

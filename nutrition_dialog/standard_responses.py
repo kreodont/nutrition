@@ -33,17 +33,6 @@ def respond_launch_again(request: YandexRequest) -> Optional[YandexResponse]:
     return None
 
 
-def is_delete_request(request: YandexRequest):
-    tokens = request.tokens
-    if (
-            'удалить' in tokens or
-            'удали' in tokens or
-            'убери' in tokens or
-            'убрать' in tokens):
-        return True
-    return False
-
-
 def respond_help(request: YandexRequest) -> Optional[YandexResponse]:
     help_text = 'Я считаю калории. Просто скажите что вы съели, а я скажу ' \
                 'сколько в этом было калорий. Например: соевое молоко с ' \

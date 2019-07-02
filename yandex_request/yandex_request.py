@@ -3,6 +3,8 @@ from botocore.vendored import requests
 import json
 import random
 import os
+import typing
+from functools import reduce
 
 
 def construct_response(*,
@@ -55,7 +57,23 @@ def _make_request_to_kodi(*, endpoint: str, user_id: str) -> None:
         pass
 
 
-def get_help_text(*, user_id, short_version=False):
+def fetch_one_value_from_event_dict(
+        *,
+        event_dict: dict,
+        path: str) -> typing.Optional[typing.Any]:
+    if not isinstance(event_dict, dict):
+        return None
+    value = None
+    try:
+        value = reduce(
+                dict.get, [t.strip() for t in path.split('->')],
+                event_dict)
+    except TypeError:
+        pass
+
+    return value
+
+def get_help_text(*, user_id, short_version=False, input_text=''):
     help_text = 'Я могу запустить видео, остановить его, или поставить на паузу. В данный ' \
                 'момент навык является приватным. Чтобы выйти из навыка, скажите Выход.'
     short_help_texts = ['Скажите Запустить, Остановить, или Пауза',
@@ -66,6 +84,9 @@ def get_help_text(*, user_id, short_version=False):
                         ]
 
     if os.environ.get('k' + user_id):  # master mode
+        if input_text:
+            return input_text
+
         return 'Ой'
 
     if short_version:
@@ -234,8 +255,7 @@ def yandex_request(event: dict, context: dict) -> dict:
             'умеешь' in tokens or
             ('что' in tokens and [t for t in tokens if 'дел' in t]) or
             ('как' in tokens and [t for t in tokens if 'польз' in t]) or
-            'скучно' in tokens or
-            'help' in tokens):
+            'скучно' in tokens):
         return construct_response_with_session(text=get_help_text(user_id=user_id))
 
     if ('выход' in tokens or
@@ -245,7 +265,11 @@ def yandex_request(event: dict, context: dict) -> dict:
             'до свидания' in tokens):
         return construct_response_with_session(text='До свидания', end_session=True)
 
-    return construct_response_with_session(text=get_help_text(user_id=user_id, short_version=True))
+    input_text = fetch_one_value_from_event_dict(
+            path='request -> original_utterance',
+            event_dict=event)
+    print(input_text)
+    return construct_response_with_session(text=get_help_text(user_id=user_id, short_version=True, input_text=request.get('original_utterance')))
 
 
 if __name__ == '__main__':
