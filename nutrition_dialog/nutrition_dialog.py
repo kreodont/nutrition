@@ -599,7 +599,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mockers.mock_incoming_event(
-                    phrase='кота',
+                    phrase='',
                     has_screen=True),
             context={}))
 

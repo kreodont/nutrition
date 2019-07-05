@@ -39,7 +39,7 @@ def get_dynamo_client(
         else:
             new_client = boto3.Session(profile_name=profile_name).client(
                 'dynamodb')
-            return new_client, False
+            return new_client
 
         # saving to cache to to spend time to create it next time
         client = new_client
@@ -133,7 +133,8 @@ def update_user_table(
 def clear_session(
         *,
         session_id: str,
-        database_client) -> None:
+        database_client,
+) -> None:
     try:
         database_client.delete_item(TableName='nutrition_sessions',
                                     Key={

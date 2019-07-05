@@ -21,6 +21,7 @@ def respond_launch_again(request: YandexRequest) -> Optional[YandexResponse]:
             'алиса запусти умный счетчик калорий',
             'запустить умный счетчик калорий',
             'запусти умный счетчик калорий',
+            '',
     ):
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
