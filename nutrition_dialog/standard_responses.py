@@ -523,6 +523,25 @@ def respond_what_i_have_eaten(request: YandexRequest) -> YandexResponse:
     )
 
 
+def respond_request_contains_error(
+        *,
+        request: Optional[YandexRequest],
+) -> Optional[YandexResponse]:
+
+    if not request:
+        return None
+
+    if request.error:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=request.error,
+                tts=request.error,
+                buttons=[],
+                end_session=True,
+        )
+    return None
+
+
 def total_calories_text(
         *,
         food_dicts_list: List[dict],
@@ -590,3 +609,34 @@ def respond_shut_up(request: YandexRequest) -> Optional[YandexResponse]:
         )
 
     return None
+
+
+def simple_functions_list() -> tuple:
+    return (
+        respond_request_contains_error,
+        respond_ping,
+        respond_greeting_phrase,
+        respond_text_too_long,
+    )
+
+
+def simple_functions_with_context_clear_list() -> tuple:
+    return (respond_help,
+            respond_thanks,
+            respond_hello,
+            respond_human_meat,
+            respond_goodbye,
+            respond_eat_cat,
+            respond_launch_again,
+            respond_eat_poop,
+            respond_think_too_much,
+            respond_dick,
+            respond_nothing_to_add,
+            respond_what_your_name,
+            respond_smart_ccr,
+            respond_where_is_saved,
+            respond_angry,
+            respond_not_implemented,
+            respond_launch_another,
+            respond_shut_up,
+            )

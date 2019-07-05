@@ -6,10 +6,46 @@ import botocore.client
 import boto3
 import typing
 
+
 # This cache is useful because AWS lambda can keep it's state, so no
 # need to restantiate connections again. It is used in get_boto3_client
-# function, I know it is mess, but 100 ms are 100 ms
+# function, I know it is a mess, but 100 ms are 100 ms
 global_cached_boto3_clients = {}
+
+
+def get_dynamo_client(
+        *,
+        lambda_mode: bool,
+        profile_name: str = 'kreodont',
+        connect_timeout: float = 0.2,
+        read_timeout: float = 0.4,
+) -> boto3.client:
+    client = None
+
+    def closure():
+        nonlocal client
+        if client:
+            return client
+        if lambda_mode:
+            new_client = boto3.client(
+                    'dynamodb',
+                    config=botocore.client.Config(
+                            connect_timeout=connect_timeout,
+                            read_timeout=read_timeout,
+                            parameter_validation=False,
+                            retries={'max_attempts': 0},
+                    ),
+            )
+        else:
+            new_client = boto3.Session(profile_name=profile_name).client(
+                'dynamodb')
+            return new_client, False
+
+        # saving to cache to to spend time to create it next time
+        client = new_client
+        return client
+
+    return closure()
 
 
 @timeit
