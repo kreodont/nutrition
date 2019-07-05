@@ -11,6 +11,8 @@ import typing
 import standard_responses
 import mockers
 import dynamodb_functions
+from delete_response import respond_delete
+
 # from responses_constructors import \
 #     construct_yandex_response_from_yandex_request, \
 #     construct_food_yandex_response_from_food_dict
@@ -428,10 +430,10 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=response_from_simple)
 
-    fl = standard_responses.simple_functions_with_context_clear_list()
+    func_list = standard_responses.simple_functions_with_context_clear_list()
     response_from_clearing_context = \
         return_the_first_result_from_the_list_of_functions(
-                functions_list=fl,
+                functions_list=func_list,
                 request=yandex_request,
         )
 
@@ -442,6 +444,15 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
                         lambda_mode=yandex_request.aws_lambda_mode))
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=response_from_clearing_context)
+
+    response_from_delete_function = \
+        return_the_first_result_from_the_list_of_functions(
+                functions_list=(respond_delete, ),
+                request=yandex_request,
+        )
+    if response_from_delete_function:
+        return transform_yandex_response_to_output_result_dict(
+                yandex_response=response_from_delete_function)
 
     print('DEFAULT RESPONSE')
     return transform_yandex_response_to_output_result_dict(
@@ -599,7 +610,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
 if __name__ == '__main__':
     print(nutrition_dialog(
             event=mockers.mock_incoming_event(
-                    phrase='',
+                    phrase='Удалить номер 1',
                     has_screen=True),
             context={}))
 

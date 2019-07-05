@@ -77,13 +77,13 @@ def remove_tokens_from_specific_intervals(
 
 def respond_delete(request: YandexRequest) -> typing.Optional[YandexResponse]:
     tokens = request.tokens
-    if (
-            'удалить' in tokens or
-            'удали' in tokens or
-            'убери' in tokens or
-            'убрать' in tokens):
-
-        return None
+    # if (
+    #         'удалить' in tokens or
+    #         'удали' in tokens or
+    #         'убери' in tokens or
+    #         'убрать' in tokens):
+    #
+    #     return None
 
     all_datetime_entries = [entity for entity in request.entities if
                             entity['type'] == "YANDEX.DATETIME"]
@@ -107,7 +107,7 @@ def respond_delete(request: YandexRequest) -> typing.Optional[YandexResponse]:
             intervals_dicts_list=all_datetime_entries)
 
     tokens_without_delete_words = [t for t in tokens_without_dates_tokens if
-                                   t not in (
+                                   t.lower() not in (
                                        'удалить',
                                        'еду',
                                        'удали',
