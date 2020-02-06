@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import typing
-from decorators import timeit
 from functools import partial, reduce
 import hashlib
 
@@ -49,17 +48,13 @@ class YandexRequest:
 
 @dataclass(frozen=True)
 class YandexResponse:
-    client_device_id: str
-    has_screen: bool
-    user_guid: str
-    message_id: str
-    session_id: str
-    response_text: str
-    response_tts: str
-    end_session: bool
-    should_clear_context: bool
-    version: str
-    buttons: typing.List[typing.Dict]
+    initial_request: YandexRequest  # initial request
+    response_text: str  # Text that will be shown to the user
+    response_tts: str  # Text that will be spoken to the user
+    end_session: bool  # If the last message in dialog
+    should_clear_context: bool  # whether clear old contex or not
+    buttons: typing.List[typing.Dict]  # buttons that should
+    # be shown to the user
 
     def __repr__(self):
         return '\n'.join(
@@ -218,11 +213,11 @@ def transform_yandex_response_to_output_result_dict(
             "end_session": yandex_response.end_session
         },
         "session": {
-            "session_id": yandex_response.session_id,
-            "message_id": yandex_response.message_id,
-            "user_id": yandex_response.user_guid
+            "session_id": yandex_response.initial_request.session_id,
+            "message_id": yandex_response.initial_request.message_id,
+            "user_id": yandex_response.initial_request.user_guid
         },
-        "version": yandex_response.version
+        "version": yandex_response.initial_request.version
     }
     print(f'НАВЫК_{log_hash(yandex_response)}: {yandex_response.response_text}')
     return response
