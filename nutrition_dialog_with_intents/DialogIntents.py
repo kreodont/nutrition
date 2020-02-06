@@ -17,6 +17,11 @@ class DialogIntent:
     # context, write context, query database, etc)
     name: str  # Intent name
     description: str  # Intent description
+    should_save_context: bool  # Whether we need to save context for future
+    # use. Costs 10 units (database write operation)
+    should_clear_context: bool  # Whether clear previous context. Costs 10
+
+    # units (database write operation)
 
     @staticmethod
     def evaluate(*, request: YandexRequest, **kwargs) -> int:
@@ -44,9 +49,9 @@ class Intent00001StartingMessage(DialogIntent):
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Привет. Скажите что вы съели, '
-                     'а я скажу сколько там калорий',
+            yandex_request=request,
+            text='Привет. Скажите что вы съели, '
+                 'а я скажу сколько там калорий',
         )
 
 
@@ -66,8 +71,8 @@ class Intent00002Ping(DialogIntent):
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='pong',
+            yandex_request=request,
+            text='pong',
         )
 
 
@@ -77,7 +82,8 @@ class Intent00003TextTooLong(DialogIntent):
     name = 'Текст слишком длинный'
     description = 'Мы будем отбрасывать длинные запросы, ' \
                   'потому что не хватит времени найти на них ответ. ' \
-                  'Слово удали - исключение'
+                  'Слово удали - исключение, потому что пользователь может ' \
+                  'захотеть удалить длинную предыдущую фразу'
 
     @staticmethod
     def evaluate(*, request: YandexRequest, **kwargs) -> int:
@@ -89,8 +95,51 @@ class Intent00003TextTooLong(DialogIntent):
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Ой, текст слишком длинный. Давайте попробуем частями?',
+            yandex_request=request,
+            text='Ой, текст слишком длинный. Давайте попробуем частями?',
+        )
+
+
+class Intent00004Help(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Текст помощи'
+    should_clear_context = True
+    description = 'Объясняем пользователю как работает навык'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        tokens = request.tokens
+        if ('помощь' in tokens or
+                'справка' in tokens or
+                'хелп' in tokens or
+                'информация' in tokens or
+                'ping' in tokens or
+                'пинг' in tokens or
+                'умеешь' in tokens or
+                ('что' in tokens and [t for t in tokens if 'делать' in t]) or
+                ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
+                ('как' in tokens and [t for t in tokens if 'польз' in t]) or
+                'скучно' in tokens or 'help' in tokens):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        help_text = '''Я считаю калории. Просто скажите что вы съели, 
+        а я скажу сколько в этом было калорий. Например: соевое молоко с 
+        хлебом. Потом я спрошу надо ли сохранить этот прием пищи, и если вы 
+        скажете да, я запишу его в свою базу данных. Можно сказать не просто 
+        да, а указать время приема пищи, например: да, вчера в 9 часов 
+        30 минут. После того, как прием пищи сохранен, вы сможете узнать свое 
+        суточное потребление калорий с помощью команды "что я ела?". При этом 
+        также можно указать время, например: "Что я ел вчера?" или "Что я ела 
+        неделю назад?". Если какая-то еда была внесена ошибочно, 
+        можно сказать "Удалить соевое молоко с хлебом".  Прием пищи 
+        "Соевое молоко с хлебом" будет удален'''
+        return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=help_text,
         )
 
 
@@ -141,12 +190,12 @@ class Intent99999Default(DialogIntent):
             tts = full_generated_text
 
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=full_generated_text,
-                tts=tts,
-                buttons=[],
-                end_session=False,
-                should_clear_context=False
+            yandex_request=request,
+            text=full_generated_text,
+            tts=tts,
+            buttons=[],
+            end_session=False,
+            should_clear_context=False
         )
 
 

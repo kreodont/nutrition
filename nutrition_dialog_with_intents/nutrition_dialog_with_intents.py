@@ -5,6 +5,7 @@ from yandex_types import YandexRequest, \
 import mockers
 import typing
 import hashlib
+from dynamodb_functions import clear_context, get_dynamo_client
 
 
 def nutrition_dialog_with_intents(event, context):
@@ -32,6 +33,12 @@ def nutrition_dialog_with_intents(event, context):
             break
 
     response = chosen_intent.respond(request)
+    if chosen_intent.should_clear_context:
+        print('Clearing previous context from database')
+        clear_context(
+            session_id=request.session_id,
+            database_client=get_dynamo_client(lambda_mode=bool(context)))
+
     print(f'НАВЫК_{log_hash(response.initial_request)}: '
           f'{response.response_text}')
     return transform_yandex_response_to_output_result_dict(
@@ -56,7 +63,7 @@ if __name__ == '__main__':
     """
     nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='Ой, текст слишком длинный. Давайте попробуем частями?Ой, текст слишком длинный. Давайте попробуем частями?',
+                    phrase='помощь',
 
             ),
             context={})
