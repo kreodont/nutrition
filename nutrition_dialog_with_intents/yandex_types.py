@@ -23,6 +23,12 @@ class YandexRequest:
 
     @staticmethod
     def empty_request(*, aws_lambda_mode: bool, error: str):
+        """
+        To show errors
+        :param aws_lambda_mode:
+        :param error:
+        :return:
+        """
         return YandexRequest(
                 client_device_id='',
                 has_screen=False,
@@ -67,6 +73,13 @@ def transform_event_dict_to_yandex_request_object(
         event_dict: dict,
         aws_lambda_mode: bool,
 ) -> YandexRequest:
+    """
+    Reads the dict from yandex and try to construct
+    YandexRequest object out of it
+    :param event_dict:
+    :param aws_lambda_mode:
+    :return:
+    """
     meta = fetch_one_value_from_event_dict(
             event_dict=event_dict,
             path='meta')
@@ -190,12 +203,20 @@ def fetch_one_value_from_event_dict(
         *,
         event_dict: dict,
         path: str) -> typing.Optional[typing.Any]:
+    """
+    To extract data from multilevel dictionary using the following syntax:
+    'meta -> interfaces -> screen'
+    :param event_dict:
+    :param path:
+    :return:
+    """
     if not isinstance(event_dict, dict):
         return None
     value = None
     try:
         value = reduce(
-                dict.get, [t.strip() for t in path.split('->')],
+                dict.get,
+                [t.strip() for t in path.split('->')],
                 event_dict)
     except TypeError:
         pass
@@ -203,9 +224,36 @@ def fetch_one_value_from_event_dict(
     return value
 
 
+def construct_yandex_response_from_yandex_request(
+        *,
+        yandex_request: YandexRequest,
+        text: str,
+        tts: str = '',
+        end_session: bool = False,
+        buttons: list = (),
+        should_clear_context: bool = False,
+):
+    if tts == '':
+        tts = text
+
+    return YandexResponse(
+            initial_request=yandex_request,
+            end_session=end_session,
+            response_text=text,
+            response_tts=tts,
+            buttons=buttons,
+            should_clear_context=should_clear_context
+    )
+
+
 def transform_yandex_response_to_output_result_dict(
         *,
         yandex_response: YandexResponse) -> dict:
+    """
+    Converts YandexResponse to output dictionary
+    :param yandex_response:
+    :return:
+    """
     response = {
         "response": {
             "text": yandex_response.response_text,
@@ -219,14 +267,18 @@ def transform_yandex_response_to_output_result_dict(
         },
         "version": yandex_response.initial_request.version
     }
-    print(f'НАВЫК_{log_hash(yandex_response)}: {yandex_response.response_text}')
+    print(f'НАВЫК_{log_hash(yandex_response.initial_request)}:'
+          f'{yandex_response.response_text}')
     return response
 
 
-def log_hash(
-        request_or_response,
-) -> str:
-    session_id = request_or_response.session_id
-    message_id = str(request_or_response.message_id)
+def log_hash(request: YandexRequest) -> str:
+    """
+    Generates a random 3 digits number for one dialog
+    :param request:
+    :return:
+    """
+    session_id = request.session_id
+    message_id = str(request.message_id)
     return str(int(hashlib.sha1(session_id.encode()).hexdigest(),
                    16) % (10 ** 3)) + '_' + message_id
