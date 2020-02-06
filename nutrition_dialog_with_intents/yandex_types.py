@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import typing
 from functools import partial, reduce
-import hashlib
 
 
 @dataclass(frozen=True)
@@ -49,7 +48,7 @@ class YandexRequest:
     def __repr__(self):
         return '\n'.join(
                 [f'{key:20}: {self.__dict__[key]}' for
-                 key in sorted(self.__dict__.keys())])
+                 key in sorted(self.__dict__.keys())]) + '\n\n'
 
 
 @dataclass(frozen=True)
@@ -267,18 +266,4 @@ def transform_yandex_response_to_output_result_dict(
         },
         "version": yandex_response.initial_request.version
     }
-    print(f'НАВЫК_{log_hash(yandex_response.initial_request)}:'
-          f'{yandex_response.response_text}')
     return response
-
-
-def log_hash(request: YandexRequest) -> str:
-    """
-    Generates a random 3 digits number for one dialog
-    :param request:
-    :return:
-    """
-    session_id = request.session_id
-    message_id = str(request.message_id)
-    return str(int(hashlib.sha1(session_id.encode()).hexdigest(),
-                   16) % (10 ** 3)) + '_' + message_id

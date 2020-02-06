@@ -27,7 +27,7 @@ class DialogIntent:
         raise NotImplemented
 
 
-class IntentStartingMessage(DialogIntent):
+class Intent00001StartingMessage(DialogIntent):
     time_to_evaluate = 0
     time_to_respond = 0
     name = 'Первое сообщение'
@@ -50,7 +50,7 @@ class IntentStartingMessage(DialogIntent):
         )
 
 
-class IntentDefault(DialogIntent):
+class Intent99999Default(DialogIntent):
     """
     WARNING! This class should always be the last in the file
     This a default response in none of above fit
@@ -118,4 +118,5 @@ def intents() -> list:
 
 
 if __name__ == '__main__':
+    print(sys.modules[__name__])
     print(intents())
