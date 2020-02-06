@@ -13,8 +13,7 @@ def nutrition_dialog_with_intents(event, context):
             event_dict=event,
             aws_lambda_mode=bool(context),
     )
-    print(f'ЮЗЕР_{log_hash(request)}: '
-          f'{request.original_utterance}')
+    print(f'ЮЗЕР_{log_hash(request)}: {request.original_utterance}')
     available_intents: typing.List[DialogIntent] = intents()
     if len(available_intents) < 1:
         raise Exception('No intents defined in DialogIntents.py')
@@ -39,8 +38,8 @@ def nutrition_dialog_with_intents(event, context):
             session_id=request.session_id,
             database_client=get_dynamo_client(lambda_mode=bool(context)))
 
-    print(f'НАВЫК_{log_hash(response.initial_request)}: '
-          f'{response.response_text}')
+    print(f'НАВЫК_{log_hash(response.initial_request)}:'
+          f' {response.response_text}')
     return transform_yandex_response_to_output_result_dict(
             yandex_response=response)
 
