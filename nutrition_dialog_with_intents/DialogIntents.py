@@ -50,6 +50,50 @@ class Intent00001StartingMessage(DialogIntent):
         )
 
 
+class Intent00002Ping(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 0
+    name = 'Ответ на пинг'
+    description = 'Яндекс пингует навык каждую минуту. Отвечаем понг'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        full_phrase = request.original_utterance
+        if full_phrase.lower() in ('ping', 'пинг'):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='pong',
+        )
+
+
+class Intent00003TextTooLong(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 0
+    name = 'Текст слишком длинный'
+    description = 'Мы будем отбрасывать длинные запросы, ' \
+                  'потому что не хватит времени найти на них ответ. ' \
+                  'Слово удали - исключение'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        if (len(request.original_utterance) >= 100 and
+                'удали' not in request.original_utterance):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Ой, текст слишком длинный. Давайте попробуем частями?',
+        )
+
+
 class Intent99999Default(DialogIntent):
     """
     WARNING! This class should always be the last in the file
