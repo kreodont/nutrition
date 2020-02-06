@@ -422,6 +422,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
     print(f'ЮЗЕР_{log_hash(yandex_request)}: '
           f'{yandex_request.original_utterance}')
 
+    # Functions that don't need any other actions, just return
+    # the answer, like ping or error
     response_from_simple = return_the_first_result_from_the_list_of_functions(
             functions_list=standard_responses.simple_functions_list(),
             request=yandex_request,
@@ -430,6 +432,8 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=response_from_simple)
 
+    # also simple functions, but context clear is required before
+    # returning the result
     func_list = standard_responses.simple_functions_with_context_clear_list()
     response_from_clearing_context = \
         return_the_first_result_from_the_list_of_functions(
@@ -445,6 +449,7 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=response_from_clearing_context)
 
+    # Check if "Удалить" in incoming request
     response_from_delete_function = \
         return_the_first_result_from_the_list_of_functions(
                 functions_list=(respond_delete, ),
@@ -454,6 +459,31 @@ def nutrition_dialog(event: dict, context: dict) -> dict:
         return transform_yandex_response_to_output_result_dict(
                 yandex_response=response_from_delete_function)
 
+    # Check if response for previous question in request. Context must exist
+    context_dict = dynamodb_functions.fetch_context_from_dynamo_database(
+            yandex_request.session_id,
+            database_client=dynamodb_functions.get_dynamo_client(
+                    lambda_mode=yandex_request.aws_lambda_mode,
+            ))
+
+    if context_dict:
+        matching_functions = standard_responses.\
+            functions_that_respond_to_context_list()
+        first_match = return_the_first_result_from_the_list_of_functions(
+                functions_list=matching_functions,
+                request=yandex_request,
+                context=context_dict,
+        )
+        if first_match:
+            return transform_yandex_response_to_output_result_dict(
+                    yandex_response=first_match(yandex_request))
+
+    # Check if user statistics is asked
+
+
+    # Previous functions didn't return result, returning default.
+    # Context clearing not needed here, since the user can just make a
+    # mistake saying Yes
     print('DEFAULT RESPONSE')
     return transform_yandex_response_to_output_result_dict(
             yandex_response=standard_responses.respond_i_dont_know(

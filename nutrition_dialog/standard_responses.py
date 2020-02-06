@@ -1,14 +1,16 @@
 import random
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Callable
 from yandex_types import YandexRequest, YandexResponse
 from responses_constructors import \
     construct_yandex_response_from_yandex_request
 # from delete_response import respond_delete
 import datetime
 from dates_transformations import transform_yandex_datetime_value_to_datetime
-from dynamodb_functions import get_boto3_client, find_all_food_names_for_day
+from dynamodb_functions import get_boto3_client, find_all_food_names_for_day, \
+    update_user_table
 import dateutil
 from russian_language import choose_case
+from decorators import timeit
 
 
 def respond_launch_again(request: YandexRequest) -> Optional[YandexResponse]:
@@ -365,6 +367,7 @@ def respond_ping(request: YandexRequest) -> Optional[YandexResponse]:
 
 
 def respond_text_too_long(request: YandexRequest) -> Optional[YandexResponse]:
+    # "удали" request CAN be longer than 100 characters
     if (len(request.original_utterance) >= 100 and
             'удали' not in request.original_utterance):
 
@@ -598,6 +601,152 @@ def total_calories_text(
     return full_text, tts
 
 
+def is_food_dict_in_context(*, context_dict: dict) -> bool:
+    return 'food' in context_dict
+
+
+@timeit
+def respond_saving_food(
+        *,
+        request: YandexRequest,
+        context: dict,
+        database_client
+):
+    # Save to database
+    # Clear context
+    # Say Сохранено
+
+    update_user_table(
+            database_client=database_client,
+            event_time=dateutil.parser.parse(context['time']),
+            foods_dict=context['foods'],
+            user_id=request.user_guid,
+            utterance=context['utterance'])
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Сохранено. Чтобы посмотреть список сохраненной '
+                 'еды, спросите "Что я ел сегодня?',
+            tts='Сохранено',
+            end_session=False,
+            buttons=[],
+    )
+
+
+def check_if_yes_in_request(*, request: YandexRequest, context: dict) \
+        -> Optional[Callable]:
+    if not context:
+        return None
+
+    tokens = request.tokens
+    full_phrase = request.original_utterance.lower().strip()
+    if ('хранить' in tokens or
+            'сохранить' in tokens or
+            'сохраняй' in tokens or
+            'сохрани' in tokens or
+            'храни' in tokens or
+            'сохранить' in tokens or
+            'да' in tokens or full_phrase in (
+                    'ну давай',
+                    'давай',
+                    'давай сохраняй',
+            )):
+        if is_food_dict_in_context(context_dict=context):
+            return respond_saving_food
+
+    return None
+
+
+def check_if_no_in_request(*, request: YandexRequest, context: dict) \
+        -> Optional[Callable]:
+    if not context:
+        return None
+
+    tokens = request.tokens
+    if (
+            'не' in tokens or
+            'нет' in tokens or
+            'забудь' in tokens or
+            'забыть' in tokens or
+            'удалить' in tokens
+    ):
+        if is_food_dict_in_context(context_dict=context):
+            return respond_forgetting_food
+
+    return None
+
+
+@timeit
+def respond_date_in_request(
+        *,
+        request: YandexRequest,
+        context: dict,
+        date: datetime,
+        database_client
+):
+    # Save to database for specified time
+    # Clear context
+    # Say Сохранено
+
+    update_user_table(
+            database_client=database_client,
+            event_time=date.replace(
+                    tzinfo=dateutil.tz.gettz(request.timezone)
+            ).astimezone(dateutil.tz.gettz('UTC')),
+            foods_dict=context['foods'],
+            user_id=request.user_guid,
+            utterance=context['utterance'])
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=f'Сохранено за {date.date()}. Чтобы посмотреть список '
+            f'сохраненной еды, спросите меня что Вы ели',
+            tts='Сохранено',
+            end_session=False,
+            buttons=[],
+    )
+
+def check_if_date_in_request(
+        *, request: YandexRequest) -> Optional[Callable]:
+    all_datetime_entries = [entity for entity in request.entities if
+                            entity['type'] == "YANDEX.DATETIME"]
+
+    if len(all_datetime_entries) == 0:
+        return None
+
+    tokens_without_dates_tokens = remove_tokens_from_specific_intervals(
+            tokens_list=request.tokens,
+            intervals_dicts_list=all_datetime_entries)
+
+    tokens_without_common_words = [t for t in tokens_without_dates_tokens if
+                                   t not in ('да', 'за',
+                                             'сохрани', 'сохранить')]
+
+    # all other words were removed, so only date left in request
+    if len(tokens_without_common_words) == 0:
+        last_date_mentioned_dict = all_datetime_entries[-1]
+        last_date_mentioned = transform_yandex_datetime_value_to_datetime(
+                yandex_datetime_value_dict=last_date_mentioned_dict)
+        return partial(respond_date_in_request, date=last_date_mentioned)
+
+    return None
+
+
+@timeit
+def respond_forgetting_food(
+        *,
+        request: YandexRequest,
+):
+
+    return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Забыли',
+            tts='Забыли',
+            end_session=False,
+            buttons=[],
+    )
+
+
 def respond_shut_up(request: YandexRequest) -> Optional[YandexResponse]:
     full_phrase = request.original_utterance
     if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
@@ -641,3 +790,19 @@ def simple_functions_with_context_clear_list() -> tuple:
             respond_launch_another,
             respond_shut_up,
             )
+
+
+def functions_that_respond_to_context_list() -> tuple:
+    return (
+        check_if_yes_in_request,
+        check_if_no_in_request,
+        check_if_date_in_request,
+    )
+
+
+def functions_that_respond_users_statistics_list() -> tuple:
+    return ()
+
+
+def functions_that_respond_food_nutrition_list_list() -> tuple:
+    return ()
