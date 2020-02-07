@@ -73,7 +73,7 @@ if __name__ == '__main__':
     """
     nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='привет',
+                    phrase='',
 
             ),
             context={})

@@ -17,11 +17,10 @@ class DialogIntent:
     # context, write context, query database, etc)
     name: str  # Intent name
     description: str  # Intent description
-    should_save_context: bool  # Whether we need to save context for future
-    # use. Costs 10 units (database write operation)
-    should_clear_context: bool  # Whether clear previous context. Costs 10
-
-    # units (database write operation)
+    should_save_context: bool = False  # Whether we need to save
+    # context for futureuse. Costs 10 units (database write operation)
+    should_clear_context: bool = False  # Whether clear previous context.
+    # Costs 10 units (database write operation)
 
     @staticmethod
     def evaluate(*, request: YandexRequest, **kwargs) -> int:
@@ -199,6 +198,117 @@ class Intent00006Hello(DialogIntent):
         )
 
 
+class Intent00007HumanMeat(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Ответ на человечину'
+    should_clear_context = True
+    description = 'Если пользователь сказал что он поел ' \
+                  'человечины, надо спросить его не доктор ли он Лектер'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        tokens = request.tokens
+        full_phrase = request.original_utterance
+        if [t for t in tokens if 'человеч' in t] or \
+                tokens == ['мясо', 'человека'] or \
+                full_phrase.lower() in ('человек',):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Доктор Лектер, это вы?',
+        )
+
+
+class Intent00008Goodbye(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'До свидания'
+    should_clear_context = True
+    description = 'Если пользователь попрощался, надо сказать ему до свидания'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        tokens = request.tokens
+        full_phrase = request.original_utterance
+        if (
+                'выход' in tokens or
+                'выйти' in tokens or
+                'выйди' in tokens or
+                'до свидания' in full_phrase.lower() or
+                'всего доброго' in full_phrase.lower() or
+                full_phrase in ('иди на хуй', 'стоп', 'пока', 'алиса')
+
+        ):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='До свидания',
+        )
+
+
+class Intent00009EatCat(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Съел кота'
+    should_clear_context = True
+    description = 'Если пользователь говорит что съел кота, ' \
+                  'надо предложить ему падумоть'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        full_phrase = request.original_utterance
+        if full_phrase in ('кошка', 'кошку', 'кот',
+                           'кота', 'котенок', 'котенка'):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Нееш, падумой',
+        )
+
+
+class Intent00010LaunchAgain(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Повторный запуск'
+    should_clear_context = True
+    description = 'Если пользователь уже в навыке, но ' \
+                  'просит Алису его запустить'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        full_phrase = request.original_utterance
+        if full_phrase.lower().strip() in (
+                'запусти навык умный счетчик калорий',
+                'запустить навык умный счетчик калорий',
+                'алиса запусти умный счетчик калорий',
+                'запустить умный счетчик калорий',
+                'запусти умный счетчик калорий',
+                '',
+        ):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Какую еду записать?',
+        )
+
+
 class Intent99999Default(DialogIntent):
     """
     WARNING! This class should always be the last in the file
@@ -207,6 +317,7 @@ class Intent99999Default(DialogIntent):
     time_to_evaluate = 0
     time_to_respond = 0
     name = 'Дефолтный ответ'
+    should_clear_context = False
     description = 'Если ничего не подошло, ' \
                   'отвечаем пользователю что не знаем такой еды'
 
