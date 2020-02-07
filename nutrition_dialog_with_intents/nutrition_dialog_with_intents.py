@@ -15,23 +15,11 @@ def nutrition_dialog_with_intents(event, context):
     )
     print(f'ЮЗЕР_{log_hash(request)}: {request.original_utterance}')
     available_intents: typing.List[DialogIntent] = intents()
-    if len(available_intents) < 1:
-        raise Exception('No intents defined in DialogIntents.py')
-
-    intents_sorted_by_time_to_evaluate = sorted(
-            available_intents,
-            key=lambda x: x.time_to_evaluate,
-    )  # it is always better to evaluate the quickest intents first
-
-    chosen_intent = available_intents[-1]  # last one, hope it's default
-    for intent in intents_sorted_by_time_to_evaluate:
-        evaluation_percent = intent.evaluate(request=request)
-        if evaluation_percent == 100:  # first that fits
-            chosen_intent = intent
-            print(f'Intent "{chosen_intent.name}" has been chosen')
-            break
+    chosen_intent = choose_the_best_intent(available_intents, request)
+    print(f'Intent "{chosen_intent.name}" has been chosen')
 
     response = chosen_intent.respond(request)
+
     if chosen_intent.should_clear_context:
         print('Clearing previous context from database')
         clear_context(
@@ -42,6 +30,29 @@ def nutrition_dialog_with_intents(event, context):
           f' {response.response_text}')
     return transform_yandex_response_to_output_result_dict(
             yandex_response=response)
+
+
+def choose_the_best_intent(
+        intents_list: typing.List[DialogIntent],
+        request: YandexRequest,
+) -> DialogIntent:
+    if len(intents_list) < 1:
+        raise Exception('No intents defined in DialogIntents.py '
+                        'Please add at least one')
+
+    intents_sorted_by_time_to_evaluate = sorted(
+            intents_list,
+            key=lambda x: x.time_to_evaluate,
+    )  # it is always better to evaluate the quickest intents first
+
+    chosen_intent = intents_list[-1]  # last one, hope it's default
+    for intent in intents_sorted_by_time_to_evaluate:
+        evaluation_percent = intent.evaluate(request=request)
+        if evaluation_percent == 100:  # first that fits
+            chosen_intent = intent
+            break
+
+    return chosen_intent
 
 
 def log_hash(request: YandexRequest) -> str:
