@@ -49,9 +49,9 @@ class Intent00001StartingMessage(DialogIntent):
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='Привет. Скажите что вы съели, '
-                 'а я скажу сколько там калорий',
+                yandex_request=request,
+                text='Привет. Скажите что вы съели, '
+                     'а я скажу сколько там калорий',
         )
 
 
@@ -71,8 +71,8 @@ class Intent00002Ping(DialogIntent):
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='pong',
+                yandex_request=request,
+                text='pong',
         )
 
 
@@ -95,8 +95,8 @@ class Intent00003TextTooLong(DialogIntent):
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='Ой, текст слишком длинный. Давайте попробуем частями?',
+                yandex_request=request,
+                text='Ой, текст слишком длинный. Давайте попробуем частями?',
         )
 
 
@@ -138,8 +138,64 @@ class Intent00004Help(DialogIntent):
         можно сказать "Удалить соевое молоко с хлебом".  Прием пищи 
         "Соевое молоко с хлебом" будет удален'''
         return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=help_text,
+                yandex_request=request,
+                text=help_text,
+        )
+
+
+class Intent00005ThankYou(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Ответ на благодарность'
+    should_clear_context = True
+    description = 'Если пользователь похвалил навык, надо сказать ему спасибо'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        if request.original_utterance.lower().strip() in (
+                'спасибо', 'молодец', 'отлично', 'ты классная',
+                'классная штука',
+                'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
+                'клево', 'ништяк', 'класс'):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        answers = [
+            'Спасибо, я стараюсь',
+            'Спасибо за комплимент',
+            'Приятно быть полезной',
+            'Доброе слово и боту приятно']
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=random.choice(answers),
+        )
+
+
+class Intent00006Hello(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Ответ на приветствие'
+    should_clear_context = True
+    description = 'Если пользователь сказал Привет, надо ' \
+                  'сказать ему привет в ответ'
+
+    @staticmethod
+    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+        if request.original_utterance.lower().strip() in (
+                'привет', 'здравствуй', 'здравствуйте', 'хелло',
+                'приветик', 'hello',):
+            return 100
+        return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Здравствуйте. А теперь '
+                     'расскажите что вы съели, а я '
+                     'скажу сколько там было калорий и питательных веществ.',
         )
 
 
@@ -190,12 +246,12 @@ class Intent99999Default(DialogIntent):
             tts = full_generated_text
 
         return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text=full_generated_text,
-            tts=tts,
-            buttons=[],
-            end_session=False,
-            should_clear_context=False
+                yandex_request=request,
+                text=full_generated_text,
+                tts=tts,
+                buttons=[],
+                end_session=False,
+                should_clear_context=False
         )
 
 
@@ -204,6 +260,7 @@ def intents() -> list:
     for class_name, cl in inspect.getmembers(
             sys.modules[__name__],
             inspect.isclass):
+        # Excluding auxiliary classes
         if class_name in ('DialogIntent', 'YandexRequest', 'YandexResponse'):
             continue
         intents_to_return.append(cl)

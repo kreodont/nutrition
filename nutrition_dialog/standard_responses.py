@@ -706,6 +706,7 @@ def respond_date_in_request(
             buttons=[],
     )
 
+
 def check_if_date_in_request(
         *, request: YandexRequest) -> Optional[Callable]:
     all_datetime_entries = [entity for entity in request.entities if
