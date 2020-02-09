@@ -260,7 +260,7 @@ def respond_what_your_name(request: YandexRequest) -> Optional[YandexResponse]:
 def respond_smart_ccr(request: YandexRequest) -> Optional[YandexResponse]:
     respond_string = 'Да, я слушаю'
     full_phrase = request.original_utterance
-    if full_phrase in ('умный счетчик калорий',):
+    if full_phrase in ('умный счетчик калорий', ):
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text=respond_string,
