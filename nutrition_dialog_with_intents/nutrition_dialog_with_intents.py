@@ -71,9 +71,11 @@ if __name__ == '__main__':
     """
     To test locally
     """
-    nutrition_dialog_with_intents(
+    result = nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='дура',
+                    phrase='выход',
 
             ),
             context={})
+
+    print(result)
