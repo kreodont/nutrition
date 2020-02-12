@@ -11,6 +11,8 @@ from DialogContext import DialogContext
 # This cache is useful because AWS lambda can keep it's state, so no
 # need to restantiate connections again. It is used in get_boto3_client
 # function, I know it is a mess, but 100 ms are 100 ms
+from yandex_types import YandexResponse
+
 global_cached_boto3_clients = {}
 
 
@@ -166,6 +168,33 @@ def save_session(
                         'foods': foods_dict,
                         'utterance': utterance}),
                 }})
+
+
+@timeit
+def save_context(
+        *,
+        response: YandexResponse,
+        table_name: str = 'nutrition_sessions',
+        event_time: datetime.datetime = datetime.datetime.now()
+) -> YandexResponse:
+    client = get_dynamo_client(
+        lambda_mode=response.initial_request.aws_lambda_mode)
+    client.put_item(
+            TableName=table_name,
+            Item={
+                'id': {
+                    'S': response.initial_request.session_id,
+                },
+                'value': {
+                    'S': json.dumps({
+                        'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'data_dict': response.context_to_write.data_dict,
+                        'utterance':
+                            response.initial_request.original_utterance,
+                        'intent_name':
+                            response.initial_request.chosen_intent.__name__}),
+                }})
+    return response
 
 
 @timeit

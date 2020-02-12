@@ -12,7 +12,7 @@ class DialogContext:
                  data=None,
                  is_empty: bool = True,
                  contains_food: bool = False,
-                 intent_originator: object = None,
+                 intent_originator: object = None,  # Intent class
                  ):
         if data is None:
             data = {}

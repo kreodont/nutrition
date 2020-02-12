@@ -1,12 +1,13 @@
-from DialogIntents import intents, DialogIntent, Intent99999Default
+from DialogIntents import intents, DialogIntent
 from yandex_types import YandexRequest, \
     transform_event_dict_to_yandex_request_object, \
     transform_yandex_response_to_output_result_dict
 import mockers
 import typing
 import hashlib
-from dynamodb_functions import clear_context, get_dynamo_client, save_session
+from dynamodb_functions import clear_context, get_dynamo_client, save_context
 import datetime
+from dataclasses import replace
 
 
 def nutrition_dialog_with_intents(event, context):
@@ -16,15 +17,11 @@ def nutrition_dialog_with_intents(event, context):
     )
     print(f'ЮЗЕР_{log_hash(request)}: {request.original_utterance}')
     available_intents: typing.List[DialogIntent] = intents()
-    chosen_intent = choose_the_best_intent(available_intents, request)
-    if not chosen_intent:
-        print(f'No matching intent found. Using default')
-        chosen_intent = Intent99999Default
-    print(f'Intent "{chosen_intent.name}" has been chosen')
+    request = choose_the_best_intent(available_intents, request)
+    print(f'Intent "{request.chosen_intent.name}" has been chosen')
+    response = request.chosen_intent.respond(request=request)
 
-    response = chosen_intent.respond(request=request)
-
-    if chosen_intent.should_clear_context:
+    if response.should_clear_context:
         print('Clearing previous context from database')
         clear_context(
             session_id=request.session_id,
@@ -32,8 +29,8 @@ def nutrition_dialog_with_intents(event, context):
 
     if response.context_to_write:
         print('Saving new context to database')
-        save_session(
-            session_id=response.initial_request.session_id,
+        save_context(
+            response=response,
             event_time=datetime.datetime.now(),
         )
 
@@ -46,7 +43,7 @@ def nutrition_dialog_with_intents(event, context):
 def choose_the_best_intent(
         intents_list: typing.List[DialogIntent],
         request: YandexRequest,
-) -> DialogIntent:
+) -> YandexRequest:
     if len(intents_list) < 1:
         raise Exception('No intents defined in DialogIntents.py '
                         'Please add at least one')
@@ -56,15 +53,13 @@ def choose_the_best_intent(
             key=lambda x: x.time_to_evaluate,
     )  # it is always better to evaluate the quickest intents first
 
-    # chosen_intent = intents_list[-1]  # last one, hope it's default
-    chosen_intent = None
     for intent in intents_sorted_by_time_to_evaluate:
-        evaluation_percent = intent.evaluate(request=request)
-        if evaluation_percent.intents_matching_dict[intent] == 100:
-            chosen_intent = intent
+        request = intent.evaluate(request=request)
+        if request.intents_matching_dict[intent] == 100:
+            request = replace(request, chosen_intent=intent)
             break
 
-    return chosen_intent
+    return request
 
 
 def log_hash(request: YandexRequest) -> str:
@@ -85,7 +80,7 @@ if __name__ == '__main__':
     """
     result = nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='привет',
+                    phrase='да',
 
             ),
             context={})

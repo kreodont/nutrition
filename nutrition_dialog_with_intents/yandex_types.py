@@ -4,9 +4,6 @@ from functools import partial, reduce
 from DialogContext import DialogContext
 
 
-# from DialogIntents import DialogIntent
-
-
 @dataclass(frozen=True)
 class YandexRequest:
     """
@@ -60,7 +57,8 @@ class YandexRequest:
     # means that this intent fits perfectly and no need to check others.
     context: typing.Optional[DialogContext]  # current dialog context,
     # loaded from DynamoDB
-    chosen_intent: object = None  # Intent which will be executed. Can be
+    chosen_intent: typing.Any = None  # Intent which will be executed.
+    # Can be
     # overrided depending on context
     error: str = ''  # if any errors parsing Yandex dictionary
 
@@ -93,6 +91,9 @@ class YandexRequest:
 
     def set_context(self, context: DialogContext):
         return replace(self, context=context)
+
+    def set_chosen_intent(self, chosen_intent):
+        return replace(self, chosen_intent=chosen_intent)
 
     def __repr__(self):
         return '\n'.join(
@@ -297,7 +298,7 @@ def construct_yandex_response_from_yandex_request(
         buttons=buttons,
         should_clear_context=should_clear_context,
         should_write_new_context=should_write_new_context,
-        context_to_write=None,
+        context_to_write=yandex_request.context,
     )
 
 
