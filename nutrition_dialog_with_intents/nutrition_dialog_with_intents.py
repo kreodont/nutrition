@@ -45,7 +45,7 @@ def choose_the_best_intent(
             key=lambda x: x.time_to_evaluate,
     )  # it is always better to evaluate the quickest intents first
 
-    chosen_intent = intents_list[-1]  # last one, hope it's default
+    # chosen_intent = intents_list[-1]  # last one, hope it's default
     for intent in intents_sorted_by_time_to_evaluate:
         evaluation_percent = intent.evaluate(request=request)
         if evaluation_percent == 100:  # first that fits
