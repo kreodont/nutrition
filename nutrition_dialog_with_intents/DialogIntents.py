@@ -3,6 +3,8 @@ from yandex_types import YandexRequest, \
 import sys
 import inspect
 import random
+from dynamodb_functions import fetch_context_from_dynamo_database, \
+    get_dynamo_client
 
 
 class DialogIntent:
@@ -18,13 +20,14 @@ class DialogIntent:
     name: str  # Intent name
     description: str  # Intent description
     should_save_context: bool = False  # Whether we need to save
-    # context for futureuse. Costs 10 units (database write operation)
+    # context for future use. Costs 10 units (database WRITE operation)
     should_clear_context: bool = False  # Whether clear previous context.
-
-    # Costs 10 units (database write operation)
+    # Costs 10 units (database DELETE operation)
+    should_read_context: bool = False  # Whether read context
+    # from database. Costs 100 units (database READ)
 
     @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    def evaluate(*, request: YandexRequest, **kwargs) -> YandexRequest:
         raise NotImplemented
 
     @staticmethod
@@ -577,6 +580,43 @@ class Intent00021ShutUp(DialogIntent):
         if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
             return 100
         return 0
+
+    @staticmethod
+    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Молчу',
+                end_session=True,
+        )
+
+
+class Intent00022Agree(DialogIntent):
+    time_to_evaluate = 100  # Need to check context
+    time_to_respond = 0  # Need to clear context
+    name = 'Ответ ДА'
+    should_clear_context = True
+    description = 'Пользователь отвечает согласием. Нужно посмотреть в ' \
+                  'контексте, на что было дано согласие и передать ' \
+                  'управление этому интенту'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        r = request
+        if not request.context:
+            r = r.set_context(
+                    fetch_context_from_dynamo_database(
+                            r.session_id,
+                            get_dynamo_client(
+                                    lambda_mode=r.aws_lambda_mode)))
+
+        # tokens = request.tokens
+        full_phrase = request.original_utterance.lower().strip()
+        if full_phrase in ('да', 'ну да', 'ага', 'конечно'):
+            r.intents_matching_dict[cls] = 100
+            r.chosen_intent = cls
+        else:
+            r.intents_matching_dict[cls] = 0
+        return r
 
     @staticmethod
     def respond(request: YandexRequest, **kwargs) -> YandexResponse:

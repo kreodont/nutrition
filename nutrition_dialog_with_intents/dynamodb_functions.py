@@ -5,6 +5,7 @@ from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
 import botocore.client
 import boto3
 import typing
+from DialogContext import DialogContext
 
 
 # This cache is useful because AWS lambda can keep it's state, so no
@@ -240,22 +241,24 @@ def fetch_context_from_dynamo_database(
         *,
         session_id: str,
         database_client: boto3.client
-) -> dict:
+) -> DialogContext:
     try:
         result = database_client.get_item(
                 TableName='nutrition_sessions',
                 Key={'id': {'S': session_id}})
 
     except (ConnectTimeout, ReadTimeout):
-        return {}
+        return DialogContext()
 
     if 'Item' not in result:
-        return {}
+        return DialogContext()
     else:
         try:
-            return json.loads(result['Item']['value']['S'])
+            return DialogContext(
+                    data=json.loads(result['Item']['value']['S']),
+                    is_empty=False)
         except json.decoder.JSONDecodeError:
-            return {}
+            return DialogContext()
 
 
 @timeit

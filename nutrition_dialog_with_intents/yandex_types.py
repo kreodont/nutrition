@@ -1,24 +1,66 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import typing
 from functools import partial, reduce
+from DialogContext import DialogContext
+# from DialogIntents import DialogIntent
 
 
 @dataclass(frozen=True)
 class YandexRequest:
-    client_device_id: str
-    has_screen: bool
-    timezone: str
-    original_utterance: str
-    command: str
-    is_new_session: bool
-    user_guid: str
-    message_id: str
-    session_id: str
-    entities: typing.List[typing.Dict[str, str]]
-    tokens: typing.List[str]
-    aws_lambda_mode: bool
-    version: str
-    error: str = ''
+    """
+    Request example:
+    {
+  "meta": {
+    "client_id": "ru.yandex.searchplugin/7.16 (none none; android 4.4.2)",
+    "interfaces": {
+      "account_linking": {},
+      "payments": {},
+      "screen": {}
+    },
+    "locale": "ru-RU",
+    "timezone": "UTC"
+  },
+  "request": {
+    "command": "",
+    "nlu": {
+      "entities": [],
+      "tokens": []
+    },
+    "original_utterance": "",
+    "type": "SimpleUtterance"
+  },
+  "session": {
+    "message_id": 0,
+    "new": true,
+    "session_id": "12447be0-7302eba2-5cb2629b-7eeb8bac",
+    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
+    "user_id": "E401738E621D9AAC04AB162E44F39B3ABDA23A5CB2FF19E39
+    4C1915ED45CF467"
+  },
+  "version": "1.0"
+}
+    """
+    client_device_id: str   # meta -> client_id
+    has_screen: bool        # meta -> interfaces -> screen
+    timezone: str           # meta -> timezone
+    original_utterance: str  # request -> original_utterance
+    command: str            # request -> command
+    is_new_session: bool    # session -> new
+    user_guid: str          # session -> user_id
+    message_id: int         # session -> message_id, starts from 0
+    session_id: str         # session -> session_id
+    entities: typing.List[typing.Dict[str, str]]  # request -> nlu -> entities
+    tokens: typing.List[str]  # request -> nlu -> tokens
+    aws_lambda_mode: bool   # whether launched in cloud or not
+    version: str            # version, for now always "1.0"
+    intents_matching_dict: typing.Dict[object, int]  # Each intent
+    # puts here percent of matching. If one of intents puts here 100, that
+    # means that this intent fits perfectly and no need to check others.
+    context: typing.Optional[DialogContext]  # current dialog context,
+    # loaded from DynamoDB
+    chosen_intent: object = None  # Intent which will be executed. Can be
+    # overrided depending on context
+    error: str = ''         # if any errors parsing Yandex dictionary
 
     @staticmethod
     def empty_request(*, aws_lambda_mode: bool, error: str):
@@ -37,13 +79,18 @@ class YandexRequest:
                 tokens=[],
                 is_new_session=False,
                 user_guid='',
-                message_id='',
+                message_id=0,
                 session_id='',
                 version='',
                 command='',
                 aws_lambda_mode=aws_lambda_mode,
-                error=error
+                error=error,
+                context=None,
+                intents_matching_dict={}
         )
+
+    def set_context(self, context: DialogContext):
+        return replace(self, context=context)
 
     def __repr__(self):
         return '\n'.join(
@@ -56,8 +103,9 @@ class YandexResponse:
     initial_request: YandexRequest  # initial request
     response_text: str  # Text that will be shown to the user
     response_tts: str  # Text that will be spoken to the user
-    end_session: bool  # If the last message in dialog
+    end_session: bool  # If the last message in dialog and we should exit
     should_clear_context: bool  # whether clear old contex or not
+    should_write_new_context: bool  # whether we should write context to DB
     buttons: typing.List[typing.Dict]  # buttons that should
     # be shown to the user
 
@@ -231,6 +279,7 @@ def construct_yandex_response_from_yandex_request(
         end_session: bool = False,
         buttons: list = (),
         should_clear_context: bool = False,
+        should_write_new_context: bool = False,
 ):
     if tts == '':
         tts = text
@@ -241,7 +290,8 @@ def construct_yandex_response_from_yandex_request(
             response_text=text,
             response_tts=tts,
             buttons=buttons,
-            should_clear_context=should_clear_context
+            should_clear_context=should_clear_context,
+            should_write_new_context=should_write_new_context,
     )
 
 
