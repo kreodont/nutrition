@@ -26,31 +26,33 @@ class DialogIntent:
     should_read_context: bool = False  # Whether read context
     # from database. Costs 100 units (database READ)
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> YandexRequest:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         raise NotImplemented
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         raise NotImplemented
 
 
 class Intent00001StartingMessage(DialogIntent):
     time_to_evaluate = 0
-    time_to_respond = 0
+    time_to_respond = 10  # Clear context
+    should_clear_context = True
     name = 'Первое сообщение'
     description = 'Когда пользователь только открывает навык, ' \
                   'ему следует написать приветственное сообщение'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         if request.is_new_session:
-            return 100
+            request.intents_matching_dict[cls] = 100
         else:
-            return 0
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Привет. Скажите что вы съели, '
@@ -64,15 +66,17 @@ class Intent00002Ping(DialogIntent):
     name = 'Ответ на пинг'
     description = 'Яндекс пингует навык каждую минуту. Отвечаем понг'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase.lower() in ('ping', 'пинг'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='pong',
@@ -88,15 +92,17 @@ class Intent00003TextTooLong(DialogIntent):
                   'Слово удали - исключение, потому что пользователь может ' \
                   'захотеть удалить длинную предыдущую фразу'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         if (len(request.original_utterance) >= 100 and
                 'удали' not in request.original_utterance):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Ой, текст слишком длинный. Давайте попробуем частями?',
@@ -110,25 +116,25 @@ class Intent00004Help(DialogIntent):
     should_clear_context = True
     description = 'Объясняем пользователю как работает навык'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         tokens = request.tokens
         if ('помощь' in tokens or
                 'справка' in tokens or
                 'хелп' in tokens or
                 'информация' in tokens or
-                'ping' in tokens or
-                'пинг' in tokens or
                 'умеешь' in tokens or
                 ('что' in tokens and [t for t in tokens if 'делать' in t]) or
                 ('что' in tokens and [t for t in tokens if 'умеешь' in t]) or
                 ('как' in tokens and [t for t in tokens if 'польз' in t]) or
                 'скучно' in tokens or 'help' in tokens):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         help_text = '''Я считаю калории. Просто скажите что вы съели, 
         а я скажу сколько в этом было калорий. Например: соевое молоко с 
         хлебом. Потом я спрошу надо ли сохранить этот прием пищи, и если вы 
@@ -153,18 +159,20 @@ class Intent00005ThankYou(DialogIntent):
     should_clear_context = True
     description = 'Если пользователь похвалил навык, надо сказать ему спасибо'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         if request.original_utterance.lower().strip() in (
                 'спасибо', 'молодец', 'отлично', 'ты классная',
                 'классная штука',
                 'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
                 'клево', 'ништяк', 'класс'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         answers = [
             'Спасибо, я стараюсь',
             'Спасибо за комплимент',
@@ -184,16 +192,18 @@ class Intent00006Hello(DialogIntent):
     description = 'Если пользователь сказал Привет, надо ' \
                   'сказать ему привет в ответ'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         if request.original_utterance.lower().strip() in (
                 'привет', 'здравствуй', 'здравствуйте', 'хелло',
                 'приветик', 'hello',):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Здравствуйте. А теперь '
@@ -210,18 +220,20 @@ class Intent00007HumanMeat(DialogIntent):
     description = 'Если пользователь сказал что он поел ' \
                   'человечины, надо спросить его не доктор ли он Лектер'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         tokens = request.tokens
         full_phrase = request.original_utterance
         if [t for t in tokens if 'человеч' in t] or \
                 tokens == ['мясо', 'человека'] or \
                 full_phrase.lower() in ('человек',):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Доктор Лектер, это вы?',
@@ -236,8 +248,8 @@ class Intent00008Goodbye(DialogIntent):
     description = 'Если пользователь попрощался, надо сказать ему до ' \
                   'свидания и закрыть навык'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         tokens = request.tokens
         full_phrase = request.original_utterance
         if (
@@ -249,11 +261,13 @@ class Intent00008Goodbye(DialogIntent):
                 full_phrase in ('иди на хуй', 'стоп', 'пока', 'алиса')
 
         ):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='До свидания',
@@ -269,16 +283,18 @@ class Intent00009EatCat(DialogIntent):
     description = 'Если пользователь говорит что съел кота, ' \
                   'надо предложить ему падумоть'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('кошка', 'кошку', 'кот',
                            'кота', 'котенок', 'котенка'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Нееш, падумой',
@@ -293,8 +309,8 @@ class Intent00010LaunchAgain(DialogIntent):
     description = 'Если пользователь уже в навыке, но ' \
                   'просит Алису его запустить'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase.lower().strip() in (
                 'запусти навык умный счетчик калорий',
@@ -304,11 +320,13 @@ class Intent00010LaunchAgain(DialogIntent):
                 'запусти умный счетчик калорий',
                 '',
         ):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Какую еду записать?',
@@ -323,16 +341,18 @@ class Intent00011EatPoop(DialogIntent):
     description = 'Почему-то пользователи иногда любят заявлять что съели ' \
                   'говно. Что ж, сделаем отсылку к Зеленому Слонику'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
                            'фекалии', 'какахе', 'какахи'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Вы имели в виду "Сладкий хлеб"?',
@@ -347,17 +367,19 @@ class Intent00012ThinkTooMuch(DialogIntent):
     description = 'Пользователь думает что навык насчитал слишком много ' \
                   'калорий. Попросим его написать мне'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('это много', 'это мало', 'что-то много',
                            'что-то мало', 'так много', 'а почему так много',
                            'неправильно', 'мало', "маловато",):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Если вы нашли ошибку, напишите моему разработчику, '
@@ -372,15 +394,17 @@ class Intent00013Dick(DialogIntent):
     should_clear_context = True
     description = 'Пользователь говорит что съел член. Спросим, с солью или без'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('хуй', 'моржовый хуй', 'хер', 'хуй моржовый'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='С солью или без соли?',
@@ -395,15 +419,17 @@ class Intent00014NothingToAdd(DialogIntent):
     description = 'На вопрос какую еду записать, пользователь отвечает что ' \
                   'никакой не надо'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('никакую', 'ничего', 'никакой'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Хорошо, дайте знать, когда что-то появится',
@@ -417,15 +443,17 @@ class Intent00015WhatIsYourName(DialogIntent):
     should_clear_context = True
     description = 'Пользователь спрашивает как зовут счетчика'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         tokens = request.tokens
         if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Я умный счетчик калорий, а имя мне пока не придумали. '
@@ -441,15 +469,17 @@ class Intent00016CalledAgain(DialogIntent):
     description = 'Пользователь внутри навыка снова говорит "Умный счетчик ' \
                   'калорий". Нужно дать ему знать, что мы его все еще слушаем'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('умный счетчик калорий',):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Да, я слушаю',
@@ -463,17 +493,19 @@ class Intent00017WhereIsSaved(DialogIntent):
     should_clear_context = True
     description = 'Пользователь может спросить куда сохраняются данные'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('а где сохраняются', 'где сохраняются',
                            'где сохранить', 'а зачем сохранять',
                            'зачем сохранять', 'куда', 'а куда сохранила'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Приемы пищи сохраняются в моей базе данных. Ваши приемы '
@@ -489,17 +521,19 @@ class Intent00018Angry(DialogIntent):
     should_clear_context = True
     description = 'Пользователь ругает навык'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in (
                 'дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
                 'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Все мы можем ошибаться. Напишите моему разработчику, '
@@ -516,8 +550,8 @@ class Intent00019NotImplemented(DialogIntent):
     description = 'Пользователь запросил функцию, которая пока не ' \
                   'реализована, но у меня в планах она есть'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         tokens = request.tokens
         if full_phrase in ('норма калорий',
@@ -530,11 +564,13 @@ class Intent00019NotImplemented(DialogIntent):
                            'сколько калорий можно употреблять в сутки',
                            'сколько калорий в день можно'
                            ) or 'норма' in tokens:
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Этого я пока не умею, но планирую скоро научиться. '
@@ -551,15 +587,17 @@ class Intent00020UseAsAlice(DialogIntent):
                   'вызвать ее функции. Нужно сказать ему, что это Счетчик ' \
                   'и научить как выйти в Алису'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if 'запусти' in full_phrase or 'поиграем' in full_phrase:
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису '
@@ -574,15 +612,17 @@ class Intent00021ShutUp(DialogIntent):
     should_clear_context = True
     description = 'Пользователь говорит навыку заткнуться.'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
-            return 100
-        return 0
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Молчу',
@@ -618,8 +658,8 @@ class Intent00022Agree(DialogIntent):
             r.intents_matching_dict[cls] = 0
         return r
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
                 text='Молчу',
@@ -639,12 +679,13 @@ class Intent99999Default(DialogIntent):
     description = 'Если ничего не подошло, ' \
                   'отвечаем пользователю что не знаем такой еды'
 
-    @staticmethod
-    def evaluate(*, request: YandexRequest, **kwargs) -> int:
-        return 100
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        request.intents_matching_dict[cls] = 100
+        return request
 
-    @staticmethod
-    def respond(request: YandexRequest, **kwargs) -> YandexResponse:
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         first_parts_list = [
             'Это не похоже на название еды. Попробуйте сформулировать иначе',
             'Хм. Не могу понять что это. Попробуйте сказать иначе',
