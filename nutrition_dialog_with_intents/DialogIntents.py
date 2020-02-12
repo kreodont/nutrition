@@ -677,7 +677,7 @@ class Intent99999Default(DialogIntent):
     WARNING! This class should always be the last in the file
     This a default response in none of above fit
     """
-    time_to_evaluate = 0
+    time_to_evaluate = 99999
     time_to_respond = 0
     name = 'Дефолтный ответ'
     should_clear_context = False
