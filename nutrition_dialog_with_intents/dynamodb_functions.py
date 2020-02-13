@@ -189,10 +189,14 @@ def save_context(
                     'S': json.dumps({
                         'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
                         'food_dict': response.context_to_write.food_dict,
-                        'intent_originator_name': response.context_to_write.intent_originator_name,
-                        'user_initial_phrase': response.context_to_write.user_initial_phrase,
-                        'specifying_question': response.context_to_write.specifying_question,
-                        'matching_intents_names': response.context_to_write.matching_intents_names,
+                        'intent_originator_name':
+                            response.context_to_write.intent_originator_name,
+                        'user_initial_phrase':
+                            response.context_to_write.user_initial_phrase,
+                        'specifying_question':
+                            response.context_to_write.specifying_question,
+                        'matching_intents_names':
+                            response.context_to_write.matching_intents_names,
                     }),
                 }})
     return response
@@ -278,10 +282,12 @@ def fetch_context_from_dynamo_database(
                 Key={'id': {'S': session_id}})
 
     except (ConnectTimeout, ReadTimeout):
+        print('Timeout when tried to load context')
         return None
 
     if 'Item' not in result:
-        return None
+        print('No context found')
+        return DialogContext.empty_context()
     else:
         try:
             json_dict = json.loads(result['Item']['value']['S'])
@@ -309,7 +315,7 @@ def fetch_context_from_dynamo_database(
             print(f'Loaded context: {context}')
             return context
         except json.decoder.JSONDecodeError:
-            return None
+            return DialogContext.empty_context()
 
 
 @timeit

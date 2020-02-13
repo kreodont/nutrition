@@ -30,3 +30,18 @@ class DialogContext:
                f'интент "{self.intent_originator_name}" задал уточняющий ' \
                f'вопрос "{self.specifying_question}". Предполагаемые ' \
                f'допустимые ответные интенты: {self.matching_intents_names}'
+
+    @staticmethod
+    def empty_context():
+        """
+        To have the possibility to have empty context and not try to load it
+        again
+        :return:
+        """
+        return DialogContext(
+                food_dict={},
+                intent_originator_name='Empty context',
+                user_initial_phrase='Empty context',
+                matching_intents_names=(),
+                specifying_question='Empty context',
+        )
