@@ -9,7 +9,7 @@ import sys
 import inspect
 import random
 from dynamodb_functions import fetch_context_from_dynamo_database, \
-    get_dynamo_client, get_from_cache_table
+    get_dynamo_client, get_from_cache_table, update_user_table
 import typing
 from botocore.vendored import requests
 
@@ -815,6 +815,55 @@ class Intent00024SaveFood(DialogIntent):
         )
 
 
+class Intent00025DoNotSaveFood(DialogIntent):
+    time_to_evaluate = 100  # Need to check context
+    time_to_respond = 0  # Need to clear context
+    name = 'Нет, не надо сохранять еду'
+    should_clear_context = True
+    description = 'У пользователя в контексте есть еда, но он говорит что не ' \
+                  'надо записывать ее в базу данных'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        r = request
+        if not request.context:
+            r = r.set_context(
+                fetch_context_from_dynamo_database(
+                    session_id=r.session_id,
+                    database_client=get_dynamo_client(
+                        lambda_mode=r.aws_lambda_mode)))
+
+        tokens = request.tokens
+        if (
+                'не' in tokens or
+                'нет' in tokens or
+                'забудь' in tokens or
+                'забыть' in tokens or
+                'удалить' in tokens
+        ):
+            r.intents_matching_dict[cls] = 100
+            r = r.set_chosen_intent(cls)
+        else:
+            r.intents_matching_dict[cls] = 0
+        return r
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        if request.context \
+                and cls.__name__ in request.context.matching_intents_names:
+            print(f'Getting answer from originating '
+                  f'intent {request.context.intent_originator_name}')
+            return globals()[request.context.intent_originator_name].respond(
+                request=request,
+                answer=cls.__name__)
+
+        return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Пока нечего сохранять. Сначала скажите что вы съели.',
+            should_clear_context=cls.should_clear_context
+        )
+
+
 class Intent01000SearchForFood(DialogIntent):
     time_to_evaluate = 500  # Check cache, translate request, query API
     time_to_respond = 10  # Save food context
@@ -846,6 +895,36 @@ class Intent01000SearchForFood(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        if 'answer' in kwargs and kwargs['answer'] in (
+                'Intent00022Agree', 'Intent00024SaveFood'):
+            update_user_table(
+                database_client=get_dynamo_client(
+                    lambda_mode=request.aws_lambda_mode),
+                event_time=datetime.datetime.now(),
+                foods_dict=request.context.food_dict,
+                utterance=request.context.user_initial_phrase,
+                user_id=request.user_guid,
+            )
+
+            return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Сохранено',
+                should_clear_context=True)
+
+        if 'answer' in kwargs and kwargs['answer'] in (
+                'Intent00025DoNotSaveFood', 'Intent00023Disagree'):
+            return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Забыто',
+                should_clear_context=True)
+        context = DialogContext(
+            intent_originator_name=cls.__name__,
+            matching_intents_names=('Intent00022Agree',
+                                    'Intent00025DoNotSaveFood',
+                                    'Intent00024SaveFood',
+                                    'Intent00023Disagree'),
+            specifying_question='Сохранить?',
+            user_initial_phrase=request.original_utterance)
         response_text, total_calories = make_final_text(
             nutrition_dict=request.food_dict)
         response_text += '\nСкажите "да" или "сохранить", если хотите ' \
@@ -861,7 +940,8 @@ class Intent01000SearchForFood(DialogIntent):
             yandex_request=request,
             text=response_text,
             tts=tts,
-            end_session=True,
+            end_session=False,
+            new_context_to_write=context
         )
 
 

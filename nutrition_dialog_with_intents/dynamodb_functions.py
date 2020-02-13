@@ -107,6 +107,7 @@ def update_user_table(
         foods_dict: dict,
         utterance: str,
         user_id: str):
+    print(f'Saving food for user: "{utterance}"')
     result = database_client.get_item(
             TableName='nutrition_users',
             Key={'id': {'S': user_id}, 'date': {'S': str(event_time.date())}})
