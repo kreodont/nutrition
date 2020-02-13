@@ -108,7 +108,6 @@ class YandexResponse:
     response_tts: str  # Text that will be spoken to the user
     end_session: bool  # If the last message in dialog and we should exit
     should_clear_context: bool  # whether clear old contex or not
-    should_write_new_context: bool  # whether we should write context to DB
     buttons: typing.List[typing.Dict]  # buttons that should
     # be shown to the user
     context_to_write: typing.Optional[DialogContext]
@@ -285,7 +284,7 @@ def construct_yandex_response_from_yandex_request(
         end_session: bool = False,
         buttons: list = (),
         should_clear_context: bool = False,
-        should_write_new_context: bool = False,
+        new_context_to_write: DialogContext = None,
 ):
     if tts == '':
         tts = text
@@ -297,8 +296,7 @@ def construct_yandex_response_from_yandex_request(
         response_tts=tts,
         buttons=buttons,
         should_clear_context=should_clear_context,
-        should_write_new_context=should_write_new_context,
-        context_to_write=yandex_request.context,
+        context_to_write=new_context_to_write,
     )
 
 

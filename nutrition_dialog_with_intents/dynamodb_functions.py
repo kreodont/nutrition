@@ -188,11 +188,12 @@ def save_context(
                 'value': {
                     'S': json.dumps({
                         'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
-                        'data_dict': response.context_to_write.data_dict,
-                        'utterance':
-                            response.initial_request.original_utterance,
-                        'intent_name':
-                            response.initial_request.chosen_intent.__name__}),
+                        'food_dict': response.context_to_write.food_dict,
+                        'intent_originator_name': response.context_to_write.intent_originator_name,
+                        'user_initial_phrase': response.context_to_write.user_initial_phrase,
+                        'specifying_question': response.context_to_write.specifying_question,
+                        'matching_intents_names': response.context_to_write.matching_intents_names,
+                    }),
                 }})
     return response
 
@@ -270,24 +271,45 @@ def fetch_context_from_dynamo_database(
         *,
         session_id: str,
         database_client: boto3.client
-) -> DialogContext:
+) -> typing.Optional[DialogContext]:
     try:
         result = database_client.get_item(
                 TableName='nutrition_sessions',
                 Key={'id': {'S': session_id}})
 
     except (ConnectTimeout, ReadTimeout):
-        return DialogContext()
+        return None
 
     if 'Item' not in result:
-        return DialogContext()
+        return None
     else:
         try:
-            return DialogContext(
-                    data=json.loads(result['Item']['value']['S']),
-                    is_empty=False)
+            json_dict = json.loads(result['Item']['value']['S'])
+            food_data = json_dict.get('food_data', {})
+            intent_originator_name = json_dict.get(
+                    'intent_originator_name',
+                    'Intent originator not defined')
+
+            matching_intents_names = json_dict.get('matching_intents_names', ())
+            specifying_question = json_dict.get(
+                    'specifying_question',
+                    'Specifying question not defined')
+
+            user_initial_phrase = json_dict.get(
+                    'user_initial_phrase',
+                    'Initial phase not defined')
+
+            context = DialogContext(
+                    food_dict=food_data,
+                    intent_originator_name=intent_originator_name,
+                    matching_intents_names=matching_intents_names,
+                    specifying_question=specifying_question,
+                    user_initial_phrase=user_initial_phrase,
+            )
+            print(f'Loaded context: {context}')
+            return context
         except json.decoder.JSONDecodeError:
-            return DialogContext()
+            return None
 
 
 @timeit

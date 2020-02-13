@@ -2,21 +2,31 @@ class DialogContext:
     """
     For saving dialog context into database
     """
-    data_dict: dict
-    is_empty: bool
-    contains_food: bool  # if it is food context
-    intent_originator: object  # one of the intents classes
+    food_dict: dict  # Food nutrition data
+    intent_originator_name: str  # name of the intent who asked the
+    # specifying question
+    user_initial_phrase: str  # initial user request that lead to context saving
+    specifying_question: str  # the question that was asked
+    matching_intents_names: tuple  # List of intents names that fit as answers
 
     def __init__(self,
                  *,
-                 data=None,
-                 is_empty: bool = True,
-                 contains_food: bool = False,
-                 intent_originator: object = None,  # Intent class
+                 food_dict=None,
+                 intent_originator_name: str,
+                 user_initial_phrase: str,
+                 specifying_question: str,
+                 matching_intents_names: tuple
                  ):
-        if data is None:
-            data = {}
-        self.data_dict = data
-        self.is_empty = is_empty
-        self.contains_food = contains_food
-        self.intent_originator = intent_originator
+        if food_dict is None:
+            food_dict = {}
+        self.food_dict = food_dict
+        self.intent_originator_name = intent_originator_name
+        self.user_initial_phrase = user_initial_phrase
+        self.specifying_question = specifying_question
+        self.matching_intents_names = matching_intents_names
+
+    def __repr__(self):
+        return f'В ответ на фразу пользователя "{self.user_initial_phrase}" ' \
+               f'интент "{self.intent_originator_name}" задал уточняющий ' \
+               f'вопрос "{self.specifying_question}". Предполагаемые ' \
+               f'допустимые ответные интенты: {self.matching_intents_names}'

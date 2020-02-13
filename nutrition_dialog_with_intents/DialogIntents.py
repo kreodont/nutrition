@@ -348,7 +348,7 @@ class Intent00011EatPoop(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
-                           'фекалии', 'какахе', 'какахи', 'какаха'):
+                           'фекалии', 'какахе', 'какахи', 'какаха', 'какаху'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -356,11 +356,17 @@ class Intent00011EatPoop(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
-        request = request.set_context(DialogContext(intent_originator=cls))
+        specifying_question = 'Вы имели в виду "Сладкий хлеб"?'
+        context = DialogContext(
+                intent_originator_name=cls.__name__,
+                matching_intents_names=('Intent00022Agree', ),
+                specifying_question=specifying_question,
+                user_initial_phrase=request.original_utterance)
+        # request = request.set_context(context)
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
-            text='Вы имели в виду "Сладкий хлеб"?',
-            should_write_new_context=True,
+            text=specifying_question,
+            new_context_to_write=context,
         )
 
 
@@ -650,15 +656,15 @@ class Intent00022Agree(DialogIntent):
         if not request.context:
             r = r.set_context(
                 fetch_context_from_dynamo_database(
-                    r.session_id,
-                    get_dynamo_client(
+                    session_id=r.session_id,
+                    database_client=get_dynamo_client(
                         lambda_mode=r.aws_lambda_mode)))
 
         # tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
         if full_phrase in ('да', 'ну да', 'ага', 'конечно'):
             r.intents_matching_dict[cls] = 100
-            r.chosen_intent = cls
+            r = r.set_chosen_intent(cls)
         else:
             r.intents_matching_dict[cls] = 0
         return r
@@ -667,7 +673,7 @@ class Intent00022Agree(DialogIntent):
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
-            text='Молчу',
+            text='Что да?',
             end_session=True,
         )
 

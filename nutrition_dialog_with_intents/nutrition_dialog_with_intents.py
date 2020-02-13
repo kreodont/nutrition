@@ -28,7 +28,7 @@ def nutrition_dialog_with_intents(event, context):
             database_client=get_dynamo_client(lambda_mode=bool(context)))
 
     if response.context_to_write:
-        print('Saving new context to database')
+        print(f'Saving new context to database: {response.context_to_write}')
         save_context(
             response=response,
             event_time=datetime.datetime.now(),
