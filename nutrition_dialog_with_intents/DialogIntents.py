@@ -2,6 +2,9 @@ import json
 import os
 import re
 import datetime
+
+import dateutil
+
 from DialogContext import DialogContext
 from yandex_types import YandexRequest, \
     YandexResponse, construct_yandex_response_from_yandex_request
@@ -9,9 +12,11 @@ import sys
 import inspect
 import random
 from dynamodb_functions import fetch_context_from_dynamo_database, \
-    get_dynamo_client, get_from_cache_table, update_user_table
+    get_dynamo_client, get_from_cache_table, update_user_table, \
+    find_all_food_names_for_day
 import typing
 from botocore.vendored import requests
+from dates_transformations import transform_yandex_datetime_value_to_datetime
 
 
 class DialogIntent:
@@ -864,6 +869,109 @@ class Intent00025DoNotSaveFood(DialogIntent):
         )
 
 
+class Intent00026WhatIAte(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 110  # Read user database and clear context
+    name = 'Что я ел?'
+    should_clear_context = True
+    description = 'Пользователь просит вспомнить что он ел'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        tokens = request.tokens
+        full_phrase = request.original_utterance
+
+        if (('что' in tokens or 'сколько' in tokens) and (
+                'ел' in full_phrase or 'хран' in full_phrase)) or \
+                full_phrase in ('покажи результат',
+                                'открыть список сохранения',
+                                'скажи результат',
+                                'общий результат',
+                                'общий итог',
+                                'какой итог',
+                                'сколько всего',
+                                'сколько калорий',
+                                'какой результат',
+                                'сколько в общем калорий',
+                                'сколько всего калорий',
+                                'сколько калорий в общей сумме',
+                                'сколько я съел калорий',
+                                'сколько я съела калорий',
+                                'покажи сохраненную',
+                                'покажи сколько калорий',
+                                'сколько я съел',
+                                'сколько всего калорий было',
+                                'сколько всего калорий было в день',
+                                'список сохраненные еды',
+                                'список сохраненной еды',
+                                'общая сумма калорий за день',
+                                'посчитай все калории за сегодня',
+                                'сколько все вместе за весь день',
+                                'ну посчитай сколько всего калорий',
+                                'посчитай сколько всего калорий',
+                                'подсчитать калории',
+                                'сколько калорий у меня сегодня',
+                                'подсчитать все',
+                                'сколько всего получилось',
+                                'сколько за день',
+                                'сколько калорий за день',
+                                'сколько сегодня калорий',
+                                'сколько было сегодня калорий',
+                                'сколько сегодня калорий было',
+                                'общее количество',
+                                'посчитай калории',
+                                'итог',
+                                'наели калорий за сегодня',
+                                'итого'
+                                ):
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        all_datetime_entries = [entity for entity in request.entities if
+                                entity['type'] == "YANDEX.DATETIME"]
+        if len(all_datetime_entries) == 0:
+            target_date = datetime.date.today()
+        else:
+            # last detected date
+            last_detected_date = all_datetime_entries[-1]
+            target_date = transform_yandex_datetime_value_to_datetime(
+                yandex_datetime_value_dict=last_detected_date,
+            ).date()
+
+        all_food_for_date = find_all_food_names_for_day(
+            database_client=get_dynamo_client(
+                lambda_mode=request.aws_lambda_mode),
+            date=target_date,
+            user_id=request.user_guid,
+        )
+        if len(all_food_for_date) == 0:
+            return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=f'Не могу ничего найти за {target_date}. '
+                     f'Чтобы еда сохранялась в мою базу, не забывайте '
+                     f'говорить "Сохранить", после того, как я посчитаю '
+                     f'калории.',
+                tts='Ничего не найдено',
+                should_clear_context=True
+            )
+
+        food_total_text, food_total_tts = total_calories_text(
+            food_dicts_list=all_food_for_date,
+            target_date=target_date,
+            timezone=request.timezone)
+
+        return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text=food_total_text,
+            tts=food_total_tts,
+            should_clear_context=True
+        )
+
+
 class Intent01000SearchForFood(DialogIntent):
     time_to_evaluate = 500  # Check cache, translate request, query API
     time_to_respond = 10  # Save food context
@@ -924,7 +1032,9 @@ class Intent01000SearchForFood(DialogIntent):
                                     'Intent00024SaveFood',
                                     'Intent00023Disagree'),
             specifying_question='Сохранить?',
-            user_initial_phrase=request.original_utterance)
+            user_initial_phrase=request.original_utterance,
+            food_dict=request.food_dict,
+        )
         response_text, total_calories = make_final_text(
             nutrition_dict=request.food_dict)
         response_text += '\nСкажите "да" или "сохранить", если хотите ' \
@@ -1188,6 +1298,61 @@ def choose_key(keys_dict):
 
     min_usage_key['dates'].append(str(datetime.datetime.now()))
     return min_usage_key['name'], min_usage_key['pass'], keys_dict
+
+
+def total_calories_text(
+        *,
+        food_dicts_list: typing.List[dict],
+        target_date: datetime.date,
+        timezone: str) -> typing.Tuple[str, str]:
+    total_calories = 0
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
+
+    full_text = ''
+
+    for food_number, food in enumerate(food_dicts_list, 1):
+        nutrition_dict = food['foods']
+        this_food_calories = 0
+        food_time = dateutil.parser.parse(food['time'])
+        food_time = food_time.astimezone(dateutil.tz.gettz(timezone))
+        if 'foods' not in nutrition_dict:
+            continue
+
+        for f in nutrition_dict['foods']:
+            calories = f.get("nf_calories", 0) or 0
+            this_food_calories += calories
+            total_calories += calories
+            protein = f.get("nf_protein", 0) or 0
+            total_protein += protein
+            fat = f.get("nf_total_fat", 0) or 0
+            total_fat += fat
+            carbohydrates = f.get("nf_total_carbohydrate", 0) or 0
+            total_carbohydrates += carbohydrates
+            sugar = f.get("nf_sugars", 0) or 0
+            total_sugar += sugar
+        full_text += f'[{food_time.strftime("%H:%M")}] ' \
+            f'{food["utterance"]} ({round(this_food_calories, 2)})\n'
+
+    all_total = total_protein + total_fat + total_carbohydrates
+    if all_total == 0:
+        return f'Не могу ничего найти за {target_date}. Я сохраняю еду в ' \
+                   f'свою базу, только если вы скажете Сохранить после ' \
+                   f'того, как я спрошу.', 'Ничего не найдено'
+    percent_protein = round((total_protein / all_total) * 100)
+    percent_fat = round((total_fat / all_total) * 100)
+    percent_carbohydrates = round((total_carbohydrates / all_total) * 100)
+    full_text += f'\n' \
+        f'Всего: \n{round(total_protein)} ({percent_protein}%) ' \
+        f'бел. {round(total_fat)} ({percent_fat}%) ' \
+        f'жир. {round(total_carbohydrates)} ({percent_carbohydrates}%) ' \
+        f'угл. {round(total_sugar)} ' \
+        f'сах.\n_\n{choose_case(amount=round(total_calories, 2))}'
+
+    tts = choose_case(amount=total_calories, tts_mode=True, round_to_int=True)
+    return full_text, tts
 
 
 if __name__ == '__main__':

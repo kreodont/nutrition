@@ -134,22 +134,6 @@ def update_user_table(
 
 
 @timeit
-def clear_context(
-        *,
-        session_id: str,
-        database_client,
-) -> None:
-    try:
-        database_client.delete_item(TableName='nutrition_sessions',
-                                    Key={
-                                        'id': {
-                                            'S': session_id,
-                                        }, })
-    except (ReadTimeout, ConnectTimeout):
-        pass
-
-
-@timeit
 def save_session(
         *,
         session_id: str,
@@ -169,38 +153,6 @@ def save_session(
                         'foods': foods_dict,
                         'utterance': utterance}),
                 }})
-
-
-@timeit
-def save_context(
-        *,
-        response: YandexResponse,
-        table_name: str = 'nutrition_sessions',
-        event_time: datetime.datetime = datetime.datetime.now()
-) -> YandexResponse:
-    client = get_dynamo_client(
-        lambda_mode=response.initial_request.aws_lambda_mode)
-    client.put_item(
-            TableName=table_name,
-            Item={
-                'id': {
-                    'S': response.initial_request.session_id,
-                },
-                'value': {
-                    'S': json.dumps({
-                        'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
-                        'food_dict': response.context_to_write.food_dict,
-                        'intent_originator_name':
-                            response.context_to_write.intent_originator_name,
-                        'user_initial_phrase':
-                            response.context_to_write.user_initial_phrase,
-                        'specifying_question':
-                            response.context_to_write.specifying_question,
-                        'matching_intents_names':
-                            response.context_to_write.matching_intents_names,
-                    }),
-                }})
-    return response
 
 
 @timeit
@@ -272,16 +224,6 @@ def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
     return yandex_requext
 
 
-# def save_food_to_user_statistics(*, database_client: boto3.client):
-#     update_user_table(
-#             database_client=database_client,
-#             event_time=date.replace(
-#                     tzinfo=dateutil.tz.gettz(request.timezone)
-#             ).astimezone(dateutil.tz.gettz('UTC')),
-#             foods_dict=context['foods'],
-#             user_id=request.user_guid,
-#             utterance=context['utterance'])
-
 @timeit
 def fetch_context_from_dynamo_database(
         *,
@@ -303,7 +245,7 @@ def fetch_context_from_dynamo_database(
     else:
         try:
             json_dict = json.loads(result['Item']['value']['S'])
-            food_data = json_dict.get('food_data', {})
+            food_data = json_dict.get('foods', {})
             intent_originator_name = json_dict.get(
                     'intent_originator_name',
                     'Intent originator not defined')
@@ -328,6 +270,54 @@ def fetch_context_from_dynamo_database(
             return context
         except json.decoder.JSONDecodeError:
             return DialogContext.empty_context()
+
+
+@timeit
+def save_context(
+        *,
+        response: YandexResponse,
+        table_name: str = 'nutrition_sessions',
+        event_time: datetime.datetime = datetime.datetime.now()
+) -> YandexResponse:
+    client = get_dynamo_client(
+        lambda_mode=response.initial_request.aws_lambda_mode)
+    client.put_item(
+            TableName=table_name,
+            Item={
+                'id': {
+                    'S': response.initial_request.session_id,
+                },
+                'value': {
+                    'S': json.dumps({
+                        'time': event_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'foods': response.context_to_write.food_dict,
+                        'intent_originator_name':
+                            response.context_to_write.intent_originator_name,
+                        'user_initial_phrase':
+                            response.context_to_write.user_initial_phrase,
+                        'specifying_question':
+                            response.context_to_write.specifying_question,
+                        'matching_intents_names':
+                            response.context_to_write.matching_intents_names,
+                    }),
+                }})
+    return response
+
+
+@timeit
+def clear_context(
+        *,
+        session_id: str,
+        database_client,
+) -> None:
+    try:
+        database_client.delete_item(TableName='nutrition_sessions',
+                                    Key={
+                                        'id': {
+                                            'S': session_id,
+                                        }, })
+    except (ReadTimeout, ConnectTimeout):
+        pass
 
 
 @timeit
