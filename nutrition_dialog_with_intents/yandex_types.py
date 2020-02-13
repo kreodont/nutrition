@@ -57,7 +57,10 @@ class YandexRequest:
     # means that this intent fits perfectly and no need to check others.
     context: typing.Optional[DialogContext]  # current dialog context,
     # loaded from DynamoDB
+    food_dict: dict  # Response from the API
+    api_keys: dict  # To query API
     chosen_intent: typing.Any = None  # Intent which will be executed.
+    translated_phrase: str = ''  # Phrase translated into English
     # Can be
     # overrided depending on context
     error: str = ''  # if any errors parsing Yandex dictionary
@@ -71,22 +74,25 @@ class YandexRequest:
         :return:
         """
         return YandexRequest(
-            client_device_id='',
-            has_screen=False,
-            timezone='UTC',
-            original_utterance='',
-            entities=[],
-            tokens=[],
-            is_new_session=False,
-            user_guid='',
-            message_id=0,
-            session_id='',
-            version='',
-            command='',
-            aws_lambda_mode=aws_lambda_mode,
-            error=error,
-            context=None,
-            intents_matching_dict={}
+                client_device_id='',
+                has_screen=False,
+                timezone='UTC',
+                original_utterance='',
+                entities=[],
+                tokens=[],
+                is_new_session=False,
+                user_guid='',
+                message_id=0,
+                session_id='',
+                version='',
+                command='',
+                aws_lambda_mode=aws_lambda_mode,
+                error=error,
+                context=None,
+                intents_matching_dict={},
+                translated_phrase='',
+                food_dict={},
+                api_keys={},
         )
 
     def set_context(self, context: DialogContext):
@@ -95,10 +101,19 @@ class YandexRequest:
     def set_chosen_intent(self, chosen_intent):
         return replace(self, chosen_intent=chosen_intent)
 
+    def set_translated_phrase(self, translated):
+        return replace(self, translated_phrase=translated)
+
+    def set_food_dict(self, food_dict):
+        return replace(self, food_dict=food_dict)
+
+    def set_api_keys(self, api_keys: dict):
+        return replace(self, api_keys=api_keys)
+
     def __repr__(self):
         return '\n'.join(
-            [f'{key:20}: {self.__dict__[key]}' for
-             key in sorted(self.__dict__.keys())]) + '\n\n'
+                [f'{key:20}: {self.__dict__[key]}' for
+                 key in sorted(self.__dict__.keys())]) + '\n\n'
 
 
 @dataclass(frozen=True)
@@ -114,8 +129,8 @@ class YandexResponse:
 
     def __repr__(self):
         return '\n'.join(
-            [f'{key:20}: {self.__dict__[key]}' for
-             key in sorted(self.__dict__.keys())])
+                [f'{key:20}: {self.__dict__[key]}' for
+                 key in sorted(self.__dict__.keys())])
 
 
 def transform_event_dict_to_yandex_request_object(
@@ -131,91 +146,91 @@ def transform_event_dict_to_yandex_request_object(
     :return:
     """
     meta = fetch_one_value_from_event_dict(
-        event_dict=event_dict,
-        path='meta')
+            event_dict=event_dict,
+            path='meta')
     if meta is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: meta is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: meta is None')
 
     client_device_id = fetch_one_value_from_event_dict(
-        path='meta -> client_id',
-        event_dict=event_dict)
+            path='meta -> client_id',
+            event_dict=event_dict)
     if client_device_id is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: client_id is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: client_id is None')
     partial_constructor = partial(YandexRequest,
                                   client_device_id=client_device_id)
 
     timezone = fetch_one_value_from_event_dict(
-        path='meta -> timezone',
-        event_dict=event_dict)
+            path='meta -> timezone',
+            event_dict=event_dict)
     if timezone is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: timezone is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: timezone is None')
     partial_constructor = partial(partial_constructor,
                                   timezone=timezone)
 
     has_screen = fetch_one_value_from_event_dict(
-        path='meta -> interfaces -> screen',
-        event_dict=event_dict)
+            path='meta -> interfaces -> screen',
+            event_dict=event_dict)
     has_screen = False if has_screen is None else True
     partial_constructor = partial(partial_constructor,
                                   has_screen=has_screen)
 
     is_new_session = fetch_one_value_from_event_dict(
-        path='session -> new',
-        event_dict=event_dict)
+            path='session -> new',
+            event_dict=event_dict)
     if is_new_session is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: is_new_session is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: is_new_session is None')
     partial_constructor = partial(partial_constructor,
                                   is_new_session=is_new_session)
 
     user_guid = fetch_one_value_from_event_dict(
-        path='session -> user_id',
-        event_dict=event_dict)
+            path='session -> user_id',
+            event_dict=event_dict)
 
     if user_guid is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: user_guid is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: user_guid is None')
     partial_constructor = partial(partial_constructor,
                                   user_guid=user_guid)
 
     version = fetch_one_value_from_event_dict(
-        path='version',
-        event_dict=event_dict)
+            path='version',
+            event_dict=event_dict)
     version = '1.0' if version is None else version
     partial_constructor = partial(partial_constructor,
                                   version=version)
 
     session_id = fetch_one_value_from_event_dict(
-        path='session -> session_id',
-        event_dict=event_dict)
+            path='session -> session_id',
+            event_dict=event_dict)
     if user_guid is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: session_id is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: session_id is None')
     partial_constructor = partial(partial_constructor,
                                   session_id=session_id)
 
     message_id = fetch_one_value_from_event_dict(
-        path='session -> message_id',
-        event_dict=event_dict)
+            path='session -> message_id',
+            event_dict=event_dict)
     if message_id is None:
         return YandexRequest.empty_request(
-            aws_lambda_mode=aws_lambda_mode,
-            error='Invalid request: message_id is None')
+                aws_lambda_mode=aws_lambda_mode,
+                error='Invalid request: message_id is None')
     partial_constructor = partial(partial_constructor,
                                   message_id=message_id)
 
     original_utterance = fetch_one_value_from_event_dict(
-        path='request -> original_utterance',
-        event_dict=event_dict)
+            path='request -> original_utterance',
+            event_dict=event_dict)
     original_utterance = '' if \
         original_utterance is None \
         else original_utterance
@@ -223,16 +238,16 @@ def transform_event_dict_to_yandex_request_object(
                                   original_utterance=original_utterance)
 
     command = fetch_one_value_from_event_dict(
-        path='request -> command',
-        event_dict=event_dict)
+            path='request -> command',
+            event_dict=event_dict)
 
     partial_constructor = partial(
-        partial_constructor,
-        command=command)
+            partial_constructor,
+            command=command)
 
     tokens = fetch_one_value_from_event_dict(
-        path='request -> nlu -> tokens',
-        event_dict=event_dict)
+            path='request -> nlu -> tokens',
+            event_dict=event_dict)
 
     tokens = [] if tokens is None else tokens
 
@@ -240,13 +255,16 @@ def transform_event_dict_to_yandex_request_object(
                                   tokens=tokens)
 
     entities = fetch_one_value_from_event_dict(
-        path='request -> nlu -> entities',
-        event_dict=event_dict)
+            path='request -> nlu -> entities',
+            event_dict=event_dict,)
     entities = [] if entities is None else entities
     full_yandex_request_constructor = partial(partial_constructor,
                                               entities=entities,
                                               context=None,
-                                              intents_matching_dict={})
+                                              intents_matching_dict={},
+                                              food_dict={},
+                                              api_keys={},
+                                              )
 
     return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode)
 
@@ -267,9 +285,9 @@ def fetch_one_value_from_event_dict(
     value = None
     try:
         value = reduce(
-            dict.get,
-            [t.strip() for t in path.split('->')],
-            event_dict)
+                dict.get,
+                [t.strip() for t in path.split('->')],
+                event_dict)
     except TypeError:
         pass
 
@@ -290,13 +308,13 @@ def construct_yandex_response_from_yandex_request(
         tts = text
 
     return YandexResponse(
-        initial_request=yandex_request,
-        end_session=end_session,
-        response_text=text,
-        response_tts=tts,
-        buttons=buttons,
-        should_clear_context=should_clear_context,
-        context_to_write=new_context_to_write,
+            initial_request=yandex_request,
+            end_session=end_session,
+            response_text=text,
+            response_tts=tts,
+            buttons=buttons,
+            should_clear_context=should_clear_context,
+            context_to_write=new_context_to_write,
     )
 
 
@@ -310,15 +328,15 @@ def transform_yandex_response_to_output_result_dict(
     """
     response = {
         "response": {
-            "text":        yandex_response.response_text,
-            "tts":         yandex_response.response_tts,
+            "text": yandex_response.response_text,
+            "tts": yandex_response.response_tts,
             "end_session": yandex_response.end_session
         },
-        "session":  {
+        "session": {
             "session_id": yandex_response.initial_request.session_id,
             "message_id": yandex_response.initial_request.message_id,
-            "user_id":    yandex_response.initial_request.user_guid
+            "user_id": yandex_response.initial_request.user_guid
         },
-        "version":  yandex_response.initial_request.version
+        "version": yandex_response.initial_request.version
     }
     return response

@@ -11,7 +11,7 @@ from DialogContext import DialogContext
 # This cache is useful because AWS lambda can keep it's state, so no
 # need to restantiate connections again. It is used in get_boto3_client
 # function, I know it is a mess, but 100 ms are 100 ms
-from yandex_types import YandexResponse
+from yandex_types import YandexResponse, YandexRequest
 
 global_cached_boto3_clients = {}
 
@@ -228,13 +228,13 @@ def write_to_cache_table(
 
 
 @timeit
-def get_from_cache_table(
-        *,
-        request_text: str,
-        database_client: boto3.client) -> typing.Tuple[dict, dict]:
+def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
     keys_dict = {}
     food_dict = {}
     try:
+        print(f'Searching for "{yandex_requext.command}" in cache table')
+        database_client = get_dynamo_client(
+                lambda_mode=yandex_requext.aws_lambda_mode)
         items = database_client.batch_get_item(
                 RequestItems={
                     'nutrition_cache': {
@@ -245,19 +245,25 @@ def get_from_cache_table(
                             },
                             {
                                 'initial_phrase': {
-                                    'S': request_text},
+                                    'S': yandex_requext.command},
                             }
                         ]}})
     except (ConnectTimeout, ReadTimeout):
-        return {'error': 'timeout'}, {'error': 'timeout'}
+        print('Timeout during Food Cache table request')
+        return yandex_requext
 
     for item in items['Responses']['nutrition_cache']:
         if item['initial_phrase']['S'] == '_key':
             keys_dict = json.loads(item['response']['S'])
-        if item['initial_phrase']['S'] == request_text:
+        if item['initial_phrase']['S'] == yandex_requext.command:
             food_dict = json.loads(item['response']['S'])
+    if food_dict:
+        print(f'"{yandex_requext.command}" found in cache!')
+        yandex_requext = yandex_requext.set_food_dict(food_dict=food_dict)
+    else:
+        yandex_requext = yandex_requext.set_api_keys(keys_dict)
 
-    return keys_dict, food_dict
+    return yandex_requext
 
 
 # def save_food_to_user_statistics(*, database_client: boto3.client):

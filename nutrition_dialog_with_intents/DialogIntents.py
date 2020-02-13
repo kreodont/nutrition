@@ -5,7 +5,8 @@ import sys
 import inspect
 import random
 from dynamodb_functions import fetch_context_from_dynamo_database, \
-    get_dynamo_client
+    get_dynamo_client, get_from_cache_table
+import typing
 
 
 class DialogIntent:
@@ -790,6 +791,32 @@ class Intent00024SaveFood(DialogIntent):
         )
 
 
+class Intent01000SearchForFood(DialogIntent):
+    time_to_evaluate = 500  # Check cache, translate request, query API
+    time_to_respond = 10  # Save food context
+    name = 'Найти еду'
+    should_clear_context = False
+    description = 'Пользователь сказал что он съел. Нужно посчитать калории'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        request = get_from_cache_table(yandex_requext=request)
+        if request.food_dict:
+            request.intents_matching_dict[cls] = 100
+
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        response_text, total_calories = make_final_text(
+            nutrition_dict=request.food_dict)
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=response_text,
+                end_session=True,
+        )
+
+
 class Intent99999Default(DialogIntent):
     """
     WARNING! This class should always be the last in the file
@@ -859,6 +886,87 @@ def intents() -> list:
             continue
         intents_to_return.append(cl)
     return intents_to_return
+
+
+def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
+    response_text = ''  # type: str
+    total_calories = 0.0  # type: float
+    total_fat = 0.0
+    total_carbohydrates = 0.0
+    total_protein = 0.0
+    total_sugar = 0.0
+
+    for number, food_name in enumerate(nutrition_dict['foods']):
+        calories = nutrition_dict["foods"][number].get("nf_calories", 0) or 0
+        total_calories += calories
+        weight = nutrition_dict['foods'][number].get(
+                'serving_weight_grams', 0) or 0
+        protein = nutrition_dict["foods"][number].get("nf_protein", 0) or 0
+        total_protein += protein
+        fat = nutrition_dict["foods"][number].get("nf_total_fat", 0) or 0
+        total_fat += fat
+        carbohydrates = nutrition_dict["foods"][number].get(
+                "nf_total_carbohydrate", 0) or 0
+        total_carbohydrates += carbohydrates
+        sugar = nutrition_dict["foods"][number].get("nf_sugars", 0) or 0
+        total_sugar += sugar
+        number_string = ''
+        if len(nutrition_dict["foods"]) > 1:
+            number_string = f'{number + 1}. '
+        response_text += f'{number_string}{choose_case(amount=calories)} ' \
+                         f'в {weight} гр.\n' \
+            f'({round(protein, 1)} бел. ' \
+            f'{round(fat, 1)} жир. ' \
+            f'{round(carbohydrates, 1)} угл. ' \
+            f'{round(sugar, 1)} сах.)\n'
+
+    if len(nutrition_dict["foods"]) > 1:
+        response_text += f'Итого: ({round(total_protein, 1)} бел. ' \
+            f'{round(total_fat, 1)} жир. ' \
+            f'{round(total_carbohydrates, 1)} угл. ' \
+                         f'{round(total_sugar, 1)} сах.' \
+            f')\n_\n{choose_case(amount=total_calories)}\n_\n'
+
+    return response_text, total_calories
+
+
+def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
+    if round_to_int:
+        str_amount = str(int(amount))
+    else:
+        # Leaving only 2 digits after comma (12.03 for example)
+        str_amount = str(round(amount, 2))
+        if int(amount) == amount:
+            str_amount = str(int(amount))
+
+    last_digit_str = str_amount[-1]
+
+    if not round_to_int and '.' in str_amount:  # 12.04 калории
+        return f'{str_amount} калории'
+    # below amount is integer for sure
+    if last_digit_str == '1':  # 21 калория (20 одна калория in tts mode)
+        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
+            return f'{str_amount} калорий'
+        if tts_mode:
+            if len(str_amount) > 1:
+                first_part = str(int(str_amount[:-1]) * 10)
+            else:
+                first_part = ''
+            str_amount = f'{first_part} одна'
+        return f'{str_amount} калория'
+    elif last_digit_str in ('2', '3', '4'):
+        if len(str_amount) > 1 and str_amount[-2] == '1':  # 11 калорий
+            return f'{str_amount} калорий'
+        if tts_mode:
+            if len(str_amount) > 1:
+                first_part = str(int(str_amount[:-1]) * 10)
+            else:
+                first_part = ''
+            if last_digit_str == '2':
+                str_amount = f'{first_part} две'
+        return f'{str_amount} калории'  # 22 калории
+    else:
+        return f'{str_amount} калорий'  # 35 калорий
 
 
 if __name__ == '__main__':

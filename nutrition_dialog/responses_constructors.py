@@ -41,7 +41,7 @@ def construct_response_text_from_nutrition_dict(
             f'{round(carbohydrates, 1)} угл. ' \
             f'{round(sugar, 1)} сах.)\n'
 
-    if len(nutrition_dict["foods"]) > 1:
+    if len(nutrition_dict["foods"]) > 1:  # more than one food
         response_text += f'Итого: ({round(total_protein, 1)} бел. ' \
             f'{round(total_fat, 1)} жир. ' \
             f'{round(total_carbohydrates, 1)} ' \

@@ -74,13 +74,14 @@ def log_hash(request: YandexRequest) -> str:
                    16) % (10 ** 3)) + '_' + message_id
 
 
+
 if __name__ == '__main__':
     """
     To test locally
     """
     result = nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='сохранить',
+                    phrase='морковка',
 
             ),
             context={})
