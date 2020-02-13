@@ -356,6 +356,12 @@ class Intent00011EatPoop(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        if 'answer' in kwargs and kwargs['answer'] == 'Intent00022Agree':
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text='Извини, братишка, сегодня не принес покушать',
+                    should_clear_context=True)
+
         specifying_question = 'Вы имели в виду "Сладкий хлеб"?'
         context = DialogContext(
                 intent_originator_name=cls.__name__,
@@ -671,6 +677,14 @@ class Intent00022Agree(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        if request.context \
+                and cls.__name__ in request.context.matching_intents_names:
+            print(f'Getting answer from originating '
+                  f'intent {request.context.intent_originator_name}')
+            return globals()[request.context.intent_originator_name].respond(
+                    request=request,
+                    answer=cls.__name__)
+
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text='Что да?',

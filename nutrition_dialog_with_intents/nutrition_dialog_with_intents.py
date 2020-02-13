@@ -18,7 +18,7 @@ def nutrition_dialog_with_intents(event, context):
     print(f'ЮЗЕР_{log_hash(request)}: {request.original_utterance}')
     available_intents: typing.List[DialogIntent] = intents()
     request = choose_the_best_intent(available_intents, request)
-    print(f'Intent "{request.chosen_intent.name}" has been chosen')
+    print(f'{request.chosen_intent.__name__} has been chosen')
     response = request.chosen_intent.respond(request=request)
 
     if response.should_clear_context:
