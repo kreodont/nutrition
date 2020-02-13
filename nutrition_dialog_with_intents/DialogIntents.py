@@ -848,9 +848,19 @@ class Intent01000SearchForFood(DialogIntent):
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         response_text, total_calories = make_final_text(
             nutrition_dict=request.food_dict)
+        response_text += '\nСкажите "да" или "сохранить", если хотите ' \
+                         'записать этот прием пищи.'
+        if request.has_screen:
+            tts = choose_case(
+                amount=total_calories,
+                tts_mode=True,
+                round_to_int=True) + '. Сохранить?'
+        else:
+            tts = response_text
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=response_text,
+            tts=tts,
             end_session=True,
         )
 
