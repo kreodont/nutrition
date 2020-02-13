@@ -62,9 +62,9 @@ class Intent00001StartingMessage(DialogIntent):
     @classmethod
     def respond(cls, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Привет. Скажите что вы съели, '
-                     'а я скажу сколько там калорий',
+            yandex_request=request,
+            text='Привет. Скажите что вы съели, '
+                 'а я скажу сколько там калорий',
         )
 
 
@@ -86,8 +86,8 @@ class Intent00002Ping(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='pong',
+            yandex_request=request,
+            text='pong',
         )
 
 
@@ -112,8 +112,8 @@ class Intent00003TextTooLong(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Ой, текст слишком длинный. Давайте попробуем частями?',
+            yandex_request=request,
+            text='Ой, текст слишком длинный. Давайте попробуем частями?',
         )
 
 
@@ -155,8 +155,8 @@ class Intent00004Help(DialogIntent):
         можно сказать "Удалить соевое молоко с хлебом".  Прием пищи 
         "Соевое молоко с хлебом" будет удален'''
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=help_text,
+            yandex_request=request,
+            text=help_text,
         )
 
 
@@ -187,8 +187,8 @@ class Intent00005ThankYou(DialogIntent):
             'Приятно быть полезной',
             'Доброе слово и боту приятно']
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=random.choice(answers),
+            yandex_request=request,
+            text=random.choice(answers),
         )
 
 
@@ -213,10 +213,10 @@ class Intent00006Hello(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Здравствуйте. А теперь '
-                     'расскажите что вы съели, а я '
-                     'скажу сколько там было калорий и питательных веществ.',
+            yandex_request=request,
+            text='Здравствуйте. А теперь '
+                 'расскажите что вы съели, а я '
+                 'скажу сколько там было калорий и питательных веществ.',
         )
 
 
@@ -245,15 +245,15 @@ class Intent00007HumanMeat(DialogIntent):
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         if 'answer' in kwargs and kwargs['answer'] == 'Intent00022Agree':
             return construct_yandex_response_from_yandex_request(
-                    yandex_request=request,
-                    text='Что ж, доктор, приятно познакомиться',
-                    should_clear_context=True)
+                yandex_request=request,
+                text='Что ж, доктор, приятно познакомиться',
+                should_clear_context=True)
 
         if 'answer' in kwargs and kwargs['answer'] == 'Intent00023Disagree':
             return construct_yandex_response_from_yandex_request(
-                    yandex_request=request,
-                    text='Простите, обозналась',
-                    should_clear_context=True)
+                yandex_request=request,
+                text='Простите, обозналась',
+                should_clear_context=True)
         specifying_question = 'Доктор Лектер, это вы?'
         context = DialogContext(
             intent_originator_name=cls.__name__,
@@ -261,8 +261,8 @@ class Intent00007HumanMeat(DialogIntent):
             specifying_question=specifying_question,
             user_initial_phrase=request.original_utterance)
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=specifying_question,
+            yandex_request=request,
+            text=specifying_question,
             new_context_to_write=context,
         )
 
@@ -296,9 +296,9 @@ class Intent00008Goodbye(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='До свидания',
-                end_session=True,
+            yandex_request=request,
+            text='До свидания',
+            end_session=True,
         )
 
 
@@ -323,8 +323,8 @@ class Intent00009EatCat(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Нееш, падумой',
+            yandex_request=request,
+            text='Нееш, падумой',
         )
 
 
@@ -355,8 +355,8 @@ class Intent00010LaunchAgain(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Какую еду записать?',
+            yandex_request=request,
+            text='Какую еду записать?',
         )
 
 
@@ -383,21 +383,21 @@ class Intent00011EatPoop(DialogIntent):
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         if 'answer' in kwargs and kwargs['answer'] == 'Intent00022Agree':
             return construct_yandex_response_from_yandex_request(
-                    yandex_request=request,
-                    text='Извини, братишка, сегодня не принес покушать',
-                    should_clear_context=True)
+                yandex_request=request,
+                text='Извини, братишка, сегодня не принес покушать',
+                should_clear_context=True)
 
         specifying_question = 'Вы имели в виду "Сладкий хлеб"?'
         context = DialogContext(
-                intent_originator_name=cls.__name__,
-                matching_intents_names=('Intent00022Agree',),
-                specifying_question=specifying_question,
-                user_initial_phrase=request.original_utterance)
+            intent_originator_name=cls.__name__,
+            matching_intents_names=('Intent00022Agree',),
+            specifying_question=specifying_question,
+            user_initial_phrase=request.original_utterance)
 
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=specifying_question,
-                new_context_to_write=context,
+            yandex_request=request,
+            text=specifying_question,
+            new_context_to_write=context,
         )
 
 
@@ -423,9 +423,9 @@ class Intent00012ThinkTooMuch(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Если вы нашли ошибку, напишите моему разработчику, '
-                     'и он объяснит мне, как правильно',
+            yandex_request=request,
+            text='Если вы нашли ошибку, напишите моему разработчику, '
+                 'и он объяснит мне, как правильно',
         )
 
 
@@ -448,8 +448,8 @@ class Intent00013Dick(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='С солью или без соли?',
+            yandex_request=request,
+            text='С солью или без соли?',
         )
 
 
@@ -473,8 +473,8 @@ class Intent00014NothingToAdd(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Хорошо, дайте знать, когда что-то появится',
+            yandex_request=request,
+            text='Хорошо, дайте знать, когда что-то появится',
         )
 
 
@@ -497,9 +497,9 @@ class Intent00015WhatIsYourName(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Я умный счетчик калорий, а имя мне пока не придумали. '
-                     'Может, Вы придумаете?',
+            yandex_request=request,
+            text='Я умный счетчик калорий, а имя мне пока не придумали. '
+                 'Может, Вы придумаете?',
         )
 
 
@@ -523,8 +523,8 @@ class Intent00016CalledAgain(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Да, я слушаю',
+            yandex_request=request,
+            text='Да, я слушаю',
         )
 
 
@@ -549,10 +549,10 @@ class Intent00017WhereIsSaved(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Приемы пищи сохраняются в моей базе данных. Ваши приемы '
-                     'пищи будут доступны только Вам. Я могу быть Вашим личным '
-                     'дневником калорий',
+            yandex_request=request,
+            text='Приемы пищи сохраняются в моей базе данных. Ваши приемы '
+                 'пищи будут доступны только Вам. Я могу быть Вашим личным '
+                 'дневником калорий',
         )
 
 
@@ -577,10 +577,10 @@ class Intent00018Angry(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Все мы можем ошибаться. Напишите моему разработчику, '
-                     'а он '
-                     'меня накажет и научит больше не ошибаться.',
+            yandex_request=request,
+            text='Все мы можем ошибаться. Напишите моему разработчику, '
+                 'а он '
+                 'меня накажет и научит больше не ошибаться.',
         )
 
 
@@ -614,9 +614,9 @@ class Intent00019NotImplemented(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Этого я пока не умею, но планирую скоро научиться. '
-                     'Следите за обновлениями',
+            yandex_request=request,
+            text='Этого я пока не умею, но планирую скоро научиться. '
+                 'Следите за обновлениями',
         )
 
 
@@ -641,9 +641,9 @@ class Intent00020UseAsAlice(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису '
-                     'и запустить другой навык, скажите Выход'
+            yandex_request=request,
+            text='Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису '
+                 'и запустить другой навык, скажите Выход'
         )
 
 
@@ -666,9 +666,9 @@ class Intent00021ShutUp(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Молчу',
-                end_session=True,
+            yandex_request=request,
+            text='Молчу',
+            end_session=True,
         )
 
 
@@ -686,10 +686,10 @@ class Intent00022Agree(DialogIntent):
         r = request
         if not request.context:
             r = r.set_context(
-                    fetch_context_from_dynamo_database(
-                            session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                fetch_context_from_dynamo_database(
+                    session_id=r.session_id,
+                    database_client=get_dynamo_client(
+                        lambda_mode=r.aws_lambda_mode)))
 
         # tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
@@ -707,12 +707,12 @@ class Intent00022Agree(DialogIntent):
             print(f'Getting answer from originating '
                   f'intent {request.context.intent_originator_name}')
             return globals()[request.context.intent_originator_name].respond(
-                    request=request,
-                    answer=cls.__name__)
+                request=request,
+                answer=cls.__name__)
 
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Что да?',
+            yandex_request=request,
+            text='Что да?',
         )
 
 
@@ -730,10 +730,10 @@ class Intent00023Disagree(DialogIntent):
         r = request
         if not request.context:
             r = r.set_context(
-                    fetch_context_from_dynamo_database(
-                            session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                fetch_context_from_dynamo_database(
+                    session_id=r.session_id,
+                    database_client=get_dynamo_client(
+                        lambda_mode=r.aws_lambda_mode)))
 
         # tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
@@ -751,13 +751,13 @@ class Intent00023Disagree(DialogIntent):
             print(f'Getting answer from originating '
                   f'intent {request.context.intent_originator_name}')
             return globals()[request.context.intent_originator_name].respond(
-                    request=request,
-                    answer=cls.__name__)
+                request=request,
+                answer=cls.__name__)
 
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Что нет?',
-                should_clear_context=cls.should_clear_context
+            yandex_request=request,
+            text='Что нет?',
+            should_clear_context=cls.should_clear_context
         )
 
 
@@ -774,10 +774,10 @@ class Intent00024SaveFood(DialogIntent):
         r = request
         if not request.context:
             r = r.set_context(
-                    fetch_context_from_dynamo_database(
-                            session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                fetch_context_from_dynamo_database(
+                    session_id=r.session_id,
+                    database_client=get_dynamo_client(
+                        lambda_mode=r.aws_lambda_mode)))
 
         tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
@@ -805,13 +805,13 @@ class Intent00024SaveFood(DialogIntent):
             print(f'Getting answer from originating '
                   f'intent {request.context.intent_originator_name}')
             return globals()[request.context.intent_originator_name].respond(
-                    request=request,
-                    answer=cls.__name__)
+                request=request,
+                answer=cls.__name__)
 
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text='Пока нечего сохранять. Сначала скажите что вы съели.',
-                should_clear_context=cls.should_clear_context
+            yandex_request=request,
+            text='Пока нечего сохранять. Сначала скажите что вы съели.',
+            should_clear_context=cls.should_clear_context
         )
 
 
@@ -849,9 +849,9 @@ class Intent01000SearchForFood(DialogIntent):
         response_text, total_calories = make_final_text(
             nutrition_dict=request.food_dict)
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=response_text,
-                end_session=True,
+            yandex_request=request,
+            text=response_text,
+            end_session=True,
         )
 
 
@@ -904,12 +904,12 @@ class Intent99999Default(DialogIntent):
             tts = full_generated_text
 
         return construct_yandex_response_from_yandex_request(
-                yandex_request=request,
-                text=full_generated_text,
-                tts=tts,
-                buttons=[],
-                end_session=False,
-                should_clear_context=False
+            yandex_request=request,
+            text=full_generated_text,
+            tts=tts,
+            buttons=[],
+            end_session=False,
+            should_clear_context=False
         )
 
 
@@ -938,13 +938,13 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
         calories = nutrition_dict["foods"][number].get("nf_calories", 0) or 0
         total_calories += calories
         weight = nutrition_dict['foods'][number].get(
-                'serving_weight_grams', 0) or 0
+            'serving_weight_grams', 0) or 0
         protein = nutrition_dict["foods"][number].get("nf_protein", 0) or 0
         total_protein += protein
         fat = nutrition_dict["foods"][number].get("nf_total_fat", 0) or 0
         total_fat += fat
         carbohydrates = nutrition_dict["foods"][number].get(
-                "nf_total_carbohydrate", 0) or 0
+            "nf_total_carbohydrate", 0) or 0
         total_carbohydrates += carbohydrates
         sugar = nutrition_dict["foods"][number].get("nf_sugars", 0) or 0
         total_sugar += sugar
@@ -953,17 +953,17 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
             number_string = f'{number + 1}. '
         response_text += f'{number_string}{choose_case(amount=calories)} ' \
                          f'в {weight} гр.\n' \
-            f'({round(protein, 1)} бел. ' \
-            f'{round(fat, 1)} жир. ' \
-            f'{round(carbohydrates, 1)} угл. ' \
-            f'{round(sugar, 1)} сах.)\n'
+                         f'({round(protein, 1)} бел. ' \
+                         f'{round(fat, 1)} жир. ' \
+                         f'{round(carbohydrates, 1)} угл. ' \
+                         f'{round(sugar, 1)} сах.)\n'
 
     if len(nutrition_dict["foods"]) > 1:
         response_text += f'Итого: ({round(total_protein, 1)} бел. ' \
-            f'{round(total_fat, 1)} жир. ' \
-            f'{round(total_carbohydrates, 1)} угл. ' \
+                         f'{round(total_fat, 1)} жир. ' \
+                         f'{round(total_carbohydrates, 1)} угл. ' \
                          f'{round(total_sugar, 1)} сах.' \
-            f')\n_\n{choose_case(amount=total_calories)}\n_\n'
+                         f')\n_\n{choose_case(amount=total_calories)}\n_\n'
 
     return response_text, total_calories
 
@@ -1016,7 +1016,7 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
             'key':  os.getenv('YandexTranslate'),
             'text': russian_phrase,
             'lang': 'ru-en'
-            },
+        },
         timeout=0.5,
     )
 
@@ -1033,7 +1033,7 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
         print(f'Cannot parse response from yandex translate: {json_dict}')
         return yandex_request
 
-    translated_text = json_dict['text'][0].lower().\
+    translated_text = json_dict['text'][0].lower(). \
         replace('bisque', 'soup')
     translated_text = re.sub(r'without (\w+)', '', translated_text)
     print(f'Translated: "{translated_text}"')
@@ -1045,15 +1045,19 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
 def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
     login, password, keys_dict = choose_key(yandex_request.api_keys)
     link = yandex_request.api_keys['link']
+    if not yandex_request.aws_lambda_mode:
+        timeout = 10
+    else:
+        timeout = 0.5
     try:
         response = requests.post(link,
                                  data=json.dumps({
                                      'query':
                                          yandex_request.translated_phrase}),
                                  headers={'content-type': 'application/json',
-                                          'x-app-id': login,
-                                          'x-app-key': password},
-                                 timeout=0.5,
+                                          'x-app-id':     login,
+                                          'x-app-key':    password},
+                                 timeout=timeout,
                                  )
     except Exception as e:
         print(f'Exception when querying API: {e}')

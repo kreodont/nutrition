@@ -3,6 +3,8 @@ def mock_incoming_event(
         phrase: str,
         has_screen: bool = True,
         is_new_session: bool = False,
+        use_food_cache: bool = True,
+        write_to_food_cache: bool = True,
 ) -> dict:
     if has_screen:
         interfaces = {"screen": {}}
@@ -38,5 +40,7 @@ def mock_incoming_event(
             "user_id": "E401738E621D9AAC04AB162E44F39B3"
                        "ABDA23A5CB2FF19E394C1915ED45CF467"
         },
-        "version": "1.0"
+        "version": "1.0",
+        'use_food_cache' : use_food_cache,
+        'write_to_food_cache': write_to_food_cache,
     }

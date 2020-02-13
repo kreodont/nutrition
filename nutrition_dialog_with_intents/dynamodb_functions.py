@@ -205,10 +205,14 @@ def save_context(
 @timeit
 def write_to_cache_table(
         *,
-        initial_phrase: str,
-        nutrition_dict: dict,
-        database_client,
-        keys_dict: dict) -> None:
+        yandex_response: YandexResponse) -> None:
+    database_client = get_dynamo_client(
+        lambda_mode=yandex_response.initial_request.aws_lambda_mode)
+    initial_phrase = yandex_response.initial_request.original_utterance
+    nutrition_dict = yandex_response.initial_request.food_dict
+    keys_dict = yandex_response.initial_request.api_keys
+    print(f'Saving into cache table nutrients for the following: '
+          f'{initial_phrase}')
     database_client.put_item(TableName='nutrition_cache',
                              Item={
                                  'initial_phrase': {
@@ -260,6 +264,7 @@ def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
     if food_dict and 'foods' in food_dict:
         print(f'"{yandex_requext.command}" found in cache!')
         yandex_requext = yandex_requext.set_food_dict(food_dict=food_dict)
+        yandex_requext = yandex_requext.set_food_already_in_cache()
     else:
         yandex_requext = yandex_requext.set_api_keys(keys_dict)
 

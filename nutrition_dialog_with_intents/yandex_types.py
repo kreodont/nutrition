@@ -64,6 +64,9 @@ class YandexRequest:
     # Can be
     # overrided depending on context
     error: str = ''  # if any errors parsing Yandex dictionary
+    use_food_cache: bool = True  # for testing purposes
+    write_to_food_cache: bool = True  # for testing
+    food_already_in_cache: bool = False  # Not to write it again
 
     @staticmethod
     def empty_request(*, aws_lambda_mode: bool, error: str):
@@ -109,6 +112,9 @@ class YandexRequest:
 
     def set_api_keys(self, api_keys: dict):
         return replace(self, api_keys=api_keys)
+
+    def set_food_already_in_cache(self):
+        return replace(self, food_already_in_cache=True)
 
     def __repr__(self):
         return '\n'.join(

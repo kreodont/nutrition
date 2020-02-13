@@ -5,7 +5,8 @@ from yandex_types import YandexRequest, \
 import mockers
 import typing
 import hashlib
-from dynamodb_functions import clear_context, get_dynamo_client, save_context
+from dynamodb_functions import clear_context, get_dynamo_client, \
+    save_context, write_to_cache_table
 import datetime
 from dataclasses import replace
 
@@ -33,6 +34,11 @@ def nutrition_dialog_with_intents(event, context):
             response=response,
             event_time=datetime.datetime.now(),
         )
+
+    if response.initial_request.food_dict and \
+            response.initial_request.write_to_food_cache and not \
+            response.initial_request.food_already_in_cache:
+        write_to_cache_table(yandex_response=response)
 
     print(f'НАВЫК_{log_hash(response.initial_request)}:'
           f' {response.response_text}')
@@ -81,7 +87,7 @@ if __name__ == '__main__':
     """
     result = nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='нет',
+                    phrase='курица',
 
             ),
             context={})
