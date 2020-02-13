@@ -1,3 +1,7 @@
+import json
+import os
+import re
+import datetime
 from DialogContext import DialogContext
 from yandex_types import YandexRequest, \
     YandexResponse, construct_yandex_response_from_yandex_request
@@ -7,6 +11,7 @@ import random
 from dynamodb_functions import fetch_context_from_dynamo_database, \
     get_dynamo_client, get_from_cache_table
 import typing
+from botocore.vendored import requests
 
 
 class DialogIntent:
@@ -220,6 +225,7 @@ class Intent00007HumanMeat(DialogIntent):
     time_to_respond = 10  # Need to clear context
     name = 'Ответ на человечину'
     should_clear_context = True
+    should_save_context = True
     description = 'Если пользователь сказал что он поел ' \
                   'человечины, надо спросить его не доктор ли он Лектер'
 
@@ -237,9 +243,27 @@ class Intent00007HumanMeat(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        if 'answer' in kwargs and kwargs['answer'] == 'Intent00022Agree':
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text='Что ж, доктор, приятно познакомиться',
+                    should_clear_context=True)
+
+        if 'answer' in kwargs and kwargs['answer'] == 'Intent00023Disagree':
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text='Простите, обозналась',
+                    should_clear_context=True)
+        specifying_question = 'Доктор Лектер, это вы?'
+        context = DialogContext(
+            intent_originator_name=cls.__name__,
+            matching_intents_names=('Intent00022Agree', 'Intent00023Disagree'),
+            specifying_question=specifying_question,
+            user_initial_phrase=request.original_utterance)
         return construct_yandex_response_from_yandex_request(
                 yandex_request=request,
-                text='Доктор Лектер, это вы?',
+                text=specifying_question,
+            new_context_to_write=context,
         )
 
 
@@ -800,9 +824,23 @@ class Intent01000SearchForFood(DialogIntent):
 
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        # trying to look in cache first (and also load API keys in the same
+        # request)
         request = get_from_cache_table(yandex_requext=request)
         if request.food_dict:
             request.intents_matching_dict[cls] = 100
+            return request
+
+        request = translate_into_english(yandex_request=request)
+        if not request.translated_phrase:
+            request.intents_matching_dict[cls] = 0
+            return request
+
+        request = query_api(yandex_request=request)
+        if request.food_dict:
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
 
         return request
 
@@ -967,6 +1005,95 @@ def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
         return f'{str_amount} калории'  # 22 калории
     else:
         return f'{str_amount} калорий'  # 35 калорий
+
+
+def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
+    russian_phrase = yandex_request.command
+    print(f'Translating "{russian_phrase}" into English')
+    response = requests.get(
+        'https://translate.yandex.net/api/v1.5/tr.json/translate',
+        params={
+            'key':  os.getenv('YandexTranslate'),
+            'text': russian_phrase,
+            'lang': 'ru-en'
+            },
+        timeout=0.5,
+    )
+
+    if not response:
+        return yandex_request
+
+    try:
+        json_dict = json.loads(response.text)
+    except Exception as e:
+        print(f'Cannot parse response from yandex translate: {e}')
+        return yandex_request
+
+    if 'text' not in json_dict or len(json_dict['text']) < 1:
+        print(f'Cannot parse response from yandex translate: {json_dict}')
+        return yandex_request
+
+    translated_text = json_dict['text'][0].lower().\
+        replace('bisque', 'soup')
+    translated_text = re.sub(r'without (\w+)', '', translated_text)
+    print(f'Translated: "{translated_text}"')
+
+    yandex_request = yandex_request.set_translated_phrase(translated_text)
+    return yandex_request
+
+
+def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
+    login, password, keys_dict = choose_key(yandex_request.api_keys)
+    link = yandex_request.api_keys['link']
+    try:
+        response = requests.post(link,
+                                 data=json.dumps({
+                                     'query':
+                                         yandex_request.translated_phrase}),
+                                 headers={'content-type': 'application/json',
+                                          'x-app-id': login,
+                                          'x-app-key': password},
+                                 timeout=0.5,
+                                 )
+    except Exception as e:
+        print(f'Exception when querying API: {e}')
+        return yandex_request
+
+    if response.status_code != 200:
+        print(f'Failed to get nutrients for '
+              f'"{yandex_request.translated_phrase}"')
+        return yandex_request
+
+    try:
+        nutrition_dict = json.loads(response.text)
+    except Exception as e:
+        print(f'Cannot parse API respond: "{response.text}". Exception: {e}')
+        return yandex_request
+
+    if 'foods' not in nutrition_dict or not nutrition_dict['foods']:
+        print(f'Tag foods not found or empty: {nutrition_dict}')
+        return yandex_request
+
+    yandex_request = yandex_request.set_food_dict(food_dict=nutrition_dict)
+
+    return yandex_request
+
+
+def choose_key(keys_dict):
+    min_usage_value = 90000
+    min_usage_key = None
+    limit_date = str(datetime.datetime.now() - datetime.timedelta(hours=24))
+    for k in keys_dict['keys']:
+        # deleting keys usages if they are older than 24 hours
+        k['dates'] = [d for d in k['dates'] if d > limit_date]
+        if min_usage_key is None:
+            min_usage_key = k
+        if min_usage_value > len(k['dates']):
+            min_usage_key = k
+            min_usage_value = len(k['dates'])
+
+    min_usage_key['dates'].append(str(datetime.datetime.now()))
+    return min_usage_key['name'], min_usage_key['pass'], keys_dict
 
 
 if __name__ == '__main__':

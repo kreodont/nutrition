@@ -1,3 +1,7 @@
+import json
+import os
+import re
+
 from decorators import timeit
 from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
 import requests
@@ -36,8 +40,14 @@ def translate_text_from_russian_to_english_with_yandex(
                     'text': russian_text,
                     'lang': 'ru-en'
                     })
-    print(response.text)
-    return response.text
+    json_dict = json.loads(response.text)
+    full_phrase_translated = json_dict['text'][0]
+
+    full_phrase_translated = full_phrase_translated.lower().replace('bisque',
+                                                                    'soup')
+    full_phrase_translated = re.sub(r'without (\w+)', '',
+                                    full_phrase_translated)
+    return full_phrase_translated
 
 
 def string_is_only_latin_and_numbers(s):
@@ -62,9 +72,7 @@ def translate_request(
             yandex_request,
             original_utterance=translate_text_from_russian_to_english_with_yandex(
                     russian_text=yandex_request.command,
-                    api_key='trnsl.1.1.20200203T071646Z.267'
-                            '2c0c46dc88836.523378061a1c24ba'
-                            '22dc3442ebb5faed075e7bae',
+                    api_key=os.getenv('YandexTranslate'),
             ),
     )  # type: YandexRequest
 

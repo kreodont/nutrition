@@ -55,7 +55,8 @@ def choose_the_best_intent(
 
     for intent in intents_sorted_by_time_to_evaluate:
         request = intent.evaluate(request=request)
-        if request.intents_matching_dict[intent] == 100:
+        if intent in request.intents_matching_dict and \
+                request.intents_matching_dict[intent] == 100:
             request = replace(request, chosen_intent=intent)
             break
 
@@ -74,14 +75,13 @@ def log_hash(request: YandexRequest) -> str:
                    16) % (10 ** 3)) + '_' + message_id
 
 
-
 if __name__ == '__main__':
     """
     To test locally
     """
     result = nutrition_dialog_with_intents(
             event=mockers.mock_incoming_event(
-                    phrase='морковка',
+                    phrase='нет',
 
             ),
             context={})

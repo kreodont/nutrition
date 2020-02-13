@@ -1,3 +1,4 @@
+import os
 from functools import partial
 import boto3
 from botocore.vendored import requests
@@ -260,21 +261,32 @@ def get_boto3_clients(context):
 
 @timeit
 def translate(*, russian_phrase, translation_client, debug):
+    # try:
+    #     full_phrase_translated = translation_client.translate_text(Text=russian_phrase,
+    #                                                                SourceLanguageCode='ru',
+    #                                                                TargetLanguageCode='en'
+    #                                                                ).get('TranslatedText')  # type:str
+    # except requests.exceptions.ReadTimeout:
+    #     return 'timeout'
     try:
-        full_phrase_translated = translation_client.translate_text(Text=russian_phrase,
-                                                                   SourceLanguageCode='ru',
-                                                                   TargetLanguageCode='en'
-                                                                   ).get('TranslatedText')  # type:str
-    except requests.exceptions.ReadTimeout:
-        return 'timeout'
+        response = requests.get(
+            'https://translate.yandex.net/api/v1.5/tr.json/translate',
+            params={'key': os.getenv('YandexTranslate'),
+                    'text': russian_phrase,
+                    'lang': 'ru-en'
+                    })
+        json_dict = json.loads(response.text)
+        full_phrase_translated = json_dict['text'][0]
 
-    full_phrase_translated = full_phrase_translated.lower().replace('bisque', 'soup')
-    full_phrase_translated = re.sub(r'without (\w+)', '', full_phrase_translated)
+        full_phrase_translated = full_phrase_translated.lower().replace('bisque', 'soup')
+        full_phrase_translated = re.sub(r'without (\w+)', '', full_phrase_translated)
 
-    if debug:
-        print(f'Translated: {full_phrase_translated}')
+        if debug:
+            print(f'Translated: {full_phrase_translated}')
 
-    return full_phrase_translated
+        return full_phrase_translated
+    except Exception as e:
+        return ''
 
 
 def russian_replacements(initial_phrase: str, tokens) -> str:
