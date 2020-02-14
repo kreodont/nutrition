@@ -1,3 +1,5 @@
+
+
 def mock_incoming_event(
         *,
         phrase: str,
@@ -5,6 +7,7 @@ def mock_incoming_event(
         is_new_session: bool = False,
         use_food_cache: bool = True,
         write_to_food_cache: bool = True,
+        timezone: str = 'UTC'
 ) -> dict:
     if has_screen:
         interfaces = {"screen": {}}
@@ -21,7 +24,7 @@ def mock_incoming_event(
                          "4.4.2)",
             "interfaces": interfaces,
             "locale": "ru-RU",
-            "timezone": "UTC"
+            "timezone": timezone
         },
         "request": {
             "command": phrase,
@@ -41,6 +44,6 @@ def mock_incoming_event(
                        "ABDA23A5CB2FF19E394C1915ED45CF467"
         },
         "version": "1.0",
-        'use_food_cache' : use_food_cache,
+        'use_food_cache': use_food_cache,
         'write_to_food_cache': write_to_food_cache,
     }
