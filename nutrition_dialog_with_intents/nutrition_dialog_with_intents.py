@@ -13,8 +13,8 @@ from dataclasses import replace
 
 def nutrition_dialog_with_intents(event, context):
     request: YandexRequest = transform_event_dict_to_yandex_request_object(
-            event_dict=event,
-            aws_lambda_mode=bool(context),
+        event_dict=event,
+        aws_lambda_mode=bool(context),
     )
     print(f'ЮЗЕР_{log_hash(request)}: {request.original_utterance}')
     available_intents: typing.List[DialogIntent] = intents()
@@ -43,7 +43,7 @@ def nutrition_dialog_with_intents(event, context):
     print(f'НАВЫК_{log_hash(response.initial_request)}:'
           f' {response.response_text}')
     return transform_yandex_response_to_output_result_dict(
-            yandex_response=response)
+        yandex_response=response)
 
 
 def choose_the_best_intent(
@@ -55,8 +55,8 @@ def choose_the_best_intent(
                         'Please add at least one')
 
     intents_sorted_by_time_to_evaluate = sorted(
-            intents_list,
-            key=lambda x: x.time_to_evaluate,
+        intents_list,
+        key=lambda x: x.time_to_evaluate,
     )  # it is always better to evaluate the quickest intents first
 
     for intent in intents_sorted_by_time_to_evaluate:
@@ -86,10 +86,11 @@ if __name__ == '__main__':
     To test locally
     """
     result = nutrition_dialog_with_intents(
-            event=mockers.mock_incoming_event(
-                    phrase='что я ел вчера', timezone='UTC+3'
+        event=mockers.mock_incoming_event(
+            phrase='печенье забористое',
+            timezone='UTC+3'
 
-            ),
-            context={})
+        ),
+        context={})
 
     print(result)

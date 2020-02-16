@@ -5,6 +5,7 @@ from botocore.vendored.requests.exceptions import ReadTimeout, ConnectTimeout
 import botocore.client
 import boto3
 import typing
+import dateutil
 
 
 # This cache is useful because AWS lambda can keep it's state, so no
@@ -225,15 +226,15 @@ def get_from_cache_table(
     return keys_dict, food_dict
 
 
-def save_food_to_user_statistics(*, database_client: boto3.c):
-    update_user_table(
-            database_client=database_client,
-            event_time=date.replace(
-                    tzinfo=dateutil.tz.gettz(request.timezone)
-            ).astimezone(dateutil.tz.gettz('UTC')),
-            foods_dict=context['foods'],
-            user_id=request.user_guid,
-            utterance=context['utterance'])
+# def save_food_to_user_statistics(*, database_client: boto3.client()):
+#     update_user_table(
+#             database_client=database_client,
+#             event_time=datetime.date.replace(
+#                     tzinfo=dateutil.tz.gettz(request.timezone)
+#             ).astimezone(dateutil.tz.gettz('UTC')),
+#             foods_dict=context['foods'],
+#             user_id=request.user_guid,
+#             utterance=context['utterance'])
 
 @timeit
 def fetch_context_from_dynamo_database(

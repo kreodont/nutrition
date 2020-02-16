@@ -174,14 +174,16 @@ def write_to_cache_table(
                                  'response': {
                                      'S': json.dumps(nutrition_dict),
                                  }})
-    database_client.put_item(TableName='nutrition_cache',
-                             Item={
-                                 'initial_phrase': {
-                                     'S': '_key',
-                                 },
-                                 'response': {
-                                     'S': json.dumps(keys_dict),
-                                 }})
+    if keys_dict:  # Only if we have updated key dict. NOT to overwrite with
+        # empty dict
+        database_client.put_item(TableName='nutrition_cache',
+                                 Item={
+                                     'initial_phrase': {
+                                         'S': '_key',
+                                     },
+                                     'response': {
+                                         'S': json.dumps(keys_dict),
+                                     }})
 
 
 @timeit

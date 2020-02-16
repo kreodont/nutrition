@@ -2,7 +2,7 @@ import json
 import os
 import re
 import datetime
-
+from decorators import timeit
 import dateutil
 
 from DialogContext import DialogContext
@@ -1207,6 +1207,7 @@ def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
         return f'{str_amount} калорий'  # 35 калорий
 
 
+@timeit
 def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
     russian_phrase = yandex_request.command
     print(f'Translating "{russian_phrase}" into English')
@@ -1242,10 +1243,12 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
     return yandex_request
 
 
+@timeit
 def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
     login, password, keys_dict = choose_key(yandex_request.api_keys)
     link = yandex_request.api_keys['link']
-    if not yandex_request.aws_lambda_mode:
+    if not yandex_request.aws_lambda_mode:  # while testing locally it
+        # doesn't matter how long the script executed
         timeout = 10
     else:
         timeout = 0.5
@@ -1259,6 +1262,7 @@ def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
                                           'x-app-key':    password},
                                  timeout=timeout,
                                  )
+        yandex_request = yandex_request.set_api_keys(api_keys=keys_dict)
     except Exception as e:
         print(f'Exception when querying API: {e}')
         return yandex_request
@@ -1297,6 +1301,8 @@ def choose_key(keys_dict):
             min_usage_value = len(k['dates'])
 
     min_usage_key['dates'].append(str(datetime.datetime.now()))
+    print(f"Key {min_usage_key['name']} with {min_usage_value} usages for last "
+          f"24 hours")
     return min_usage_key['name'], min_usage_key['pass'], keys_dict
 
 
