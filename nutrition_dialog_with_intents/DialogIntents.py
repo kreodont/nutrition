@@ -15,7 +15,7 @@ from dynamodb_functions import fetch_context_from_dynamo_database, \
     get_dynamo_client, get_from_cache_table, update_user_table, \
     find_all_food_names_for_day
 import typing
-from botocore.vendored import requests
+import requests
 from dates_transformations import transform_yandex_datetime_value_to_datetime
 
 
