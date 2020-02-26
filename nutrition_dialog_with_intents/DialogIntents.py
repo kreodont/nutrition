@@ -944,8 +944,7 @@ class Intent00026WhatIAte(DialogIntent):
             ).date()
 
         all_food_for_date = find_all_food_names_for_day(
-                database_client=get_dynamo_client(
-                        lambda_mode=request.aws_lambda_mode),
+                lambda_mode=request.aws_lambda_mode,
                 date=target_date,
                 user_id=request.user_guid,
         )
@@ -1043,7 +1042,7 @@ class Intent00027DeleteSavedFood(DialogIntent):
         elif (len(tokens_without_delete_words) == 1
               and tokens_without_delete_words[0].lower() in ('все', 'всё')):
             # deleting all food from database
-            delete_result = delete_food(
+            delete_food(
                     date=target_date,
                     list_of_food_to_delete_dicts=[],
                     list_of_all_food_dicts=[],
@@ -1058,12 +1057,45 @@ class Intent00027DeleteSavedFood(DialogIntent):
         # Now rejoin all the tokens left back into the phrase
         food_to_delete = ' '.join(tokens_without_delete_words)
         all_food_for_date = find_all_food_names_for_day(
-                database_client=get_boto3_client(
-                        aws_lambda_mode=request.aws_lambda_mode,
-                        service_name='dynamodb')[0],
+                lambda_mode=request.aws_lambda_mode,
                 date=target_date,
                 user_id=request.user_guid,
         )
+        today_names_list = [food['utterance'] for food in all_food_for_date]
+        if len(all_food_for_date) == 0:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Не могу ничего найти за {target_date}. '
+                         f'Чтобы еда сохранялась в мою базу, не забывайте '
+                         f'говорить "Сохранить", после того, как я посчитаю '
+                         f'калории.',
+                    tts='Ничего не найдено',
+                    should_clear_context=True
+            )
+
+        # Check if the food exists
+        if food_to_delete not in today_names_list:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Еды {food_to_delete} за {target_date} не найдено. '
+                         f'Есть следующее: {today_names_list}',
+                    tts='Такой еды не найдено',
+                    should_clear_context=True,
+            )
+        else:
+            delete_food(
+                    date=target_date,
+                    list_of_food_to_delete_dicts=[],
+                    list_of_all_food_dicts=[],
+                    user_id=request.user_guid,
+                    lambda_mode=request.aws_lambda_mode,
+            )
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Еды {food_to_delete} за {target_date} удалена.',
+                    tts='Удалено',
+                    should_clear_context=True,
+            )
 
 
 class Intent01000SearchForFood(DialogIntent):
