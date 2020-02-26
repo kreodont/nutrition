@@ -13,7 +13,7 @@ import inspect
 import random
 from dynamodb_functions import fetch_context_from_dynamo_database, \
     get_dynamo_client, get_from_cache_table, update_user_table, \
-    find_all_food_names_for_day, delete_food
+    find_all_food_names_for_day, delete_food, write_keys_to_cache_table
 import typing
 import requests
 from dates_transformations import transform_yandex_datetime_value_to_datetime
@@ -1217,6 +1217,10 @@ class Intent01000SearchForFood(DialogIntent):
             return request
 
         request = query_api(yandex_request=request)
+        write_keys_to_cache_table(
+                keys_dict=request.api_keys,
+                lambda_mode=request.aws_lambda_mode)
+
         if request.food_dict:
             request.intents_matching_dict[cls] = 100
         else:
@@ -1474,6 +1478,7 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
 @timeit
 def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
     login, password, keys_dict = choose_key(yandex_request.api_keys)
+    yandex_request = yandex_request.set_api_keys(api_keys=keys_dict)
     link = yandex_request.api_keys['link']
     if not yandex_request.aws_lambda_mode:  # while testing locally it
         # doesn't matter how long the script executed
@@ -1490,7 +1495,6 @@ def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
                                           'x-app-key': password},
                                  timeout=timeout,
                                  )
-        yandex_request = yandex_request.set_api_keys(api_keys=keys_dict)
     except Exception as e:
         print(f'Exception when querying API: {e}')
         return yandex_request
@@ -1517,21 +1521,26 @@ def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
 
 def choose_key(keys_dict):
     min_usage_value = 90000
-    min_usage_key = None
+    key_with_minimal_usages = None
     limit_date = str(datetime.datetime.now() - datetime.timedelta(hours=24))
     for k in keys_dict['keys']:
         # deleting keys usages if they are older than 24 hours
+        # k = {'name': 'xxxx', 'pass': 'xxxx', 'dates': [list of strings]}
         k['dates'] = [d for d in k['dates'] if d > limit_date]
-        if min_usage_key is None:
-            min_usage_key = k
+        if key_with_minimal_usages is None:
+            key_with_minimal_usages = k
         if min_usage_value > len(k['dates']):
-            min_usage_key = k
+            key_with_minimal_usages = k
             min_usage_value = len(k['dates'])
 
-    min_usage_key['dates'].append(str(datetime.datetime.now()))
-    print(f"Key {min_usage_key['name']} with {min_usage_value} usages for last "
-          f"24 hours")
-    return min_usage_key['name'], min_usage_key['pass'], keys_dict
+    key_with_minimal_usages['dates'].append(str(datetime.datetime.now()))
+    print(f"Key {key_with_minimal_usages['name']} with "
+          f"{len(key_with_minimal_usages['dates'])} usages for last 24 hours")
+
+    return \
+        key_with_minimal_usages['name'], \
+        key_with_minimal_usages['pass'], \
+        keys_dict
 
 
 def total_calories_text(

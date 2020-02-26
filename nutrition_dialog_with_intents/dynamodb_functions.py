@@ -186,6 +186,20 @@ def write_to_cache_table(
                                      }})
 
 
+def write_keys_to_cache_table(*, keys_dict: dict, lambda_mode: bool):
+    if not keys_dict:
+        return
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
+    database_client.put_item(TableName='nutrition_cache',
+                             Item={
+                                 'initial_phrase': {
+                                     'S': '_key',
+                                 },
+                                 'response': {
+                                     'S': json.dumps(keys_dict),
+                                 }})
+
+
 @timeit
 def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
     keys_dict = {}
