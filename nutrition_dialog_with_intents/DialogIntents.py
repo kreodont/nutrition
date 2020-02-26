@@ -976,7 +976,7 @@ class Intent00027DeleteSavedFood(DialogIntent):
     time_to_evaluate = 0
     time_to_respond = 120  # Read user database, write to user database
     # and clear context
-    name = 'Удалить сохраненную еду'
+    name = 'Удалить сохраненную еду по названию'
     should_clear_context = True
     description = 'Пользователь просит удалить еду, которую он сохранял ' \
                   'до этого'
@@ -1001,12 +1001,14 @@ class Intent00027DeleteSavedFood(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         for t in ['удалить',
                   'удали',
-                  'удалите'
+                  'удалите',
                   'убери',
                   'убрать',
                   ]:
             if t in request.tokens:
-                request.intents_matching_dict[cls] = 100
+                # if number speficied, then
+                # Intent00028DeleteSavedFoodByNumber fits better
+                request.intents_matching_dict[cls] = 90
         if cls not in request.intents_matching_dict:
             request.intents_matching_dict[cls] = 0
 
@@ -1093,6 +1095,101 @@ class Intent00027DeleteSavedFood(DialogIntent):
             return construct_yandex_response_from_yandex_request(
                     yandex_request=request,
                     text=f'Еды {food_to_delete} за {target_date} удалена.',
+                    tts='Удалено',
+                    should_clear_context=True,
+            )
+
+
+class Intent00028DeleteSavedFoodByNumber(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 120  # Read user database, write to user database
+    # and clear context
+    name = 'Удалить сохраненную еду по номеру в списку'
+    should_clear_context = True
+    description = 'Пользователь просит удалить еду, которую он сохранял ' \
+                  'до этого, называя ее по номеру'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        request.intents_matching_dict[cls] = 0
+        for t in ['удалить',
+                  'удали',
+                  'удалите',
+                  'убери',
+                  'убрать',
+                  ]:
+            if t in request.tokens:
+                request.intents_matching_dict[cls] += 80
+                break
+
+        for t in ['номер', ]:
+            if t in request.tokens:
+                request.intents_matching_dict[cls] += 20
+                break
+
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        target_date = Intent00027DeleteSavedFood.define_deletion_date(request)
+        all_food_for_date = find_all_food_names_for_day(
+                lambda_mode=request.aws_lambda_mode,
+                date=target_date,
+                user_id=request.user_guid,
+        )
+        if len(all_food_for_date) == 0:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Не могу ничего найти за {target_date}. '
+                         f'Чтобы еда сохранялась в мою базу, не забывайте '
+                         f'говорить "Сохранить", после того, как я посчитаю '
+                         f'калории.',
+                    tts='Ничего не найдено',
+                    should_clear_context=True
+            )
+
+        search = re.search(r'номер (\d+)', request.original_utterance)
+        if search:
+            food_number = int(float(search.groups()[0]))
+        else:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Не поняла, какой номер удалить?',
+                    tts='Удалено',
+                    should_clear_context=True,
+            )
+
+        if food_number == 0:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Не поняла, какой номер удалить?',
+                    tts='Удалено',
+                    should_clear_context=True,
+            )
+
+        if food_number > len(all_food_for_date):
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Нет еды с таким номером. Максимальный номер за '
+                         f'{target_date}: {len(all_food_for_date)}',
+                    should_clear_context=True,
+            )
+
+        delete_food(
+                date=target_date,
+                list_of_all_food_dicts=all_food_for_date,
+                list_of_food_to_delete_dicts=[
+                    all_food_for_date[food_number-1],
+                ],
+                lambda_mode=request.aws_lambda_mode,
+                user_id=request.user_guid,
+        )
+
+        return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text=f'Еда с номером {food_number} '
+                         f'({all_food_for_date[food_number-1]}) за '
+                         f'{target_date} удалена.',
                     tts='Удалено',
                     should_clear_context=True,
             )
@@ -1336,6 +1433,10 @@ def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
 @timeit
 def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
     russian_phrase = yandex_request.command
+    if yandex_request.aws_lambda_mode:
+        timeout = 0.5
+    else:
+        timeout = 10
     print(f'Translating "{russian_phrase}" into English')
     response = requests.get(
             'https://translate.yandex.net/api/v1.5/tr.json/translate',
@@ -1344,7 +1445,7 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
                 'text': russian_phrase,
                 'lang': 'ru-en'
             },
-            timeout=0.5,
+            timeout=timeout,
     )
 
     if not response:
@@ -1396,7 +1497,7 @@ def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
 
     if response.status_code != 200:
         print(f'Failed to get nutrients for '
-              f'"{yandex_request.translated_phrase}"')
+              f'"{yandex_request.translated_phrase}": {response.reason}')
         return yandex_request
 
     try:
