@@ -324,15 +324,22 @@ def clear_context(
 
 @timeit
 def delete_food(*,
-                database_client: boto3.client,
                 date: datetime.date,
-                list_of_food_to_delete_dicts: typing.List[dict],
-                list_of_all_food_dicts: typing.List[dict],
+                list_of_food_to_delete_dicts: typing.List[dict],  # list of
+                # foods that should be deleted
+                list_of_all_food_dicts: typing.List[dict],  # list of food
+                # that exist in database
                 user_id: str,
+                lambda_mode: bool,
                 ) -> str:
+
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
+    # Filtering list of existing food leaving only food that NOT
+    # specified in list_of_food_to_delete_dicts
     result_list = [d for d in list_of_all_food_dicts if
                    d not in list_of_food_to_delete_dicts]
 
+    # Saving new food list
     result = database_client.put_item(TableName='nutrition_users',
                                       Item={
                                           'id': {
@@ -347,11 +354,12 @@ def delete_food(*,
 
 def find_food_by_name_and_day(
         *,
-        database_client: boto3.client,
         date: datetime.date,
         food_name_to_find: str,
         user_id: str,
+        lambda_mode: bool,
 ) -> typing.List[dict]:
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
     result = database_client.get_item(
             TableName='nutrition_users',
             Key={
@@ -375,10 +383,11 @@ def find_food_by_name_and_day(
 
 def find_all_food_names_for_day(
         *,
-        database_client: boto3.client,
         date: datetime.date,
         user_id: str,
+        lambda_mode: bool,
 ) -> typing.List[dict]:
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
     result = database_client.get_item(
             TableName='nutrition_users',
             Key={
