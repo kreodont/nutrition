@@ -1222,6 +1222,7 @@ def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
     )
 
     if not response:
+        print(f'Response not received from Yandex Translate: {response.text}')
         return yandex_request
 
     try:
