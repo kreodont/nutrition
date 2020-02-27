@@ -156,6 +156,9 @@ def write_keys_to_cache_table(*, keys_dict: dict, lambda_mode: bool):
 def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
     keys_dict = {}
     food_dict = {}
+    if not yandex_requext.command:
+        print('Empty Yandex command passed, nothing to search')
+        return yandex_requext
     try:
         print(f'Searching for "{yandex_requext.command}" in cache table')
         database_client = get_dynamo_client(
