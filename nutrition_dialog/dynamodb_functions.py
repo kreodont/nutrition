@@ -13,7 +13,7 @@ from DialogContext import DialogContext
 # function, I know it is a mess, but 100 ms are 100 ms
 from yandex_types import YandexResponse, YandexRequest
 
-global_cached_boto3_clients = {}
+global_client = None
 
 
 def get_dynamo_client(
@@ -23,44 +23,41 @@ def get_dynamo_client(
         connect_timeout: float = 0.2,
         read_timeout: float = 0.4,
 ) -> boto3.client:
-    client = None
+    global global_client
 
-    def closure():
-        nonlocal client
-        if client:
-            print('Dynamo client fetched from CACHE!')
-            return client
-        if lambda_mode:
-            new_client = boto3.client(
-                    'dynamodb',
-                    config=botocore.client.Config(
-                            connect_timeout=connect_timeout,
-                            read_timeout=read_timeout,
-                            parameter_validation=False,
-                            retries={'max_attempts': 0},
-                    ),
-            )
-        else:
-            new_client = boto3.Session(profile_name=profile_name).client(
-                'dynamodb')
-            return new_client
+    if global_client:
+        print('Dynamo client fetched from CACHE!')
+        return global_client
+    if lambda_mode:
+        new_client = boto3.client(
+                'dynamodb',
+                config=botocore.client.Config(
+                        connect_timeout=connect_timeout,
+                        read_timeout=read_timeout,
+                        parameter_validation=False,
+                        retries={'max_attempts': 0},
+                ),
+        )
+    else:
+        new_client = boto3.Session(profile_name=profile_name).client(
+            'dynamodb')
+        # return new_client
 
-        # saving to cache to to spend time to create it next time
-        client = new_client
-        return client
-
-    return closure()
+    # saving to cache to to spend time to create it next time
+    global_client = new_client
+    return global_client
 
 
 @timeit
 def update_user_table(
         *,
-        database_client,
+        lambda_mode,
         event_time: datetime.datetime,
         foods_dict: dict,
         utterance: str,
         user_id: str):
     print(f'Saving food for user: "{utterance}"')
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
     result = database_client.get_item(
             TableName='nutrition_users',
             Key={'id': {'S': user_id}, 'date': {'S': str(event_time.date())}})
@@ -93,7 +90,9 @@ def save_session(
         event_time: datetime.datetime,
         foods_dict: dict,
         utterance: str,
-        database_client) -> None:
+        lambda_mode: bool,
+) -> None:
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
     database_client.put_item(
             TableName='nutrition_sessions',
             Item={
@@ -197,8 +196,9 @@ def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
 def fetch_context_from_dynamo_database(
         *,
         session_id: str,
-        database_client: boto3.client
+        lambda_mode: bool,
 ) -> typing.Optional[DialogContext]:
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
     try:
         result = database_client.get_item(
                 TableName='nutrition_sessions',
@@ -277,8 +277,9 @@ def save_context(
 def clear_context(
         *,
         session_id: str,
-        database_client,
+        lambda_mode: bool,
 ) -> None:
+    database_client = get_dynamo_client(lambda_mode=lambda_mode)
     try:
         database_client.delete_item(TableName='nutrition_sessions',
                                     Key={

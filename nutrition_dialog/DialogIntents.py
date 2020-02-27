@@ -12,7 +12,7 @@ import sys
 import inspect
 import random
 from dynamodb_functions import fetch_context_from_dynamo_database, \
-    get_dynamo_client, get_from_cache_table, update_user_table, \
+    get_from_cache_table, update_user_table, \
     find_all_food_names_for_day, delete_food, write_keys_to_cache_table
 import typing
 import requests
@@ -694,8 +694,7 @@ class Intent00022Agree(DialogIntent):
             r = r.set_context(
                     fetch_context_from_dynamo_database(
                             session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                            lambda_mode=r.aws_lambda_mode))
 
         # tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
@@ -738,8 +737,7 @@ class Intent00023Disagree(DialogIntent):
             r = r.set_context(
                     fetch_context_from_dynamo_database(
                             session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                            lambda_mode=r.aws_lambda_mode))
 
         # tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
@@ -782,8 +780,7 @@ class Intent00024SaveFood(DialogIntent):
             r = r.set_context(
                     fetch_context_from_dynamo_database(
                             session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                            lambda_mode=r.aws_lambda_mode))
 
         tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
@@ -836,8 +833,7 @@ class Intent00025DoNotSaveFood(DialogIntent):
             r = r.set_context(
                     fetch_context_from_dynamo_database(
                             session_id=r.session_id,
-                            database_client=get_dynamo_client(
-                                    lambda_mode=r.aws_lambda_mode)))
+                            lambda_mode=r.aws_lambda_mode))
 
         tokens = request.tokens
         if (
@@ -1260,8 +1256,7 @@ class Intent01000SearchForFood(DialogIntent):
         if 'answer' in kwargs and kwargs['answer'] in (
                 'Intent00022Agree', 'Intent00024SaveFood'):
             update_user_table(
-                    database_client=get_dynamo_client(
-                            lambda_mode=request.aws_lambda_mode),
+                    lambda_mode=request.aws_lambda_mode,
                     event_time=datetime.datetime.now(),
                     foods_dict=request.context.food_dict,
                     utterance=request.context.user_initial_phrase,

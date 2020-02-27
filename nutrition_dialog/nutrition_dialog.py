@@ -5,13 +5,15 @@ from yandex_types import YandexRequest, \
 import mockers
 import typing
 import hashlib
-from dynamodb_functions import clear_context, get_dynamo_client, \
-    save_context, write_to_cache_table
+from dynamodb_functions import clear_context, save_context, write_to_cache_table
 import datetime
 from dataclasses import replace
+from decorators import timeit
 
 
+@timeit
 def nutrition_dialog(event, context):
+    print(event)
     request: YandexRequest = transform_event_dict_to_yandex_request_object(
         event_dict=event,
         aws_lambda_mode=bool(context),
@@ -26,7 +28,8 @@ def nutrition_dialog(event, context):
         print('Clearing previous context from database')
         clear_context(
             session_id=request.session_id,
-            database_client=get_dynamo_client(lambda_mode=bool(context)))
+            lambda_mode=request.aws_lambda_mode,
+        )
 
     if response.context_to_write:
         print(f'Saving new context to database: {response.context_to_write}')
@@ -87,7 +90,7 @@ if __name__ == '__main__':
     """
     result = nutrition_dialog(
         event=mockers.mock_incoming_event(
-            phrase='ping',
+            phrase='да',
             timezone='UTC+3'
 
         ),
