@@ -98,7 +98,7 @@ class YandexRequest:
                 api_keys={},
         )
 
-    def set_context(self, context: DialogContext):
+    def set_context(self, context: typing.Optional[DialogContext]):
         return replace(self, context=context)
 
     def set_chosen_intent(self, chosen_intent):
@@ -106,6 +106,9 @@ class YandexRequest:
 
     def set_translated_phrase(self, translated):
         return replace(self, translated_phrase=translated)
+
+    def set_original_utterance(self, utterance):
+        return replace(self, original_utterance=utterance)
 
     def set_food_dict(self, food_dict):
         return replace(self, food_dict=food_dict)

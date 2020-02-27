@@ -379,7 +379,8 @@ class Intent00011EatPoop(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
-                           'фекалии', 'какахе', 'какахи', 'какаха', 'какаху'):
+                           'фекалии', 'какахе', 'какахи', 'какаха', 'какаху',
+                           'какашку'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -387,16 +388,22 @@ class Intent00011EatPoop(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
-        if 'answer' in kwargs and kwargs['answer'] == 'Intent00022Agree':
+        if 'answer' in kwargs and kwargs['answer'] == 'Intent00023Disagree':
             return construct_yandex_response_from_yandex_request(
                     yandex_request=request,
                     text='Извини, братишка, сегодня не принес покушать',
                     should_clear_context=True)
 
+        if 'answer' in kwargs and kwargs['answer'] == 'Intent00022Agree':
+            request = request.set_original_utterance(utterance='сладкий хлеб')
+            request = Intent01000SearchForFood.evaluate(request=request)
+            return Intent01000SearchForFood.respond(request=request)
+
         specifying_question = 'Вы имели в виду "Сладкий хлеб"?'
         context = DialogContext(
                 intent_originator_name=cls.__name__,
-                matching_intents_names=('Intent00022Agree',),
+                matching_intents_names=(
+                    'Intent00022Agree', 'Intent00023Disagree'),
                 specifying_question=specifying_question,
                 user_initial_phrase=request.original_utterance)
 
@@ -840,8 +847,7 @@ class Intent00025DoNotSaveFood(DialogIntent):
                 'не' in tokens or
                 'нет' in tokens or
                 'забудь' in tokens or
-                'забыть' in tokens or
-                'удалить' in tokens
+                'забыть' in tokens
         ):
             r.intents_matching_dict[cls] = 100
             r = r.set_chosen_intent(cls)
@@ -1001,10 +1007,10 @@ class Intent00027DeleteSavedFood(DialogIntent):
                   'убери',
                   'убрать',
                   ]:
-            if t in request.tokens:
+            if t in request.tokens and 'номер' not in request.tokens:
                 # if number speficied, then
                 # Intent00028DeleteSavedFoodByNumber fits better
-                request.intents_matching_dict[cls] = 90
+                request.intents_matching_dict[cls] = 100
         if cls not in request.intents_matching_dict:
             request.intents_matching_dict[cls] = 0
 
@@ -1234,7 +1240,9 @@ class Intent01000SearchForFood(DialogIntent):
             request.intents_matching_dict[cls] = 100
             return request
 
-        request = translate_into_english(yandex_request=request)
+        if not request.translated_phrase:
+            request = translate_into_english(yandex_request=request)
+
         if not request.translated_phrase:
             request.intents_matching_dict[cls] = 0
             return request
