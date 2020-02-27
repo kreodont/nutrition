@@ -553,7 +553,8 @@ class Intent00017WhereIsSaved(DialogIntent):
         full_phrase = request.original_utterance
         if full_phrase in ('а где сохраняются', 'где сохраняются',
                            'где сохранить', 'а зачем сохранять',
-                           'зачем сохранять', 'куда', 'а куда сохранила'):
+                           'зачем сохранять', 'куда', 'а куда сохранила',
+                           'где сохранено'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
