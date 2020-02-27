@@ -28,6 +28,7 @@ def get_dynamo_client(
     def closure():
         nonlocal client
         if client:
+            print('Dynamo client fetched from CACHE!')
             return client
         if lambda_mode:
             new_client = boto3.client(
@@ -49,54 +50,6 @@ def get_dynamo_client(
         return client
 
     return closure()
-
-
-@timeit
-def get_boto3_client(
-        *,
-        aws_lambda_mode: bool,
-        service_name: str,
-        profile_name: str = 'kreodont',
-        connect_timeout: float = 0.2,
-        read_timeout: float = 0.4,
-) -> typing.Tuple[typing.Optional[boto3.client], bool]:
-    """
-    Dirty function to fetch s3_clients
-    :param connect_timeout:
-    :param read_timeout:
-    :param aws_lambda_mode:
-    :param service_name:
-    :param profile_name:
-    :return:
-    """
-    known_services = ['translate', 'dynamodb', 's3']
-    if service_name in global_cached_boto3_clients:
-        print(f'{service_name} client taken from cache!')
-        return global_cached_boto3_clients[service_name], True
-
-    if service_name not in known_services:
-        raise Exception(
-                f'Not known service '
-                f'name {service_name}. The following '
-                f'service names known: {", ".join(known_services)}')
-
-    if aws_lambda_mode:
-        client = boto3.client(
-                service_name,
-                config=botocore.client.Config(
-                        connect_timeout=connect_timeout,
-                        read_timeout=read_timeout,
-                        parameter_validation=False,
-                        retries={'max_attempts': 0},
-                ),
-        )
-    else:
-        client = boto3.Session(profile_name=profile_name).client(service_name)
-        return client, False
-
-    # saving to cache to to spend time to create it next time
-    global_cached_boto3_clients[service_name] = client
-    return client, False
 
 
 @timeit

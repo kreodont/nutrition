@@ -234,4 +234,4 @@ def log_hash(
     session_id = request_or_response.session_id
     message_id = str(request_or_response.message_id)
     return str(int(hashlib.sha1(session_id.encode()).hexdigest(),
-                   16) % (10 ** 3)) + '_' + message_id
+                   16) % (10 ** 3)) + '_Реплика' + message_id

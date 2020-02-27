@@ -78,7 +78,7 @@ def log_hash(request: YandexRequest) -> str:
     session_id = request.session_id
     message_id = str(request.message_id)
     return str(int(hashlib.sha1(session_id.encode()).hexdigest(),
-                   16) % (10 ** 3)) + '_' + message_id
+                   16) % (10 ** 3)) + '_Реплика ' + message_id
 
 
 if __name__ == '__main__':
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     """
     result = nutrition_dialog(
         event=mockers.mock_incoming_event(
-            phrase='забавная мордаша',
+            phrase='ping',
             timezone='UTC+3'
 
         ),

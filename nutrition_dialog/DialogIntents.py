@@ -59,7 +59,7 @@ class Intent00001StartingMessage(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         if request.is_new_session:
-            request.intents_matching_dict[cls] = 100
+            request.intents_matching_dict[cls] = 90  # Ping can fit better
         else:
             request.intents_matching_dict[cls] = 0
         return request
