@@ -1468,19 +1468,23 @@ def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
 def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
     russian_phrase = yandex_request.command
     if yandex_request.aws_lambda_mode:
-        timeout = 0.5
+        timeout = 1.0
     else:
         timeout = 10
     print(f'Translating "{russian_phrase}" into English')
-    response = requests.get(
-            'https://translate.yandex.net/api/v1.5/tr.json/translate',
-            params={
-                'key': os.getenv('YandexTranslate'),
-                'text': russian_phrase,
-                'lang': 'ru-en'
-            },
-            timeout=timeout,
-    )
+    try:
+        response = requests.get(
+                'https://translate.yandex.net/api/v1.5/tr.json/translate',
+                params={
+                    'key': os.getenv('YandexTranslate'),
+                    'text': russian_phrase,
+                    'lang': 'ru-en'
+                },
+                timeout=timeout,
+        )
+    except requests.ReadTimeout:
+        print(f'Timeout during Yandex Translate')
+        return yandex_request
 
     if not response:
         print(f'Response not received from Yandex Translate: {response.text}')
