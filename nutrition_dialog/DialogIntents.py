@@ -1195,6 +1195,33 @@ class Intent00028DeleteSavedFoodByNumber(DialogIntent):
             )
 
 
+class Intent00029Glibberish(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Всякая чушь'
+    should_clear_context = True
+    description = 'Пользователь говорит всякую чушь, о которой я точно знаю, ' \
+                  'что это не еда.'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        full_phrase = request.original_utterance
+        if full_phrase in ('тарелка', 'ложка'):
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Это мне непонятно. Попробуйте сказать что-то, что '
+                     'похоже на название еды. ',
+                end_session=False,
+        )
+
+
 class Intent01000SearchForFood(DialogIntent):
     time_to_evaluate = 500  # Check cache, translate request, query API
     time_to_respond = 10  # Save food context
