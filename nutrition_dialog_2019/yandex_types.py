@@ -1,81 +1,29 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import typing
+from decorators import timeit
 from functools import partial, reduce
-from DialogContext import DialogContext
+import hashlib
 
 
 @dataclass(frozen=True)
 class YandexRequest:
-    """
-    Request example:
-    {
-  "meta": {
-    "client_id": "ru.yandex.searchplugin/7.16 (none none; android 4.4.2)",
-    "interfaces": {
-      "account_linking": {},
-      "payments": {},
-      "screen": {}
-    },
-    "locale": "ru-RU",
-    "timezone": "UTC"
-  },
-  "request": {
-    "command": "",
-    "nlu": {
-      "entities": [],
-      "tokens": []
-    },
-    "original_utterance": "",
-    "type": "SimpleUtterance"
-  },
-  "session": {
-    "message_id": 0,
-    "new": true,
-    "session_id": "12447be0-7302eba2-5cb2629b-7eeb8bac",
-    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-    "user_id": "E401738E621D9AAC04AB162E44F39B3ABDA23A5CB2FF19E39
-    4C1915ED45CF467"
-  },
-  "version": "1.0"
-}
-    """
-    client_device_id: str  # meta -> client_id
-    has_screen: bool  # meta -> interfaces -> screen
-    timezone: str  # meta -> timezone
-    original_utterance: str  # request -> original_utterance
-    command: str  # request -> command
-    is_new_session: bool  # session -> new
-    user_guid: str  # session -> user_id
-    message_id: int  # session -> message_id, starts from 0
-    session_id: str  # session -> session_id
-    entities: typing.List[typing.Dict[str, str]]  # request -> nlu -> entities
-    tokens: typing.List[str]  # request -> nlu -> tokens
-    aws_lambda_mode: bool  # whether launched in cloud or not
-    version: str  # version, for now always "1.0"
-    intents_matching_dict: typing.Dict[object, int]  # Each intent
-    # puts here percent of matching. If one of intents puts here 100, that
-    # means that this intent fits perfectly and no need to check others.
-    context: typing.Optional[DialogContext]  # current dialog context,
-    # loaded from DynamoDB
-    food_dict: dict  # Response from the API
-    api_keys: dict  # To query API
-    chosen_intent: typing.Any = None  # Intent which will be executed.
-    translated_phrase: str = ''  # Phrase translated into English
-    # Can be
-    # overrided depending on context
-    error: str = ''  # if any errors parsing Yandex dictionary
-    use_food_cache: bool = True  # for testing purposes
-    write_to_food_cache: bool = True  # for testing
-    food_already_in_cache: bool = False  # Not to write it again
+    client_device_id: str
+    has_screen: bool
+    timezone: str
+    original_utterance: str
+    command: str
+    is_new_session: bool
+    user_guid: str
+    message_id: str
+    session_id: str
+    entities: typing.List[typing.Dict[str, str]]
+    tokens: typing.List[str]
+    aws_lambda_mode: bool
+    version: str
+    error: str = ''
 
     @staticmethod
     def empty_request(*, aws_lambda_mode: bool, error: str):
-        """
-        To show errors
-        :param aws_lambda_mode:
-        :param error:
-        :return:
-        """
         return YandexRequest(
                 client_device_id='',
                 has_screen=False,
@@ -85,53 +33,33 @@ class YandexRequest:
                 tokens=[],
                 is_new_session=False,
                 user_guid='',
-                message_id=0,
+                message_id='',
                 session_id='',
                 version='',
                 command='',
                 aws_lambda_mode=aws_lambda_mode,
-                error=error,
-                context=None,
-                intents_matching_dict={},
-                translated_phrase='',
-                food_dict={},
-                api_keys={},
+                error=error
         )
-
-    def set_context(self, context: DialogContext):
-        return replace(self, context=context)
-
-    def set_chosen_intent(self, chosen_intent):
-        return replace(self, chosen_intent=chosen_intent)
-
-    def set_translated_phrase(self, translated):
-        return replace(self, translated_phrase=translated)
-
-    def set_food_dict(self, food_dict):
-        return replace(self, food_dict=food_dict)
-
-    def set_api_keys(self, api_keys: dict):
-        return replace(self, api_keys=api_keys)
-
-    def set_food_already_in_cache(self):
-        return replace(self, food_already_in_cache=True)
 
     def __repr__(self):
         return '\n'.join(
                 [f'{key:20}: {self.__dict__[key]}' for
-                 key in sorted(self.__dict__.keys())]) + '\n\n'
+                 key in sorted(self.__dict__.keys())])
 
 
 @dataclass(frozen=True)
 class YandexResponse:
-    initial_request: YandexRequest  # initial request
-    response_text: str  # Text that will be shown to the user
-    response_tts: str  # Text that will be spoken to the user
-    end_session: bool  # If the last message in dialog and we should exit
-    should_clear_context: bool  # whether clear old contex or not
-    buttons: typing.List[typing.Dict]  # buttons that should
-    # be shown to the user
-    context_to_write: typing.Optional[DialogContext]
+    client_device_id: str
+    has_screen: bool
+    user_guid: str
+    message_id: str
+    session_id: str
+    response_text: str
+    response_tts: str
+    end_session: bool
+    should_clear_context: bool
+    version: str
+    buttons: typing.List[typing.Dict]
 
     def __repr__(self):
         return '\n'.join(
@@ -144,13 +72,6 @@ def transform_event_dict_to_yandex_request_object(
         event_dict: dict,
         aws_lambda_mode: bool,
 ) -> YandexRequest:
-    """
-    Reads the dict from yandex and try to construct
-    YandexRequest object out of it
-    :param event_dict:
-    :param aws_lambda_mode:
-    :return:
-    """
     meta = fetch_one_value_from_event_dict(
             event_dict=event_dict,
             path='meta')
@@ -262,15 +183,10 @@ def transform_event_dict_to_yandex_request_object(
 
     entities = fetch_one_value_from_event_dict(
             path='request -> nlu -> entities',
-            event_dict=event_dict,)
+            event_dict=event_dict)
     entities = [] if entities is None else entities
     full_yandex_request_constructor = partial(partial_constructor,
-                                              entities=entities,
-                                              context=None,
-                                              intents_matching_dict={},
-                                              food_dict={},
-                                              api_keys={},
-                                              )
+                                              entities=entities)
 
     return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode)
 
@@ -279,20 +195,12 @@ def fetch_one_value_from_event_dict(
         *,
         event_dict: dict,
         path: str) -> typing.Optional[typing.Any]:
-    """
-    To extract data from multilevel dictionary using the following syntax:
-    'meta -> interfaces -> screen'
-    :param event_dict:
-    :param path:
-    :return:
-    """
     if not isinstance(event_dict, dict):
         return None
     value = None
     try:
         value = reduce(
-                dict.get,
-                [t.strip() for t in path.split('->')],
+                dict.get, [t.strip() for t in path.split('->')],
                 event_dict)
     except TypeError:
         pass
@@ -300,38 +208,9 @@ def fetch_one_value_from_event_dict(
     return value
 
 
-def construct_yandex_response_from_yandex_request(
-        *,
-        yandex_request: YandexRequest,
-        text: str,
-        tts: str = '',
-        end_session: bool = False,
-        buttons: list = (),
-        should_clear_context: bool = False,
-        new_context_to_write: DialogContext = None,
-):
-    if tts == '':
-        tts = text
-
-    return YandexResponse(
-            initial_request=yandex_request,
-            end_session=end_session,
-            response_text=text,
-            response_tts=tts,
-            buttons=buttons,
-            should_clear_context=should_clear_context,
-            context_to_write=new_context_to_write,
-    )
-
-
 def transform_yandex_response_to_output_result_dict(
         *,
         yandex_response: YandexResponse) -> dict:
-    """
-    Converts YandexResponse to output dictionary
-    :param yandex_response:
-    :return:
-    """
     response = {
         "response": {
             "text": yandex_response.response_text,
@@ -339,10 +218,20 @@ def transform_yandex_response_to_output_result_dict(
             "end_session": yandex_response.end_session
         },
         "session": {
-            "session_id": yandex_response.initial_request.session_id,
-            "message_id": yandex_response.initial_request.message_id,
-            "user_id": yandex_response.initial_request.user_guid
+            "session_id": yandex_response.session_id,
+            "message_id": yandex_response.message_id,
+            "user_id": yandex_response.user_guid
         },
-        "version": yandex_response.initial_request.version
+        "version": yandex_response.version
     }
+    print(f'НАВЫК_{log_hash(yandex_response)}: {yandex_response.response_text}')
     return response
+
+
+def log_hash(
+        request_or_response,
+) -> str:
+    session_id = request_or_response.session_id
+    message_id = str(request_or_response.message_id)
+    return str(int(hashlib.sha1(session_id.encode()).hexdigest(),
+                   16) % (10 ** 3)) + '_' + message_id
