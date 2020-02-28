@@ -1234,6 +1234,30 @@ class Intent00029Glibberish(DialogIntent):
         )
 
 
+class Intent00030Weather(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Какая погода'
+    should_clear_context = True
+    description = 'Пользователь пытается узнать погоду в навыке'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        if part_of_the_word_in_at_least_one_tokens('погод', request.tokens):
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text='Я навык про еду. Чтобы спросить Алису про погоду, '
+                     'сначала вернитесь в Алису, сказав Выход',
+        )
+
+
 class Intent01000SearchForFood(DialogIntent):
     time_to_evaluate = 500  # Check cache, translate request, query API
     time_to_respond = 10  # Save food context
@@ -1692,6 +1716,26 @@ def remove_tokens_from_specific_intervals(
         result_list.append(token)
 
     return result_list
+
+
+def part_of_the_word_in_at_least_one_tokens(
+        part_of_the_word_to_find: str,
+        tokens_list: typing.List[str]):
+    """
+    Register NOT DEPENDENT
+    Example: part_of_the_word_in_at_least_one_tokens("go", ["one", "two",
+    "three"]) -> false, since "go" is not in "one", not in "two", nor in "three"
+    art_of_the_word_in_at_least_one_tokens("go", ["one", "two",
+    "three", "Togo"]) -> true, since there is "go" in "Togo"
+    :param part_of_the_word_to_find:
+    :param tokens_list:
+    :return: true, if word part_of_the_word_to_find IS in any of tokens_list,
+    false otherwise.
+    """
+    for t in tokens_list:
+        if part_of_the_word_to_find.lower() in t.lower():
+            return True
+    return False
 
 
 if __name__ == '__main__':

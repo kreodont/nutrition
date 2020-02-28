@@ -26,7 +26,7 @@ def get_dynamo_client(
     global global_client
 
     if global_client:
-        print('Dynamo client fetched from CACHE!')
+        # print('Dynamo client fetched from CACHE!')
         return global_client
     if lambda_mode:
         new_client = boto3.client(

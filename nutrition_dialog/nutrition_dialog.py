@@ -89,66 +89,12 @@ if __name__ == '__main__':
     To test locally
     """
 
-    # result = nutrition_dialog(
-    #     event=mockers.mock_incoming_event(
-    #         phrase='удалить вчера',
-    #         timezone='UTC+3'
-    #
-    #     ),
-    #     context={})
-    result = nutrition_dialog(event={
-  "meta": {
-    "locale": "ru-RU",
-    "timezone": "UTC",
-    "client_id": "ru.yandex.searchplugin/7.16 (none none; android 4.4.2)",
-    "interfaces": {
-      "screen": {},
-      "payments": {},
-      "account_linking": {}
-    }
-  },
-  "session": {
-    "message_id": 16,
-    "session_id": "d69c905b-717d-4a6d-a045-f643b3ce32c4",
-    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-    "user_id": "E401738E621D9AAC04AB162E44F39B3ABDA23A5CB2FF19E394C1915ED45CF467",
-    "user": {
-      "user_id": "BC8947C16A1442363544358F1761EA15BD1C81EF522C43D9CE69B9B874DC86D5"
-    },
-    "device": {
-      "device_id": "E401738E621D9AAC04AB162E44F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
-    },
-    "new": False
-  },
-  "request": {
-    "command": "удалить вчера",
-    "original_utterance": "удалить вчера",
-    "nlu": {
-      "tokens": [
-        "удалить",
-        "вчера"
-      ],
-      "entities": [
-        {
-          "type": "YANDEX.DATETIME",
-          "value": {
-            "day": -1,
-            "day_is_relative": True
-          },
-          "tokens": {
-            "start": 1,
-            "end": 2
-          }
-        }
-      ],
-      "intents": {}
-    },
-    "markup": {
-      "dangerous_context": False
-    },
-    "type": "SimpleUtterance"
-  },
-  "version": "1.0"
-}, context={})
+    result = nutrition_dialog(
+        event=mockers.mock_incoming_event(
+            phrase='погода в петрове на две недели ',
+            timezone='UTC+3'
+
+        ),
+        context={})
 
     print(result)
