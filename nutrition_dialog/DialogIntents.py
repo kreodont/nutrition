@@ -1283,6 +1283,15 @@ class Intent01000SearchForFood(DialogIntent):
                     yandex_request=request,
                     text='Забыто',
                     should_clear_context=True)
+        if 'foods' not in request.food_dict:
+            return construct_yandex_response_from_yandex_request(
+                    yandex_request=request,
+                    text='Кажется такой еды пока нет в моей базе. '
+                         'Напишите моему создателю, чтобы он ее добавил',
+                    end_session=False,
+                    should_clear_context=True,
+            )
+
         context = DialogContext(
                 intent_originator_name=cls.__name__,
                 matching_intents_names=('Intent00022Agree',
@@ -1534,7 +1543,8 @@ def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
         print(f'Exception when querying API: {e}')
         return yandex_request
 
-    if response.status_code != 200:
+    if response.status_code not in (200, 404):  # 404 means food just not
+        # found in database
         print(f'Failed to get nutrients for '
               f'"{yandex_request.translated_phrase}": {response.reason}')
         return yandex_request
@@ -1543,6 +1553,12 @@ def query_api(*, yandex_request: YandexRequest) -> YandexRequest:
         nutrition_dict = json.loads(response.text)
     except Exception as e:
         print(f'Cannot parse API respond: "{response.text}". Exception: {e}')
+        return yandex_request
+
+    # Caching missing food anyway to optimize database query
+    if 'message' in nutrition_dict and \
+            nutrition_dict['message'] == "We couldn\'t match any of your foods":
+        yandex_request = yandex_request.set_food_dict(food_dict=nutrition_dict)
         return yandex_request
 
     if 'foods' not in nutrition_dict or not nutrition_dict['foods']:

@@ -90,7 +90,7 @@ if __name__ == '__main__':
     """
     result = nutrition_dialog(
         event=mockers.mock_incoming_event(
-            phrase='алиса умный счетчик калорий',
+            phrase='абба',
             timezone='UTC+3'
 
         ),
