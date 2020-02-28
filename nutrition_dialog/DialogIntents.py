@@ -292,7 +292,7 @@ class Intent00008Goodbye(DialogIntent):
                 'выйди' in tokens or
                 'до свидания' in full_phrase.lower() or
                 'всего доброго' in full_phrase.lower() or
-                full_phrase in ('иди на хуй', 'стоп', 'пока', 'алиса')
+                full_phrase in ('иди на хуй', 'стоп', 'пока')
 
         ):
             request.intents_matching_dict[cls] = 100
@@ -351,7 +351,8 @@ class Intent00010LaunchAgain(DialogIntent):
                 'запустить навык умный счетчик калорий',
                 'алиса запусти умный счетчик калорий',
                 'запустить умный счетчик калорий',
-                'запусти умный счетчик калорий',
+                'запусти умный счетчик калорий', 'счетчик калорий',
+                'запусти счетчик калорий',
                 '',
         ):
             request.intents_matching_dict[cls] = 100
@@ -649,7 +650,8 @@ class Intent00020UseAsAlice(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if 'запусти' in full_phrase or 'поиграем' in full_phrase or \
-                'алиса' in full_phrase or 'порно' in full_phrase:
+                'алиса' in full_phrase or 'порно' in full_phrase or \
+                'доллар' in full_phrase:
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -674,7 +676,8 @@ class Intent00021ShutUp(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
-        if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать'):
+        if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать',
+                           'иди нахуй',):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -930,7 +933,7 @@ class Intent00026WhatIAte(DialogIntent):
                                 'посчитай калории',
                                 'итог',
                                 'наели калорий за сегодня',
-                                'итого'
+                                'итого', 'посчитай все',
                                 ):
             request.intents_matching_dict[cls] = 100
         else:
