@@ -1088,10 +1088,16 @@ class Intent00027DeleteSavedFood(DialogIntent):
                     should_clear_context=True,
             )
         else:
+            matching_food = []
+            for food in all_food_for_date:
+                if (food['utterance'] and food_to_delete.strip() ==
+                        food['utterance'].replace(',', '').strip()):
+                    matching_food.append(food)
+
             delete_food(
                     date=target_date,
-                    list_of_food_to_delete_dicts=[],
-                    list_of_all_food_dicts=[],
+                    list_of_food_to_delete_dicts=matching_food,
+                    list_of_all_food_dicts=all_food_for_date,
                     user_id=request.user_guid,
                     lambda_mode=request.aws_lambda_mode,
             )
