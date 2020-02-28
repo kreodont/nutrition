@@ -178,7 +178,8 @@ class Intent00005ThankYou(DialogIntent):
                 'спасибо', 'молодец', 'отлично', 'ты классная',
                 'классная штука',
                 'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
-                'клево', 'ништяк', 'класс'):
+                'клево', 'ништяк', 'класс', 'спасибо алиса',
+                'спасибо моя дорогая') or 'лайк' in request.tokens:
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -477,7 +478,7 @@ class Intent00014NothingToAdd(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if full_phrase in ('никакую', 'ничего', 'никакой'):
+        if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -619,7 +620,8 @@ class Intent00019NotImplemented(DialogIntent):
                            'дневная норма калорий',
                            'сколько калорий можно употреблять в сутки',
                            'сколько калорий в день можно'
-                           ) or 'норма' in tokens:
+                           ) or 'норма' in tokens or \
+                'меню' in tokens:
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -802,6 +804,7 @@ class Intent00024SaveFood(DialogIntent):
                         'ну давай',
                         'давай',
                         'давай сохраняй',
+                        'ладно',
                 )):
             r.intents_matching_dict[cls] = 100
             r = r.set_chosen_intent(cls)
