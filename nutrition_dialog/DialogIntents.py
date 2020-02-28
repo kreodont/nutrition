@@ -1284,13 +1284,7 @@ class Intent01000SearchForFood(DialogIntent):
                     text='Забыто',
                     should_clear_context=True)
         if 'foods' not in request.food_dict:
-            return construct_yandex_response_from_yandex_request(
-                    yandex_request=request,
-                    text='Кажется такой еды пока нет в моей базе. '
-                         'Напишите моему создателю, чтобы он ее добавил',
-                    end_session=False,
-                    should_clear_context=True,
-            )
+            return Intent99999Default.respond(request=request)
 
         context = DialogContext(
                 intent_originator_name=cls.__name__,
