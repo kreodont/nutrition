@@ -555,7 +555,7 @@ class Intent00017WhereIsSaved(DialogIntent):
         if full_phrase in ('а где сохраняются', 'где сохраняются',
                            'где сохранить', 'а зачем сохранять',
                            'зачем сохранять', 'куда', 'а куда сохранила',
-                           'где сохранено'):
+                           'где сохранено', 'где'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -648,7 +648,8 @@ class Intent00020UseAsAlice(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if 'запусти' in full_phrase or 'поиграем' in full_phrase:
+        if 'запусти' in full_phrase or 'поиграем' in full_phrase or \
+                'алиса' in full_phrase or 'порно' in full_phrase:
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -889,7 +890,7 @@ class Intent00026WhatIAte(DialogIntent):
         full_phrase = request.original_utterance
 
         if (('что' in tokens or 'сколько' in tokens) and (
-                'ел' in full_phrase or 'хран' in full_phrase)) or \
+                'ел' in full_phrase or 'хран' in full_phrase or 'калор')) or \
                 full_phrase in ('покажи результат',
                                 'открыть список сохранения',
                                 'скажи результат',
