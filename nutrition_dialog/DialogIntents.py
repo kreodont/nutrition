@@ -1040,7 +1040,7 @@ class Intent00027DeleteSavedFood(DialogIntent):
         if len(tokens_without_delete_words) == 0:
             return construct_yandex_response_from_yandex_request(
                     yandex_request=request,
-                    text=f'Если вы хотите очистить историю за сегодня, '
+                    text=f'Если вы хотите очистить историю за день, '
                          f'скажите "удалить всё"',
                     should_clear_context=True
             )
@@ -1682,7 +1682,7 @@ def remove_tokens_from_specific_intervals(
     for token_number, token in enumerate(tokens_list):
         partial_function = functools.partial(
                 if_token_number_in_interval,
-                token_number=token_number)
+                number=token_number)
         result = list(map(partial_function, intervals_dicts_list))
         if any(result):
             continue
