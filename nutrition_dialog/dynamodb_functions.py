@@ -186,7 +186,7 @@ def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
         if item['initial_phrase']['S'] == yandex_requext.command:
             food_dict = json.loads(item['response']['S'])
     if food_dict and ('foods' in food_dict or 'message' in food_dict):
-        print(f'"{yandex_requext.command}" found in cache!')
+        print(f'"{yandex_requext.command}" FOUND in cache!')
         yandex_requext = yandex_requext.set_food_dict(food_dict=food_dict)
         yandex_requext = yandex_requext.set_food_already_in_cache()
     else:

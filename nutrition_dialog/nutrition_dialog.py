@@ -1,4 +1,4 @@
-from DialogIntents import intents, DialogIntent
+from DialogIntents import intents, DialogIntent, Intent99999Default
 from yandex_types import YandexRequest, \
     transform_event_dict_to_yandex_request_object, \
     transform_yandex_response_to_output_result_dict
@@ -21,6 +21,10 @@ def nutrition_dialog(event, context):
     print(f'ЮЗЕР_{log_hash(request)}: {request.original_utterance}')
     available_intents: typing.List[DialogIntent] = intents()
     request = choose_the_best_intent(available_intents, request)
+    if not request.chosen_intent:
+        print('ERROR! No intent was chosen! Setting to default not to crash')
+        request = replace(request, chosen_intent=Intent99999Default)
+
     print(f'{request.chosen_intent.__name__} has been chosen')
     response = request.chosen_intent.respond(request=request)
 
@@ -65,7 +69,7 @@ def choose_the_best_intent(
     for intent in intents_sorted_by_time_to_evaluate:
         request = intent.evaluate(request=request)
         if intent in request.intents_matching_dict and \
-                request.intents_matching_dict[intent] == 100:
+                request.intents_matching_dict[intent] >= 100:
             request = replace(request, chosen_intent=intent)
             break
 
@@ -91,7 +95,7 @@ if __name__ == '__main__':
 
     result = nutrition_dialog(
         event=mockers.mock_incoming_event(
-            phrase='алиса',
+            phrase='что я ела',
             timezone='UTC+3'
 
         ),
