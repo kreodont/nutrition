@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     result = nutrition_dialog(
         event=mockers.mock_incoming_event(
-            phrase='я не знаю',
+            phrase='какое у тебя имя',
             timezone='UTC+3'
 
         ),

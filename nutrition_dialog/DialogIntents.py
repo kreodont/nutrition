@@ -383,7 +383,7 @@ class Intent00011EatPoop(DialogIntent):
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('говно', 'какашка', 'кака', 'дерьмо',
                            'фекалии', 'какахе', 'какахи', 'какаха', 'какаху',
-                           'какашку'):
+                           'какашку', 'какашки'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -558,6 +558,8 @@ class Intent00015WhatIsYourName(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         tokens = request.tokens
         if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
+            request.intents_matching_dict[cls] = 100
+        elif request.command in ('какое у тебя имя', ):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
