@@ -481,7 +481,8 @@ class Intent00014NothingToAdd(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё'):
+        if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё',
+                           'я не знаю что сказать', 'я не знаю'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -520,6 +521,7 @@ class Intent00031AnyFood(DialogIntent):
                  'а я записываю калории.',
         )
 
+
 class Intent00031Inache(DialogIntent):
     time_to_evaluate = 0
     time_to_respond = 10  # Need to clear context
@@ -543,6 +545,7 @@ class Intent00031Inache(DialogIntent):
             yandex_request=request,
             text='Остроумно, ага',
         )
+
 
 class Intent00015WhatIsYourName(DialogIntent):
     time_to_evaluate = 0
