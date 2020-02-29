@@ -520,6 +520,29 @@ class Intent00031AnyFood(DialogIntent):
                  'а я записываю калории.',
         )
 
+class Intent00031Inache(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Иначе'
+    should_clear_context = True
+    description = 'Навык говорит: попробуйте сказать иначе. Пользователь ' \
+                  'говорит иначе'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        full_phrase = request.original_utterance.lower()
+        if full_phrase in ('иначе'):
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Остроумно, ага',
+        )
 
 class Intent00015WhatIsYourName(DialogIntent):
     time_to_evaluate = 0
