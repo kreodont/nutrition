@@ -495,6 +495,32 @@ class Intent00014NothingToAdd(DialogIntent):
         )
 
 
+class Intent00031AnyFood(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Любую еду'
+    should_clear_context = True
+    description = 'Пользователь не хочет думать и говорит: Любую. Не будем ' \
+                  'решать за него'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        full_phrase = request.original_utterance.lower()
+        if full_phrase in ('любую', 'любую еду', 'какую сама хочешь', ):
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Ну, сама-то я не могу решить. Давайте так: вы едите, '
+                 'а я записываю калории.',
+        )
+
+
 class Intent00015WhatIsYourName(DialogIntent):
     time_to_evaluate = 0
     time_to_respond = 10  # Need to clear context
