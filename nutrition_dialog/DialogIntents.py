@@ -533,7 +533,7 @@ class Intent00031Inache(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if full_phrase in ('иначе'):
+        if full_phrase in ('иначе', ):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -585,7 +585,8 @@ class Intent00016CalledAgain(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
-        if full_phrase in ('умный счетчик калорий',):
+        if full_phrase in ('умный счетчик калорий',
+                           'алиса умный счетчик калорий'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -1331,18 +1332,21 @@ class Intent00001HowManyCaloriesIn(DialogIntent):
         tokens = request.tokens
         if 'сколько' in tokens and 'калорий' in tokens and 'в' in tokens and \
                 not part_of_the_word_in_at_least_one_tokens('итог', tokens):
-            request.intents_matching_dict[cls] = 110
+            request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
         return request
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        request = replace(request, command=request.command.lower().replace(
+                'сколько', "").replace('калорий', '').replace(
+                ' в ', '').strip())
+        if request.command.endswith('е'):
+            request = replace(request, command=request.command[:-1])
 
         return Intent01000SearchForFood.respond(
-            request=replace(request, command=request.command.lower().replace(
-                'сколько', "").replace('калорий', '').replace(
-                ' в ', '').strip()[:-1]),
+            request=request,
             do_not_ask_for_save=True,
         )
         # return construct_yandex_response_from_yandex_request(
