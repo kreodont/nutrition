@@ -275,7 +275,6 @@ def transform_event_dict_to_yandex_request_object(
         food_dict={},
         api_keys={},
         write_to_food_cache=event_dict.get('write_to_food_cache'),
-        use_food_cache=event_dict.get('use_food_cache')
 
                                               )
 
