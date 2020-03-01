@@ -47,7 +47,7 @@ def nutrition_dialog(event, context):
             response.initial_request.food_already_in_cache:
         write_to_cache_table(yandex_response=response)
 
-    print(f'НАВЫК_{log_hash(response.initial_request)}:'
+    print(f'НАВЫК_{log_hash(response.initial_request)}:____________________'
           f' {response.response_text}')
     return transform_yandex_response_to_output_result_dict(
         yandex_response=response)

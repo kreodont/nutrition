@@ -293,7 +293,7 @@ class Intent00008Goodbye(DialogIntent):
                 'выйди' in tokens or
                 'до свидания' in full_phrase.lower() or
                 'всего доброго' in full_phrase.lower() or
-                full_phrase in ('иди на хуй', 'стоп', 'пока')
+                full_phrase in ('иди на хуй', 'стоп', 'пока', 'выходить')
 
         ):
             request.intents_matching_dict[cls] = 100
@@ -734,7 +734,7 @@ class Intent00021ShutUp(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать',
-                           'иди нахуй',):
+                           'иди нахуй', 'не говори ничего'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -745,7 +745,7 @@ class Intent00021ShutUp(DialogIntent):
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text='Молчу',
-            end_session=True,
+            end_session=False,
         )
 
 
@@ -852,9 +852,14 @@ class Intent00024SaveFood(DialogIntent):
                 fetch_context_from_dynamo_database(
                     session_id=r.session_id,
                     lambda_mode=r.aws_lambda_mode))
-
+        if not request.context:  # if no context found, no way it is save food
+            r.intents_matching_dict[cls] = 0
+            return r
         tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
+        if 'не' in tokens or 'нет' in tokens:
+            r.intents_matching_dict[cls] = 0
+            return r
         if ('хранить' in tokens or
                 'сохранить' in tokens or
                 'сохраняй' in tokens or
@@ -906,6 +911,10 @@ class Intent00025DoNotSaveFood(DialogIntent):
                 fetch_context_from_dynamo_database(
                     session_id=r.session_id,
                     lambda_mode=r.aws_lambda_mode))
+
+        if not request.context:  # if no context found, no way it is save food
+            r.intents_matching_dict[cls] = 0
+            return r
 
         tokens = request.tokens
         if (
