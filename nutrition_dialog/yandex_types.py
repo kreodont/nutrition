@@ -267,12 +267,16 @@ def transform_event_dict_to_yandex_request_object(
             path='request -> nlu -> entities',
             event_dict=event_dict,)
     entities = [] if entities is None else entities
-    full_yandex_request_constructor = partial(partial_constructor,
-                                              entities=entities,
-                                              context=None,
-                                              intents_matching_dict={},
-                                              food_dict={},
-                                              api_keys={},
+    full_yandex_request_constructor = partial(
+        partial_constructor,
+        entities=entities,
+        context=None,
+        intents_matching_dict={},
+        food_dict={},
+        api_keys={},
+        write_to_food_cache=event_dict.get('write_to_food_cache'),
+        use_food_cache=event_dict.get('use_food_cache')
+
                                               )
 
     return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode)

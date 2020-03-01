@@ -510,7 +510,8 @@ class Intent00031AnyFood(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if full_phrase in ('любую', 'любую еду', 'какую сама хочешь',):
+        if full_phrase in ('любую', 'любую еду',
+                           'какую сама хочешь', 'ну любую'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -1005,7 +1006,8 @@ class Intent00026WhatIAte(DialogIntent):
                            'посчитай калории',
                            'итог',
                            'наели калорий за сегодня',
-                           'итого', 'посчитай все',
+                           'итого', 'посчитай все', 'мой список продуктов',
+                           'общий счет',
                            ):
             request.intents_matching_dict[cls] = 100
         else:
@@ -1385,30 +1387,6 @@ class Intent01000SearchForFood(DialogIntent):
         request.intents_matching_dict[cls] = 100
         return request
 
-        # request = get_from_cache_table(yandex_requext=request)
-        # if request.food_dict:
-        #     request.intents_matching_dict[cls] = 90
-        #     return request
-        #
-        # if not request.translated_phrase:
-        #     request = translate_into_english(yandex_request=request)
-        #
-        # if not request.translated_phrase:
-        #     request.intents_matching_dict[cls] = 0
-        #     return request
-        #
-        # request = query_api(yandex_request=request)
-        # write_keys_to_cache_table(
-        #     keys_dict=request.api_keys,
-        #     lambda_mode=request.aws_lambda_mode)
-        #
-        # if request.food_dict:
-        #     request.intents_matching_dict[cls] = 90
-        # else:
-        #     request.intents_matching_dict[cls] = 0
-        #
-        # return request
-
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         if 'answer' in kwargs and kwargs['answer'] in (
@@ -1433,7 +1411,8 @@ class Intent01000SearchForFood(DialogIntent):
                 text='Забыто',
                 should_clear_context=True)
 
-        request = get_from_cache_table(yandex_requext=request)
+        if request.use_food_cache:
+            request = get_from_cache_table(yandex_requext=request)
 
         if not request.food_dict and not request.translated_phrase:
             request = translate_into_english(yandex_request=request)
