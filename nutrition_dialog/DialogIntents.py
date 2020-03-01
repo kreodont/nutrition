@@ -196,6 +196,7 @@ class Intent00005ThankYou(DialogIntent):
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
             text=random.choice(answers),
+            should_clear_context=False,
         )
 
 
@@ -293,7 +294,8 @@ class Intent00008Goodbye(DialogIntent):
                 'выйди' in tokens or
                 'до свидания' in full_phrase.lower() or
                 'всего доброго' in full_phrase.lower() or
-                full_phrase in ('иди на хуй', 'стоп', 'пока', 'выходить')
+                full_phrase in ('иди на хуй', 'стоп', 'пока', 'выходить',
+                                'отключись')
 
         ):
             request.intents_matching_dict[cls] = 100
@@ -482,7 +484,8 @@ class Intent00014NothingToAdd(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё',
-                           'я не знаю что сказать', 'я не знаю'):
+                           'я не знаю что сказать', 'я не знаю',
+                           'да никакой не надо',):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -507,7 +510,7 @@ class Intent00031AnyFood(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if full_phrase in ('любую', 'любую еду', 'какую сама хочешь', ):
+        if full_phrase in ('любую', 'любую еду', 'какую сама хочешь',):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -533,7 +536,7 @@ class Intent00031Inache(DialogIntent):
     @classmethod
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
-        if full_phrase in ('иначе', ):
+        if full_phrase in ('иначе',):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -559,7 +562,7 @@ class Intent00015WhatIsYourName(DialogIntent):
         tokens = request.tokens
         if 'как' in tokens and ('зовут' in tokens or 'имя' in tokens):
             request.intents_matching_dict[cls] = 100
-        elif request.command in ('какое у тебя имя', ):
+        elif request.command in ('какое у тебя имя',):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -641,7 +644,8 @@ class Intent00018Angry(DialogIntent):
         full_phrase = request.original_utterance
         if full_phrase in (
                 'дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
-                'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо'):
+                'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо',
+                'ты тупая',):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -957,49 +961,52 @@ class Intent00026WhatIAte(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         tokens = request.tokens
-        if (('что' in tokens or 'сколько' in tokens) and (
-                'ел' in full_phrase or 'хран' in full_phrase or 'калор')) or \
-                full_phrase in ('покажи результат',
-                                'открыть список сохранения',
-                                'скажи результат',
-                                'общий результат',
-                                'общий итог',
-                                'какой итог',
-                                'сколько всего',
-                                'сколько калорий',
-                                'какой результат',
-                                'сколько в общем калорий',
-                                'сколько всего калорий',
-                                'сколько калорий в общей сумме',
-                                'сколько я съел калорий',
-                                'сколько я съела калорий',
-                                'покажи сохраненную',
-                                'покажи сколько калорий',
-                                'сколько я съел',
-                                'сколько всего калорий было',
-                                'сколько всего калорий было в день',
-                                'список сохраненные еды',
-                                'список сохраненной еды',
-                                'общая сумма калорий за день',
-                                'посчитай все калории за сегодня',
-                                'сколько все вместе за весь день',
-                                'ну посчитай сколько всего калорий',
-                                'посчитай сколько всего калорий',
-                                'подсчитать калории',
-                                'сколько калорий у меня сегодня',
-                                'подсчитать все',
-                                'сколько всего получилось',
-                                'сколько за день',
-                                'сколько калорий за день',
-                                'сколько сегодня калорий',
-                                'сколько было сегодня калорий',
-                                'сколько сегодня калорий было',
-                                'общее количество',
-                                'посчитай калории',
-                                'итог',
-                                'наели калорий за сегодня',
-                                'итого', 'посчитай все',
-                                ):
+        if ('что' in tokens or 'сколько' in tokens) \
+                and ('ел' in full_phrase or 'хран' in full_phrase or 'калор'
+                     in full_phrase):
+            request.intents_matching_dict[cls] = 100
+            return request
+        if full_phrase in ('покажи результат',
+                           'открыть список сохранения',
+                           'скажи результат',
+                           'общий результат',
+                           'общий итог',
+                           'какой итог',
+                           'сколько всего',
+                           'сколько калорий',
+                           'какой результат',
+                           'сколько в общем калорий',
+                           'сколько всего калорий',
+                           'сколько калорий в общей сумме',
+                           'сколько я съел калорий',
+                           'сколько я съела калорий',
+                           'покажи сохраненную',
+                           'покажи сколько калорий',
+                           'сколько я съел',
+                           'сколько всего калорий было',
+                           'сколько всего калорий было в день',
+                           'список сохраненные еды',
+                           'список сохраненной еды',
+                           'общая сумма калорий за день',
+                           'посчитай все калории за сегодня',
+                           'сколько все вместе за весь день',
+                           'ну посчитай сколько всего калорий',
+                           'посчитай сколько всего калорий',
+                           'подсчитать калории',
+                           'сколько калорий у меня сегодня',
+                           'подсчитать все',
+                           'сколько всего получилось',
+                           'сколько за день',
+                           'сколько калорий за день',
+                           'сколько сегодня калорий',
+                           'сколько было сегодня калорий',
+                           'сколько сегодня калорий было',
+                           'общее количество',
+                           'посчитай калории',
+                           'итог',
+                           'наели калорий за сегодня',
+                           'итого', 'посчитай все',
+                           ):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -1349,8 +1356,8 @@ class Intent00001HowManyCaloriesIn(DialogIntent):
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         request = replace(request, command=request.command.lower().replace(
-                'сколько', "").replace('калорий', '').replace(
-                ' в ', '').strip())
+            'сколько', "").replace('калорий', '').replace(
+            ' в ', '').strip())
         if request.command.endswith('е'):
             request = replace(request, command=request.command[:-1])
 
