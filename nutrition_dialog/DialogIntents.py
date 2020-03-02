@@ -485,7 +485,7 @@ class Intent00014NothingToAdd(DialogIntent):
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё',
                            'я не знаю что сказать', 'я не знаю',
-                           'да никакой не надо',):
+                           'да никакой не надо', 'да никакую'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -511,7 +511,7 @@ class Intent00031AnyFood(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('любую', 'любую еду',
-                           'какую сама хочешь', 'ну любую'):
+                           'какую сама хочешь', 'ну любую', 'вкусную'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -547,7 +547,7 @@ class Intent00031Inache(DialogIntent):
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
         return construct_yandex_response_from_yandex_request(
             yandex_request=request,
-            text='Остроумно, ага',
+            text='Остроумно',
         )
 
 
@@ -590,7 +590,7 @@ class Intent00016CalledAgain(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('умный счетчик калорий',
-                           'алиса умный счетчик калорий'):
+                           'алиса умный счетчик калорий', 'умный счетчик'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -1008,6 +1008,9 @@ class Intent00026WhatIAte(DialogIntent):
                            'наели калорий за сегодня',
                            'итого', 'посчитай все', 'мой список продуктов',
                            'общий счет', 'что уже записано',
+                           'сложить все калории сегодняшние',
+                           'почитай калории за весь день',
+                           'сумма калорий за весь день',
                            ):
             request.intents_matching_dict[cls] = 100
         else:

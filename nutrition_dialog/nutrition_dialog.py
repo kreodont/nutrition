@@ -93,15 +93,15 @@ if __name__ == '__main__':
     To test locally
     """
 
-    # result = nutrition_dialog(
-    #     #     event=mockers.mock_incoming_event(
-    #     #         phrase='колбасы',
-    #     #         timezone='UTC+3',
-    #     #         # write_to_food_cache=False,
-    #     #
-    #     #     ),
-    #     #     context={})
     result = nutrition_dialog(
-  {'meta': {'locale': 'ru-RU', 'timezone': 'Asia/Krasnoyarsk', 'client_id': 'com.yandex.browser/20.2.1.120 (samsung SM-A710S; android 7.0)', 'interfaces': {'screen': {}, 'account_linking': {}}}, 'session': {'message_id': 1, 'session_id': '6b962a77-7e83-4389-948c-8b33724f185d', 'skill_id': '2142c27e-6062-4899-a43b-806f2eddeb27', 'user_id': '424754C0EBEB862BC6810BA0A1A3D4E71E9657407CBC01A3F2A3D54BB2B87242', 'device': {'device_id': '424754C0EBEB862BC6810BA0A1A3D4E71E9657407CBC01A3F2A3D54BB2B87242'}, 'new': False}, 'request': {'command': '', 'original_utterance': '🍉🍉🍇', 'nlu': {'tokens': [], 'entities': [], 'intents': {}}, 'markup': {'dangerous_context': False}, 'type': 'SimpleUtterance'}, 'version': '1.0'}, {})
+            event=mockers.mock_incoming_event(
+                phrase='алиса сколько калорий в белом хлебе',
+                timezone='UTC+3',
+                # write_to_food_cache=False,
+
+            ),
+            context={})
+  #   result = nutrition_dialog(
+  # {'meta': {'locale': 'ru-RU', 'timezone': 'Asia/Krasnoyarsk', 'client_id': 'com.yandex.browser/20.2.1.120 (samsung SM-A710S; android 7.0)', 'interfaces': {'screen': {}, 'account_linking': {}}}, 'session': {'message_id': 1, 'session_id': '6b962a77-7e83-4389-948c-8b33724f185d', 'skill_id': '2142c27e-6062-4899-a43b-806f2eddeb27', 'user_id': '424754C0EBEB862BC6810BA0A1A3D4E71E9657407CBC01A3F2A3D54BB2B87242', 'device': {'device_id': '424754C0EBEB862BC6810BA0A1A3D4E71E9657407CBC01A3F2A3D54BB2B87242'}, 'new': False}, 'request': {'command': '', 'original_utterance': '🍉🍉🍇', 'nlu': {'tokens': [], 'entities': [], 'intents': {}}, 'markup': {'dangerous_context': False}, 'type': 'SimpleUtterance'}, 'version': '1.0'}, {})
 
     print(result)
