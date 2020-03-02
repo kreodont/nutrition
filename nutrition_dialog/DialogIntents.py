@@ -617,7 +617,7 @@ class Intent00017WhereIsSaved(DialogIntent):
         if full_phrase in ('а где сохраняются', 'где сохраняются',
                            'где сохранить', 'а зачем сохранять',
                            'зачем сохранять', 'куда', 'а куда сохранила',
-                           'где сохранено', 'где'):
+                           'где сохранено', 'где', 'зачем сохранить'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -1901,7 +1901,7 @@ def part_of_the_word_in_at_least_one_tokens(
 def russian_replacements_in_original_utterance(
         *,
         yandex_request: YandexRequest) -> YandexRequest:
-    phrase = yandex_request.original_utterance
+    phrase = yandex_request.command
     tokens = yandex_request.tokens
     replacements = [
         {'search_tokens': ['щи', 'щей'], 'search_text': [],
