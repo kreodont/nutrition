@@ -485,7 +485,8 @@ class Intent00014NothingToAdd(DialogIntent):
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё',
                            'я не знаю что сказать', 'я не знаю',
-                           'да никакой не надо', 'да никакую', 'а я не знаю'):
+                           'да никакой не надо', 'да никакую', 'а я не знаю',
+                           'никакую не надо', ):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -617,7 +618,8 @@ class Intent00017WhereIsSaved(DialogIntent):
         if full_phrase in ('а где сохраняются', 'где сохраняются',
                            'где сохранить', 'а зачем сохранять',
                            'зачем сохранять', 'куда', 'а куда сохранила',
-                           'где сохранено', 'где', 'зачем сохранить'):
+                           'где сохранено', 'где', 'зачем сохранить',
+                           'что сохранить'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -646,7 +648,7 @@ class Intent00018Angry(DialogIntent):
         if full_phrase in (
                 'дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
                 'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо',
-                'ты тупая',):
+                'ты тупая', 'ты дурочка'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -739,7 +741,7 @@ class Intent00021ShutUp(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance
         if full_phrase in ('заткнись', 'замолчи', 'молчи', 'молчать',
-                           'иди нахуй', 'не говори ничего'):
+                           'иди нахуй', 'не говори ничего', 'иди в жопу'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -1010,7 +1012,9 @@ class Intent00026WhatIAte(DialogIntent):
                            'общий счет', 'что уже записано',
                            'сложить все калории сегодняшние',
                            'почитай калории за весь день',
-                           'сумма калорий за весь день',
+                           'сумма калорий за весь день', 'посчитай все вместе',
+                           'всего калорий в день',
+
                            ):
             request.intents_matching_dict[cls] = 100
         else:
