@@ -1441,6 +1441,9 @@ class Intent01000SearchForFood(DialogIntent):
         if request.use_food_cache:
             request = get_from_cache_table(yandex_requext=request)
 
+        if request.error:
+            return Intent99999Default.respond(request=request)
+
         if not request.food_dict and not request.translated_phrase:
             request = russian_replacements_in_original_utterance(
                 yandex_request=request)

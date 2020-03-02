@@ -6,6 +6,7 @@ import botocore.client
 import boto3
 import typing
 from DialogContext import DialogContext
+from dataclasses import replace
 
 
 # This cache is useful because AWS lambda can keep it's state, so no
@@ -158,6 +159,7 @@ def get_from_cache_table(*, yandex_requext: YandexRequest) -> YandexRequest:
     food_dict = {}
     if not yandex_requext.command:
         print('Empty Yandex command passed, nothing to search')
+        yandex_requext = replace(yandex_requext, error='Empty Yandex request')
         return yandex_requext
     try:
         print(f'Searching for "{yandex_requext.command}" in cache table')

@@ -101,46 +101,7 @@ if __name__ == '__main__':
     #     #
     #     #     ),
     #     #     context={})
-    result = nutrition_dialog({
-  "meta": {
-    "locale": "ru-RU",
-    "timezone": "UTC",
-    "client_id": "ru.yandex.searchplugin/7.16 (none none; android 4.4.2)",
-    "interfaces": {
-      "screen": {},
-      "payments": {},
-      "account_linking": {}
-    }
-  },
-  "session": {
-    "message_id": 1,
-    "session_id": "1b54fd92-31f6-45ce-9035-685b653f97cf",
-    "skill_id": "2142c27e-6062-4899-a43b-806f2eddeb27",
-    "user_id": "E401738E621D9AAC04AB162E44F39B3ABDA23A5CB2FF19E394C1915ED45CF467",
-    "user": {
-      "user_id": "BC8947C16A1442363544358F1761EA15BD1C81EF522C43D9CE69B9B874DC86D5"
-    },
-    "device": {
-      "device_id": "E401738E621D9AAC04AB162E44F39B3ABDA23A5CB2FF19E394C1915ED45CF467"
-    },
-    "new": False
-  },
-  "request": {
-    "command": "колбасы",
-    "original_utterance": "колбасы",
-    "nlu": {
-      "tokens": [
-        "колбасы"
-      ],
-      "entities": [],
-      "intents": {}
-    },
-    "markup": {
-      "dangerous_context": False
-    },
-    "type": "SimpleUtterance"
-  },
-  "version": "1.0"
-}, {})
+    result = nutrition_dialog(
+  {'meta': {'locale': 'ru-RU', 'timezone': 'Asia/Krasnoyarsk', 'client_id': 'com.yandex.browser/20.2.1.120 (samsung SM-A710S; android 7.0)', 'interfaces': {'screen': {}, 'account_linking': {}}}, 'session': {'message_id': 1, 'session_id': '6b962a77-7e83-4389-948c-8b33724f185d', 'skill_id': '2142c27e-6062-4899-a43b-806f2eddeb27', 'user_id': '424754C0EBEB862BC6810BA0A1A3D4E71E9657407CBC01A3F2A3D54BB2B87242', 'device': {'device_id': '424754C0EBEB862BC6810BA0A1A3D4E71E9657407CBC01A3F2A3D54BB2B87242'}, 'new': False}, 'request': {'command': '', 'original_utterance': '🍉🍉🍇', 'nlu': {'tokens': [], 'entities': [], 'intents': {}}, 'markup': {'dangerous_context': False}, 'type': 'SimpleUtterance'}, 'version': '1.0'}, {})
 
     print(result)
