@@ -485,7 +485,7 @@ class Intent00014NothingToAdd(DialogIntent):
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('никакую', 'ничего', 'никакой', 'все', 'всё',
                            'я не знаю что сказать', 'я не знаю',
-                           'да никакой не надо', 'да никакую'):
+                           'да никакой не надо', 'да никакую', 'а я не знаю'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
