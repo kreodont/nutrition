@@ -1663,7 +1663,7 @@ def choose_case(*, amount: float, round_to_int=False, tts_mode=False) -> str:
 
 @timeit
 def translate_into_english(*, yandex_request: YandexRequest) -> YandexRequest:
-    russian_phrase = yandex_request.command
+    russian_phrase = ' '.join(yandex_request.tokens)
     if yandex_request.aws_lambda_mode:
         timeout = 1.0
     else:
