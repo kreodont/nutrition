@@ -2098,8 +2098,8 @@ def russian_replacements_in_original_utterance(
 
     return replace(
             yandex_request,
-            original_utterance=phrase,
-            command=phrase,
+            # original_utterance=phrase,
+            # command=phrase,
             tokens=phrase.split(),
     )
 
