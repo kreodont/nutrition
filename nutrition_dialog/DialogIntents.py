@@ -2080,7 +2080,10 @@ def russian_replacements_in_original_utterance(
          'replacement': 'Rice Pilaf'},
         {'search_tokens': ['сырков', 'сырка', 'сырки', 'сырок'],
          'search_text': [],
-         'replacement': 'Cream Cheese'}
+         'replacement': 'Cream Cheese'},
+        {'search_tokens': ['ряженка', 'ряженки', 'ряженке', 'ряженок'],
+         'search_text': [],
+         'replacement': 'Flavored Kefir'}
     ]
     for replacement in replacements:
         for text in replacement['search_text']:
@@ -2093,7 +2096,12 @@ def russian_replacements_in_original_utterance(
             if token in phrase:
                 phrase = phrase.replace(token, replacement['replacement'])
 
-    return replace(yandex_request, original_utterance=phrase, command=phrase)
+    return replace(
+            yandex_request,
+            original_utterance=phrase,
+            command=phrase,
+            tokens=phrase.split(),
+    )
 
 
 if __name__ == '__main__':
