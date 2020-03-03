@@ -180,7 +180,9 @@ class Intent00005ThankYou(DialogIntent):
                 'классная штука',
                 'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
                 'клево', 'ништяк', 'класс', 'спасибо алиса',
-                'спасибо моя дорогая') or 'лайк' in request.tokens:
+                'спасибо моя дорогая', 'благодарю', 'спасибо спасибо',
+                'окей спасибо',
+        ) or 'лайк' in request.tokens:
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -512,7 +514,8 @@ class Intent00031AnyFood(DialogIntent):
     def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
         full_phrase = request.original_utterance.lower()
         if full_phrase in ('любую', 'любую еду',
-                           'какую сама хочешь', 'ну любую', 'вкусную'):
+                           'какую сама хочешь', 'ну любую', 'вкусную',
+                           'какую угодно', 'какую хочешь', ):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -648,7 +651,7 @@ class Intent00018Angry(DialogIntent):
         if full_phrase in (
                 'дура', 'дурочка', 'иди на хер', 'пошла нахер', 'тупица',
                 'идиотка', 'тупорылая', 'тупая', 'ты дура', 'плохо',
-                'ты тупая', 'ты дурочка'):
+                'ты тупая', 'ты дурочка', 'пошла на хуй', 'да ты врешь'):
             request.intents_matching_dict[cls] = 100
         else:
             request.intents_matching_dict[cls] = 0
@@ -698,35 +701,6 @@ class Intent00019NotImplemented(DialogIntent):
             yandex_request=request,
             text='Этого я пока не умею, но планирую скоро научиться. '
                  'Следите за обновлениями',
-        )
-
-
-class Intent00020UseAsAlice(DialogIntent):
-    time_to_evaluate = 0
-    time_to_respond = 10  # Need to clear context
-    name = 'Обращение к Алисе'
-    should_clear_context = True
-    description = 'Пользователь думает что говорит с Алисой и пытается ' \
-                  'вызвать ее функции. Нужно сказать ему, что это Счетчик ' \
-                  'и научить как выйти в Алису'
-
-    @classmethod
-    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
-        full_phrase = request.original_utterance.lower()
-        if 'запусти' in full_phrase or 'поиграем' in full_phrase or \
-                'алиса' in full_phrase or 'порно' in full_phrase or \
-                'доллар' in full_phrase:
-            request.intents_matching_dict[cls] = 100
-        else:
-            request.intents_matching_dict[cls] = 0
-        return request
-
-    @classmethod
-    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
-        return construct_yandex_response_from_yandex_request(
-            yandex_request=request,
-            text='Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису '
-                 'и запустить другой навык, скажите Выход'
         )
 
 
@@ -1013,7 +987,8 @@ class Intent00026WhatIAte(DialogIntent):
                            'сложить все калории сегодняшние',
                            'почитай калории за весь день',
                            'сумма калорий за весь день', 'посчитай все вместе',
-                           'всего калорий в день',
+                           'всего калорий в день', 'сколько уже всего',
+                           'сколько получилось всего',
 
                            ):
             request.intents_matching_dict[cls] = 100
@@ -1397,6 +1372,8 @@ class Intent00001HowManyCaloriesIn(DialogIntent):
         if request.command.endswith('е'):
             request = replace(request, command=request.command[:-1])
 
+        request = replace(request, tokens=request.command.split())
+
         return Intent01000SearchForFood.respond(
             request=request,
             do_not_ask_for_save=True,
@@ -1405,6 +1382,35 @@ class Intent00001HowManyCaloriesIn(DialogIntent):
         #     yandex_request=request,
         #     text='Сейчас посчитаем',
         # )
+
+
+class Intent00180UseAsAlice(DialogIntent):
+    time_to_evaluate = 0
+    time_to_respond = 10  # Need to clear context
+    name = 'Обращение к Алисе'
+    should_clear_context = True
+    description = 'Пользователь думает что говорит с Алисой и пытается ' \
+                  'вызвать ее функции. Нужно сказать ему, что это Счетчик ' \
+                  'и научить как выйти в Алису'
+
+    @classmethod
+    def evaluate(cls, *, request: YandexRequest, **kwargs) -> YandexRequest:
+        full_phrase = request.original_utterance.lower()
+        if 'запусти' in full_phrase or 'поиграем' in full_phrase or \
+                'алиса' in full_phrase or 'порно' in full_phrase or \
+                'доллар' in full_phrase:
+            request.intents_matching_dict[cls] = 100
+        else:
+            request.intents_matching_dict[cls] = 0
+        return request
+
+    @classmethod
+    def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        return construct_yandex_response_from_yandex_request(
+            yandex_request=request,
+            text='Я навык Умный Счетчик Калорий. Чтобы вернуться в Алису '
+                 'и запустить другой навык, скажите Выход'
+        )
 
 
 class Intent01000SearchForFood(DialogIntent):
