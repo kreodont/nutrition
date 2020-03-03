@@ -1494,7 +1494,7 @@ class Intent01000SearchForFood(DialogIntent):
             response_text += '\nСкажите "да" или "сохранить", если хотите ' \
                              'записать этот прием пищи.'
 
-            tts += '. Сохранить?'
+            # tts += '. Сохранить?'
             # if request.has_screen:
             #     tts = choose_case(
             #         amount=total_calories,
