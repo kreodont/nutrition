@@ -297,7 +297,7 @@ class Intent00008Goodbye(DialogIntent):
                 'до свидания' in full_phrase.lower() or
                 'всего доброго' in full_phrase.lower() or
                 full_phrase in ('иди на хуй', 'стоп', 'пока', 'выходить',
-                                'отключись', 'ладно пока')
+                                'отключись', 'закройся', 'ладно пока')
 
         ):
             request.intents_matching_dict[cls] = 100

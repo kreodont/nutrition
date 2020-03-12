@@ -58,9 +58,9 @@ def manually_add_food_into_dynamo_cached(
         # витамин PP
         pantothenic_acid: float,  # Пантотеновая кислота (Витамин B5)
         folate: float,          # Фолат
-        folic_acid: float,      # Фолиевая кислота
+        folic_acid: float,      # Фолиевая кислота (Витамин B9)
         fatty_acids_total_monounsaturated: float,  # мононенасыщенные жирные
-        # кислоты
+        # кислоты (Витамин F)
         stigmasterol: float,    # Стигмастерин
         campesterol: float,     # Кампестерин
         beta_sitosterol: float,  # Бета ситостерол
@@ -87,9 +87,14 @@ def manually_add_food_into_dynamo_cached(
         theobromine: float,     # Теобромин
         choline: float,         # Холин (Витамин B4)
         biotin: float,          # Биотин (Витамин B7, витамин Н, коэнзим R)
+        inositol: float,        # Витамин B8 (Инозитол, инозит,инозитдроретинол)
 
         synonims: tuple = (),
 ):
+    parameters_dict = locals()
+    del parameters_dict['synonims']
+    del parameters_dict['table_name']
+    print(parameters_dict)
     existing_record = check_dynamo_cached_data(food_name, table_name=table_name)
     if 'foods' in existing_record and len(existing_record['foods']) > 0:
         print(f'There is already food "{food_name}" saved '
@@ -125,21 +130,67 @@ def manually_add_food_into_dynamo_cached(
     for synonim in synonims:
         print(f'Updating synonim {synonim}')
         manually_add_food_into_dynamo_cached(
-                food_name=synonim,
-                table_name=table_name,
-                calories_in_100_grams=calories_in_100_grams,
-                fat=fat,
-                carbohydrate=carbohydrate,
-                sodium=sodium,
-                potassium=potassium,
-                saturated_fat=saturated_fat,
-                dietary_fiber=dietary_fiber,
-                sugar=sugar,
-                cholesterol=cholesterol,
-                alanine=alanine,
-                alcohol=alcohol,
-                synonims=(),  # important to leave empty to prevent endless
-                # recursion
+            food_name=synonim,
+            calories_in_100_grams=calories_in_100_grams,
+            fat=fat,
+            saturated_fat=saturated_fat,
+            cholesterol=cholesterol,
+            sodium=sodium,
+            carbohydrate=carbohydrate,
+            sugar=sugar,
+            potassium=potassium,
+            protein=protein,
+            dietary_fiber=dietary_fiber,
+            vitamin_a=vitamin_a,
+            vitamin_b6=vitamin_b6,
+            vitamin_b12=vitamin_b12,
+            vitamin_c=vitamin_c,
+            vitamin_d=vitamin_d,
+            vitamin_e=vitamin_e,
+            iron=iron,
+            magnesium=magnesium,
+            water=water,
+            phosphorus=phosphorus,
+            zinc=zinc,
+            copper=copper,
+            selenium=selenium,
+            fluoride=fluoride,
+            thiamin=thiamin,
+            riboflavin=riboflavin,
+            niacin=niacin,
+            pantothenic_acid=pantothenic_acid,
+            folate=folate,
+            folic_acid=folic_acid,
+            fatty_acids_total_monounsaturated=fatty_acids_total_monounsaturated,
+            stigmasterol=stigmasterol,
+            campesterol=campesterol,
+            beta_sitosterol=beta_sitosterol,
+            tryptophan=tryptophan,
+            threonine=threonine,
+            isoleucine=isoleucine,
+            leucine=leucine,
+            lysine=lysine,
+            methionine=methionine,
+            cystine=cystine,
+            phenylalanine=phenylalanine,
+            tyrosine=tyrosine,
+            valine=valine,
+            arginine=arginine,
+            histidine=histidine,
+            alanine=alanine,
+            aspartic_acid=aspartic_acid,
+            glutamic_acid=glutamic_acid,
+            glycine=glycine,
+            proline=proline,
+            serine=serine,
+            alcohol=alcohol,
+            caffeine=caffeine,
+            theobromine=theobromine,
+            choline=choline,
+            biotin=biotin,
+            inositol=inositol,
+            synonims=(),  # important to leave empty to prevent endless
+            # recursion
         )
 
 
@@ -155,6 +206,55 @@ manually_add_food_into_dynamo_cached(
         carbohydrate=0.1,
         sugar=0.1,
         potassium=0.024,
-
+        protein=0,
+        dietary_fiber=0,
+        vitamin_a=0,
+        vitamin_b6=0,
+        vitamin_b12=0,
+        vitamin_c=0,
+        vitamin_d=0,
+        vitamin_e=0,
+        iron=0,
+        magnesium=0,
+        water=0,
+        phosphorus=0,
+        zinc=0,
+        copper=0,
+        selenium=0,
+        fluoride=0,
+        thiamin=0,
+        riboflavin=0,
+        niacin=0,
+        pantothenic_acid=0,
+        folate=0,
+        folic_acid=0,
+        fatty_acids_total_monounsaturated=0,
+        stigmasterol=0,
+        campesterol=0,
+        beta_sitosterol=0,
+        tryptophan=0,
+        threonine=0,
+        isoleucine=0,
+        leucine=0,
+        lysine=0,
+        methionine=0,
+        cystine=0,
+        phenylalanine=0,
+        tyrosine=0,
+        valine=0,
+        arginine=0,
+        histidine=0,
+        alanine=0,
+        aspartic_acid=0,
+        glutamic_acid=0,
+        glycine=0,
+        proline=0,
+        serine=0,
+        alcohol=0,
+        caffeine=0,
+        theobromine=0,
+        choline=0,
+        biotin=0,
+        inositol=0,
         synonims=('сливочное масло', 'сливочным маслом')
 )
