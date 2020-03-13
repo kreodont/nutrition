@@ -320,7 +320,7 @@ def manually_add_food_into_dynamo_cached(
         )
 
 
-print(get_data_from_usda('Кофе'))
+print(get_data_from_usda('майонез', fdc_id=388833))
 # print(list(check_dynamo_cached_data('морковь')['foods'][0].keys()))
 # print(check_dynamo_cached_data('сливочное масло'))
 # delete_dymamo_data('сливочным маслом')
@@ -386,3 +386,11 @@ print(get_data_from_usda('Кофе'))
 #         inositol=0,
 #         # synonims=('сливочное масло', 'сливочным маслом')
 # )
+
+# Порции: 1 штука (если применимо), чашка, тарелка, столовая ложка,
+# чайная ложка, маленькая, средняя (по умолчанию), большая (средняя х1.5),
+# огромная (средняя х2), громадная (средняя х3), титаническая (средняя х4)
+#
+#
+#
+#

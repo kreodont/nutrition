@@ -1465,7 +1465,7 @@ class Intent01000SearchForFood(DialogIntent):
         if not request.translated_phrase and not request.food_dict:
             return Intent99999Default.respond(request=request)
 
-        if not request.food_dict:
+        if not request.food_dict:  # trying to query API
             request = query_api(yandex_request=request)
             write_keys_to_cache_table(
                 keys_dict=request.api_keys,
@@ -1474,9 +1474,26 @@ class Intent01000SearchForFood(DialogIntent):
         if not request.food_dict or 'foods' not in request.food_dict:
             return Intent99999Default.respond(request=request)
 
+        include_grams = True
+        foods_found = len(request.food_dict['foods'])
+        if foods_found == 1 and part_of_the_word_in_at_least_one_tokens(
+                        part_of_the_word_to_find='калор',
+                        tokens_list=request.tokens):
+            # User manually specifies amount of calories. Let's substitute
+            calculated_calories = request.food_dict['foods'][0]['nf_calories']
+            search_result = re.search(r'(\d+) калор', request.command)
+            if search_result and len(search_result.groups()) > 0 and search_result.groups()[0] != 0:
+                spoken_calories = float(search_result.groups()[0])
+                if spoken_calories > 0 and spoken_calories != calculated_calories:
+                    coef = spoken_calories / calculated_calories
+                    request.food_dict['foods'][0]['nf_calories'] = spoken_calories
+                    include_grams = False
+                    for key in ('nf_total_fat', 'nf_sugars', 'nf_protein', 'nf_total_carbohydrate'):
+                        request.food_dict['foods'][0][key] *= coef
+
         context = None
         response_text, total_calories = make_final_text(
-            nutrition_dict=request.food_dict)
+            nutrition_dict=request.food_dict, include_grams=include_grams)
 
         if request.has_screen:
             tts = choose_case(
@@ -1563,7 +1580,7 @@ class Intent99999Default(DialogIntent):
                               f"Чтобы выйти, скажите Выход"
 
         if request.has_screen:
-            tts = "Попробуйте сказать иначе"
+            tts = "Такой еды я пока не знаю"
         else:
             tts = full_generated_text
 
@@ -1590,7 +1607,7 @@ def intents() -> list:
     return intents_to_return
 
 
-def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
+def make_final_text(*, nutrition_dict, include_grams=True) -> typing.Tuple[str, float]:
     response_text = ''  # type: str
     total_calories = 0.0  # type: float
     total_fat = 0.0
@@ -1615,9 +1632,11 @@ def make_final_text(*, nutrition_dict) -> typing.Tuple[str, float]:
         number_string = ''
         if len(nutrition_dict["foods"]) > 1:
             number_string = f'{number + 1}. '
-        response_text += f'{number_string}{choose_case(amount=calories)} ' \
-                         f'в {weight} гр.\n' \
-                         f'({round(protein, 1)} бел. ' \
+        response_text += f'{number_string}{choose_case(amount=calories)} '
+        if include_grams:
+            response_text += f'в {weight} гр.'
+        response_text += '\n'
+        response_text += f'({round(protein, 1)} бел. ' \
                          f'{round(fat, 1)} жир. ' \
                          f'{round(carbohydrates, 1)} угл. ' \
                          f'{round(sugar, 1)} сах.)\n'

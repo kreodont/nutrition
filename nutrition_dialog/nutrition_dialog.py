@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     result = nutrition_dialog(
             event=mockers.mock_incoming_event(
-                phrase='восемнадцать штук яблок',
+                phrase='30 грамм макарон и курица 13 калорий',
                 timezone='UTC+3',
                 write_to_food_cache=False,
 
