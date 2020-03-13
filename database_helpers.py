@@ -84,7 +84,7 @@ def find_fdc_id(english_phrase: str, api_key):
             print(f"{food['fdcId']}\t\t{food['name']}\t\t\t{food['data_type']}")
         return
 
-    return list(description_to_code_dict.values())[0]
+    return list(description_to_code_dict.values())[0]['fdcId']
 
 
 def get_data_from_usda(
@@ -98,22 +98,34 @@ def get_data_from_usda(
         if english_phrase == '':
             return
 
+    print(f'English: {english_phrase}')
+
     if fdc_id is None:
         fdc_id = find_fdc_id(english_phrase, api_key)
         if fdc_id is None:
             return
+
+    print(f'FDC id: {fdc_id}')
 
     response = requests.get(
             f'https://api.nal.usda.gov/fdc/v1/{fdc_id}?api_key={api_key}',
             headers={'Content-Type': 'application/json', }
     )
     result_dict = {'portions': {}, 'nutrients': {}}
-    data_dict = response.json()
+    try:
+        data_dict = response.json()
+    except json.decoder.JSONDecodeError:
+        print(f'Cannot decode: {response.text}')
+        return
+    # print(data_dict['foodPortions'])
     for portion in data_dict['foodPortions']:
-        result_dict['portions'][portion['modifier']] = {
+        portion_name = portion.get('portionDescription')
+        if not portion_name:
+            portion_name = portion['modifier']
+        result_dict[portion_name] = {
             'grams': portion["gramWeight"],
         }
-        print(f'{portion["modifier"]} {portion["gramWeight"]} g')
+        print(f'{portion_name} {portion["gramWeight"]} g')
 
     print('\n\n')
 
@@ -308,7 +320,7 @@ def manually_add_food_into_dynamo_cached(
         )
 
 
-print(get_data_from_usda('Морковка', fdc_id=170393))
+print(get_data_from_usda('Кофе'))
 # print(list(check_dynamo_cached_data('морковь')['foods'][0].keys()))
 # print(check_dynamo_cached_data('сливочное масло'))
 # delete_dymamo_data('сливочным маслом')
