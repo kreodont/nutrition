@@ -67,6 +67,8 @@ class YandexRequest:
     use_food_cache: bool = True  # for testing purposes
     write_to_food_cache: bool = True  # for testing
     food_already_in_cache: bool = False  # Not to write it again
+    automatic_save: bool = False  # If set yes, don't ask a user if he wants
+    # to save the food, save it automatically and don't save context
 
     @staticmethod
     def empty_request(*, aws_lambda_mode: bool, error: str):

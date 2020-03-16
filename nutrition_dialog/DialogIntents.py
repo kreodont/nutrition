@@ -181,7 +181,7 @@ class Intent00005ThankYou(DialogIntent):
                 'классно', 'ты молодец', 'круто', 'обалдеть', 'прикольно',
                 'клево', 'ништяк', 'класс', 'спасибо алиса',
                 'спасибо моя дорогая', 'благодарю', 'спасибо спасибо',
-                'окей спасибо',
+                'окей спасибо', 'хорошо', 'прекрасно',
         ) or 'лайк' in request.tokens:
             request.intents_matching_dict[cls] = 100
         else:
@@ -833,9 +833,12 @@ class Intent00024SaveFood(DialogIntent):
                 fetch_context_from_dynamo_database(
                     session_id=r.session_id,
                     lambda_mode=r.aws_lambda_mode))
-        if not request.context:  # if no context found, no way it is save food
+        if not request.context or request.context.user_initial_phrase == \
+                'Empty context' or not request.context.food_dict:  # if
+            # no context found, no way it is save food
             r.intents_matching_dict[cls] = 0
             return r
+
         tokens = request.tokens
         full_phrase = request.original_utterance.lower().strip()
         if 'не' in tokens or 'нет' in tokens:
@@ -893,7 +896,8 @@ class Intent00025DoNotSaveFood(DialogIntent):
                     session_id=r.session_id,
                     lambda_mode=r.aws_lambda_mode))
 
-        if not request.context:  # if no context found, no way it is save food
+        if not request.context or request.context.user_initial_phrase == \
+                'Empty context' or not request.context.food_dict:
             r.intents_matching_dict[cls] = 0
             return r
 
@@ -1075,6 +1079,8 @@ class Intent00027DeleteSavedFood(DialogIntent):
                 # if number speficied, then
                 # Intent00028DeleteSavedFoodByNumber fits better
                 request.intents_matching_dict[cls] = 100
+        if request.command.lower() in ('сбросить все', 'сбрось все'):
+            request.intents_matching_dict[cls] = 100
         if cls not in request.intents_matching_dict:
             request.intents_matching_dict[cls] = 0
 
@@ -1482,13 +1488,17 @@ class Intent01000SearchForFood(DialogIntent):
             # User manually specifies amount of calories. Let's substitute
             calculated_calories = request.food_dict['foods'][0]['nf_calories']
             search_result = re.search(r'(\d+) калор', request.command)
-            if search_result and len(search_result.groups()) > 0 and search_result.groups()[0] != 0:
+            if search_result and len(search_result.groups()) > 0 and \
+                    search_result.groups()[0] != 0:
                 spoken_calories = float(search_result.groups()[0])
-                if spoken_calories > 0 and spoken_calories != calculated_calories:
+                if spoken_calories > 0 and \
+                        spoken_calories != calculated_calories:
                     coef = spoken_calories / calculated_calories
-                    request.food_dict['foods'][0]['nf_calories'] = spoken_calories
+                    request.food_dict['foods'][0]['nf_calories'] = \
+                        spoken_calories
                     include_grams = False
-                    for key in ('nf_total_fat', 'nf_sugars', 'nf_protein', 'nf_total_carbohydrate'):
+                    for key in ('nf_total_fat', 'nf_sugars',
+                                'nf_protein', 'nf_total_carbohydrate'):
                         request.food_dict['foods'][0][key] *= coef
 
         context = None
@@ -1499,9 +1509,24 @@ class Intent01000SearchForFood(DialogIntent):
             tts = choose_case(
                 amount=total_calories,
                 tts_mode=True,
-                round_to_int=True) + '. Сохранить?'
+                round_to_int=True)
         else:
             tts = response_text
+        should_clear_context = False
+        if ('сохрани' in request.command.lower() or
+                'запиш' in request.command.lower() or
+                'записать' in request.command.lower() or
+                'добав' in request.command.lower()):
+            update_user_table(
+                lambda_mode=request.aws_lambda_mode,
+                event_time=datetime.datetime.now(),
+                foods_dict=request.food_dict,
+                utterance=request.original_utterance,
+                user_id=request.user_guid,
+            )
+            kwargs['do_not_ask_for_save'] = True
+            should_clear_context = True
+            response_text += 'Сохранено'
 
         if 'do_not_ask_for_save' not in kwargs:
             context = DialogContext(
@@ -1531,7 +1556,8 @@ class Intent01000SearchForFood(DialogIntent):
             text=response_text,
             tts=tts,
             end_session=False,
-            new_context_to_write=context
+            new_context_to_write=context,
+            should_clear_context=should_clear_context
         )
 
 
@@ -1607,7 +1633,10 @@ def intents() -> list:
     return intents_to_return
 
 
-def make_final_text(*, nutrition_dict, include_grams=True) -> typing.Tuple[str, float]:
+def make_final_text(
+        *,
+        nutrition_dict,
+        include_grams=True) -> typing.Tuple[str, float]:
     response_text = ''  # type: str
     total_calories = 0.0  # type: float
     total_fat = 0.0
