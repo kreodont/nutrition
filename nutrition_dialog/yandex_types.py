@@ -337,6 +337,12 @@ def fetch_one_value_from_event_dict(
     return value
 
 
+def add_button(response: YandexResponse, button_text, button_link) -> \
+        YandexResponse:
+    response.buttons.append({'text': button_text, 'link': button_link})
+    return response
+
+
 def construct_yandex_response_from_yandex_request(
         *,
         yandex_request: YandexRequest,

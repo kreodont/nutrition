@@ -1002,6 +1002,13 @@ class Intent00026WhatIAte(DialogIntent):
 
     @classmethod
     def respond(cls, *, request: YandexRequest, **kwargs) -> YandexResponse:
+        if not request.user.authentificated:
+            return construct_yandex_response_from_yandex_request(
+                yandex_request=request,
+                text=f'Чтобы я смогла запоминать все что Вы съели, вам нужно '
+                     f'зарегистрироваться с помощью аккаунта Яндекс',
+                should_clear_context=True
+            )
         all_datetime_entries = [entity for entity in request.entities if
                                 entity['type'] == "YANDEX.DATETIME"]
         if len(all_datetime_entries) == 0:

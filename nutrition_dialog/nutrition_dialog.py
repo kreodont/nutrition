@@ -17,6 +17,9 @@ def nutrition_dialog(event, context):
         event_dict=event,
         aws_lambda_mode=bool(context),
     )
+    if (request.user.id ==
+            'BC8947C16A1442363544358F1761EA15BD1C81EF522C43D9CE69B9B874DC86D5'):
+        request.user.log_hash = 'ME'
     request_str = f'ЮЗЕР_{request.user.log_hash}_Реплика_{request.message_id}'
     if request.user.authentificated:
         request_str += ' (auth)'
