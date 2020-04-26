@@ -1528,7 +1528,7 @@ class Intent01000SearchForFood(DialogIntent):
             should_clear_context = True
             response_text += 'Сохранено'
 
-        if 'do_not_ask_for_save' not in kwargs:
+        if 'do_not_ask_for_save' not in kwargs and request.user.authentificated:
             context = DialogContext(
                 intent_originator_name=cls.__name__,
                 matching_intents_names=('Intent00022Agree',

@@ -1,7 +1,9 @@
 from dataclasses import dataclass, replace
 import typing
-from functools import partial, reduce
+from functools import reduce
 from DialogContext import DialogContext
+from User import User
+import hashlib
 
 
 @dataclass(frozen=True)
@@ -48,6 +50,7 @@ class YandexRequest:
     user_guid: str  # session -> user_id
     message_id: int  # session -> message_id, starts from 0
     session_id: str  # session -> session_id
+    user: User  # to keep data for authenticated users
     entities: typing.List[typing.Dict[str, str]]  # request -> nlu -> entities
     tokens: typing.List[str]  # request -> nlu -> tokens
     aws_lambda_mode: bool  # whether launched in cloud or not
@@ -98,6 +101,7 @@ class YandexRequest:
                 translated_phrase='',
                 food_dict={},
                 api_keys={},
+                user=User(authentificated=False, id='empty', log_hash='empty'),
         )
 
     def set_context(self, context: typing.Optional[DialogContext]):
@@ -171,8 +175,8 @@ def transform_event_dict_to_yandex_request_object(
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
                 error='Invalid request: client_id is None')
-    partial_constructor = partial(YandexRequest,
-                                  client_device_id=client_device_id)
+    # partial_constructor = partial(YandexRequest,
+    #                               client_device_id=client_device_id)
 
     timezone = fetch_one_value_from_event_dict(
             path='meta -> timezone',
@@ -181,15 +185,15 @@ def transform_event_dict_to_yandex_request_object(
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
                 error='Invalid request: timezone is None')
-    partial_constructor = partial(partial_constructor,
-                                  timezone=timezone)
+    # partial_constructor = partial(partial_constructor,
+    #                               timezone=timezone)
 
     has_screen = fetch_one_value_from_event_dict(
             path='meta -> interfaces -> screen',
             event_dict=event_dict)
     has_screen = False if has_screen is None else True
-    partial_constructor = partial(partial_constructor,
-                                  has_screen=has_screen)
+    # partial_constructor = partial(partial_constructor,
+    #                               has_screen=has_screen)
 
     is_new_session = fetch_one_value_from_event_dict(
             path='session -> new',
@@ -198,8 +202,8 @@ def transform_event_dict_to_yandex_request_object(
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
                 error='Invalid request: is_new_session is None')
-    partial_constructor = partial(partial_constructor,
-                                  is_new_session=is_new_session)
+    # partial_constructor = partial(partial_constructor,
+    #                               is_new_session=is_new_session)
 
     user_guid = fetch_one_value_from_event_dict(
             path='session -> user_id',
@@ -209,15 +213,15 @@ def transform_event_dict_to_yandex_request_object(
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
                 error='Invalid request: user_guid is None')
-    partial_constructor = partial(partial_constructor,
-                                  user_guid=user_guid)
+    # partial_constructor = partial(partial_constructor,
+    #                               user_guid=user_guid)
 
     version = fetch_one_value_from_event_dict(
             path='version',
             event_dict=event_dict)
     version = '1.0' if version is None else version
-    partial_constructor = partial(partial_constructor,
-                                  version=version)
+    # partial_constructor = partial(partial_constructor,
+    #                               version=version)
 
     session_id = fetch_one_value_from_event_dict(
             path='session -> session_id',
@@ -226,8 +230,8 @@ def transform_event_dict_to_yandex_request_object(
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
                 error='Invalid request: session_id is None')
-    partial_constructor = partial(partial_constructor,
-                                  session_id=session_id)
+    # partial_constructor = partial(partial_constructor,
+    #                               session_id=session_id)
 
     message_id = fetch_one_value_from_event_dict(
             path='session -> message_id',
@@ -236,8 +240,8 @@ def transform_event_dict_to_yandex_request_object(
         return YandexRequest.empty_request(
                 aws_lambda_mode=aws_lambda_mode,
                 error='Invalid request: message_id is None')
-    partial_constructor = partial(partial_constructor,
-                                  message_id=message_id)
+    # partial_constructor = partial(partial_constructor,
+    #                               message_id=message_id)
 
     original_utterance = fetch_one_value_from_event_dict(
             path='request -> original_utterance',
@@ -245,16 +249,16 @@ def transform_event_dict_to_yandex_request_object(
     original_utterance = '' if \
         original_utterance is None \
         else original_utterance
-    partial_constructor = partial(partial_constructor,
-                                  original_utterance=original_utterance)
+    # partial_constructor = partial(partial_constructor,
+    #                               original_utterance=original_utterance)
 
     command = fetch_one_value_from_event_dict(
             path='request -> command',
             event_dict=event_dict)
 
-    partial_constructor = partial(
-            partial_constructor,
-            command=command)
+    # partial_constructor = partial(
+    #         partial_constructor,
+    #         command=command)
 
     tokens = fetch_one_value_from_event_dict(
             path='request -> nlu -> tokens',
@@ -262,25 +266,50 @@ def transform_event_dict_to_yandex_request_object(
 
     tokens = [] if tokens is None else tokens
 
-    partial_constructor = partial(partial_constructor,
-                                  tokens=tokens)
+    # partial_constructor = partial(partial_constructor,
+    #                               tokens=tokens)
 
     entities = fetch_one_value_from_event_dict(
             path='request -> nlu -> entities',
             event_dict=event_dict,)
     entities = [] if entities is None else entities
-    full_yandex_request_constructor = partial(
-        partial_constructor,
+    authenticated_id = fetch_one_value_from_event_dict(
+        event_dict=event_dict, path='session -> user -> user_id')
+    if authenticated_id:
+        user_guid = authenticated_id
+
+    return YandexRequest(
+        client_device_id=client_device_id,
+        api_keys={},
+        aws_lambda_mode=aws_lambda_mode,
         entities=entities,
         context=None,
         intents_matching_dict={},
         food_dict={},
-        api_keys={},
         write_to_food_cache=event_dict.get('write_to_food_cache'),
+        command=command,
+        has_screen=has_screen,
+        is_new_session=is_new_session,
+        message_id=message_id,
+        original_utterance=original_utterance,
+        session_id=session_id,
+        timezone=timezone, tokens=tokens,
+        user=User(
+            id=user_guid,
+            authentificated=bool(authenticated_id),
+            log_hash=log_hash(user_guid)),
+        user_guid=user_guid,
+        version=version,
+    )
 
-                                              )
 
-    return full_yandex_request_constructor(aws_lambda_mode=aws_lambda_mode)
+def log_hash(user_id: str) -> str:
+    """
+    Generates a random 3 digits number for one dialog
+    """
+    user_hash_code = hashlib.sha1(user_id.encode()).hexdigest()
+    shorter_int = int(user_hash_code, 16) % (10 ** 4)
+    return str(shorter_int).zfill(4)
 
 
 def fetch_one_value_from_event_dict(
